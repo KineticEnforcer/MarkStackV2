@@ -65,7 +65,7 @@ MarkStack has minimal requirements:
 | **Text Editor** | Any editor that handles markdown (VS Code recommended) |
 
 > [!TIP]
-> Use a Node.js LTS (Long Term Support) release like Node 18 or Node 20. These versions receive security updates and bug fixes for years, making them the safest choice for production documentation sites.
+> Use a Node.js LTS (Long Term Support) release like Node 24. These versions receive security updates and bug fixes for years, making them the safest choice for production documentation sites.
 
 ## Time Estimates
 

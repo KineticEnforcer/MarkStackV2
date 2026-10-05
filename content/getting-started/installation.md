@@ -13,7 +13,7 @@ Before installing MarkStack, you need two things on your computer:
 
 ### Node.js (version 18 or later)
 
-Node.js is a JavaScript runtime that executes the MarkStack build script. MarkStack requires Node.js version 18.0.0 or later because the build script uses modern JavaScript features not available in older versions.
+Node.js is a JavaScript runtime that executes the MarkStack build script. MarkStack requires Node.js version 24 or later because the build script uses modern JavaScript features not available in older versions.
 
 To check if Node.js is already installed, open a terminal and run:
 
@@ -31,12 +31,12 @@ Choose the LTS (Long Term Support) version, which is the left button on the down
 
 **On Windows:** Download the `.msi` installer, run it, and follow the prompts. The installer adds Node.js to your system PATH automatically.
 
-**On macOS:** Download the `.pkg` installer, run it, and follow the prompts. Alternatively, if you use Homebrew, run `brew install node@20`.
+**On macOS:** Download the `.pkg` installer, run it, and follow the prompts. Alternatively, if you use Homebrew, run `brew install node@24`.
 
 **On Linux:** Use your distribution's package manager or download from nodejs.org. For Ubuntu/Debian:
 
 ```bash
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
 sudo apt-get install -y nodejs
 ```
 
@@ -208,7 +208,7 @@ If you see `EACCES` permission errors:
 
 If you see errors mentioning `gyp`, `node-gyp`, or "native module":
 
-1. Make sure you are using Node.js 18 or later
+1. Make sure you are using Node.js 24 or later
 2. Delete the existing modules and lockfile, then reinstall:
    ```bash
    rm -rf node_modules package-lock.json
