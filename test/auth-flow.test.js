@@ -294,3 +294,34 @@ test('no password appears in the auth log', () => {
   for (const pw of [ADMIN_PW, EDITOR_PW, 'mia long password']) assert.ok(!all.includes(pw));
   assert.match(all, /\[auth\].*login-failed/);
 });
+
+test('over HTTPS the session cookie is __Host- prefixed and the old name is expired', async () => {
+  CONFIG.cookieSecure = true;
+  try {
+    const r = await request('POST', '/api/login', { body: { name: 'ada', password: ADMIN_PW } });
+    assert.equal(r.status, 200);
+    const [main, legacy] = r.headers['set-cookie'];
+    assert.match(main, /^__Host-ms_session=[^;]+; HttpOnly; SameSite=Strict; Path=\/; Max-Age=\d+; Secure$/);
+    assert.ok(!/Domain=/i.test(main), 'no Domain attribute');
+    assert.match(legacy, /^ms_session=; .*Max-Age=0/);
+    const cookie = main.split(';')[0];
+    assert.equal((await request('GET', '/api/me', { cookie })).status, 200);
+    // an unprefixed cookie (for example one planted by a sibling subdomain) is ignored
+    const token = cookie.split('=')[1];
+    assert.equal((await request('GET', '/api/me', { cookie: `ms_session=${token}` })).status, 401);
+    // logout clears both names
+    const out = await request('POST', '/api/logout', { cookie, csrf: r.json.csrf, body: {} });
+    assert.equal(out.status, 200);
+    assert.match(out.headers['set-cookie'][0], /^__Host-ms_session=; .*Path=\/; Max-Age=0; Secure$/);
+    assert.match(out.headers['set-cookie'][1], /^ms_session=; .*Max-Age=0/);
+    assert.equal((await request('GET', '/api/me', { cookie })).status, 401);
+  } finally { CONFIG.cookieSecure = false; }
+});
+
+test('over plain HTTP the unprefixed cookie name still works', async () => {
+  const s = await login('ada', ADMIN_PW);
+  assert.match(s.cookie, /^ms_session=/);
+  assert.equal(s.r.headers['set-cookie'].length, 1);
+  assert.equal((await request('GET', '/api/me', { cookie: s.cookie })).status, 200);
+  assert.equal((await request('GET', '/api/me', { cookie: s.cookie.replace('ms_session', '__Host-ms_session') })).status, 401);
+});

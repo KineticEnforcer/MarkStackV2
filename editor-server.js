@@ -726,6 +726,16 @@ function handleDelete(req, res, url) {
 // =============================================================================
 
 const SESSION_COOKIE = 'ms_session';
+const SECURE_SESSION_COOKIE = '__Host-ms_session';
+
+/**
+ * Cookie name in use. Over HTTPS (cookieSecure) the "__Host-" prefix makes the
+ * browser refuse the cookie unless it is Secure, Path=/ and has no Domain, so
+ * a sibling subdomain cannot plant or overwrite it with a Domain=parent cookie.
+ * Browsers reject that prefix on plain HTTP, so plain-HTTP local use keeps the
+ * unprefixed name.
+ */
+function sessionCookieName() { return CONFIG.cookieSecure ? SECURE_SESSION_COOKIE : SESSION_COOKIE; }
 const AUTH = { users: null, sessions: null, byAccount: null, byAddress: null, byAccountAll: null, known: new Map() };
 
 /** Create the auth state. Tests and the CLI can pass their own stores. */
@@ -763,14 +773,21 @@ function readCookie(req, name) {
 }
 
 function sessionCookie(token, maxAgeSeconds) {
-  const parts = [`${SESSION_COOKIE}=${token}`, 'HttpOnly', 'SameSite=Strict', 'Path=/', `Max-Age=${maxAgeSeconds}`];
+  const parts = [`${sessionCookieName()}=${token}`, 'HttpOnly', 'SameSite=Strict', 'Path=/', `Max-Age=${maxAgeSeconds}`];
   if (CONFIG.cookieSecure) parts.push('Secure');
   return parts.join('; ');
 }
 
+/** Set-Cookie headers for a session cookie. Over HTTPS this also expires any old unprefixed cookie. */
+function sessionCookieHeaders(token, maxAgeSeconds) {
+  const out = [sessionCookie(token, maxAgeSeconds)];
+  if (CONFIG.cookieSecure) out.push(`${SESSION_COOKIE}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0; Secure`);
+  return out;
+}
+
 /** Resolve the signed-in user for a request, or null. Sets req.session and req.user. */
 function resolveSession(req) {
-  const token = readCookie(req, SESSION_COOKIE);
+  const token = readCookie(req, sessionCookieName());
   const sess = token ? AUTH.sessions.get(token) : null;
   if (!sess) return null;
   const user = AUTH.users.get(sess.user);
@@ -829,14 +846,14 @@ async function handleLogin(req, res) {
     if (!seen.includes(addr)) { seen.push(addr); if (seen.length > 5) seen.shift(); AUTH.known.set(user.name, seen); }
     const token = AUTH.sessions.create(user.name, user.authVersion);
     authLog('login', user.name);
-    sendJSONWithCookie(res, 200, me(user, AUTH.sessions.get(token)), sessionCookie(token, CONFIG.sessionMaxMinutes * 60));
+    sendJSONWithCookie(res, 200, me(user, AUTH.sessions.get(token)), sessionCookieHeaders(token, CONFIG.sessionMaxMinutes * 60));
   } catch (err) { sendFailure(res, err); }
 }
 
 function handleLogout(req, res) {
   AUTH.sessions.destroy(req.sessionToken);
   authLog('logout', req.user.name);
-  sendJSONWithCookie(res, 200, { success: true }, sessionCookie('', 0));
+  sendJSONWithCookie(res, 200, { success: true }, sessionCookieHeaders('', 0));
 }
 
 async function handleChangePassword(req, res) {
@@ -849,7 +866,7 @@ async function handleChangePassword(req, res) {
     AUTH.sessions.destroyUser(req.user.name);
     const token = AUTH.sessions.create(req.user.name, AUTH.users.get(req.user.name).authVersion);
     authLog('password-changed', req.user.name);
-    sendJSONWithCookie(res, 200, { success: true, ...me(AUTH.users.get(req.user.name), AUTH.sessions.get(token)) }, sessionCookie(token, CONFIG.sessionMaxMinutes * 60));
+    sendJSONWithCookie(res, 200, { success: true, ...me(AUTH.users.get(req.user.name), AUTH.sessions.get(token)) }, sessionCookieHeaders(token, CONFIG.sessionMaxMinutes * 60));
   } catch (err) { sendBadInput(res, err); }
 }
 
