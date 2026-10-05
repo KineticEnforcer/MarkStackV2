@@ -10,12 +10,12 @@ const http = require('http');
 const editor = require('../editor-server.js');
 const { server, CONFIG } = editor;
 
-let tmp, port;
+let tmp, port, sessionToken, csrfToken;
 
-function request(method, urlPath, { body, headers = {}, host } = {}) {
+function request(method, urlPath, { body, headers = {}, host, anon } = {}) {
   return new Promise((resolve, reject) => {
     const data = body === undefined ? null : (typeof body === 'string' ? body : JSON.stringify(body));
-    const h = { Host: host || `127.0.0.1:${port}`, ...headers };
+    const h = { Host: host || `127.0.0.1:${port}`, ...(anon ? {} : { Cookie: `ms_session=${sessionToken}`, 'X-CSRF-Token': csrfToken }), ...headers };
     if (data !== null && !h['Content-Type'] && !h['content-type']) h['Content-Type'] = 'application/json';
     const req = http.request({ host: '127.0.0.1', port, method, path: urlPath, headers: h }, res => {
       let out = '';
@@ -37,6 +37,13 @@ test.before(async () => {
   fs.writeFileSync(path.join(tmp, 'content-evil', 'x.md'), 'secret');
   fs.writeFileSync(path.join(tmp, 'outside.md'), 'outside');
   CONFIG.maxBodyBytes = 1024;
+  const { UserStore } = require('../lib/user-store');
+  const { SessionStore } = require('../lib/sessions');
+  const users = new UserStore(path.join(tmp, 'users.json'), { hashOpts: { N: 1 << 10 } });
+  await users.create({ name: 'admin1', role: 'admin', password: 'a long admin password' });
+  editor.initAuth({ users, sessions: new SessionStore({ idleMs: 3600e3, maxMs: 7200e3 }) });
+  sessionToken = editor.AUTH.sessions.create('admin1');
+  csrfToken = editor.AUTH.sessions.get(sessionToken).csrf;
   await new Promise(r => server.listen(0, '127.0.0.1', r));
   port = server.address().port;
   CONFIG.port = port;

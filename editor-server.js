@@ -20,12 +20,29 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
+const { UserStore } = require('./lib/user-store');
+const { SessionStore } = require('./lib/sessions');
+const { FailureLimiter } = require('./lib/rate-limit');
+const { authorize, filterTree, isValidSectionName } = require('./lib/section-access');
+const { hashPassword, checkPasswordPolicy } = require('./lib/passwords');
 
 // =============================================================================
 // Configuration
 // =============================================================================
 
 /** Server configuration constants */
+function normalizeIp(ip) {
+  return String(ip || '').trim().replace(/^::ffff:/i, '').toLowerCase();
+}
+function parseTrustedProxies(v) {
+  const out = [];
+  for (const p of String(v || '').split(',').map(x => x.trim()).filter(Boolean)) {
+    if (p.toLowerCase() === 'loopback') out.push('127.0.0.1', '::1'); else out.push(normalizeIp(p));
+  }
+  return out;
+}
+
 const CONFIG = {
   /** HTTP server port (MARKSTACK_EDITOR_PORT overrides) */
   port: parseInt(process.env.MARKSTACK_EDITOR_PORT, 10) || 3001,
@@ -42,7 +59,21 @@ const CONFIG = {
   /** Path to content directory */
   contentDir: path.join(__dirname, 'content'),
   /** Path to static assets directory */
-  staticDir: path.join(__dirname, 'static')
+  staticDir: path.join(__dirname, 'static'),
+  /** Users file (owner-only, git-ignored). MARKSTACK_USERS_FILE overrides. */
+  usersFile: process.env.MARKSTACK_USERS_FILE || path.join(__dirname, '.markstack', 'users.json'),
+  /** Session lifetimes in minutes (defaults are proposals pending review) */
+  sessionIdleMinutes: parseInt(process.env.MARKSTACK_SESSION_IDLE_MINUTES, 10) || 8 * 60,
+  sessionMaxMinutes: parseInt(process.env.MARKSTACK_SESSION_MAX_MINUTES, 10) || 7 * 24 * 60,
+  /** Mark the session cookie Secure. Set to 1 when the site is served over HTTPS. */
+  cookieSecure: process.env.MARKSTACK_EDITOR_COOKIE_SECURE === '1',
+  /**
+   * Addresses of reverse proxies allowed to tell the editor the client address
+   * (comma separated IPs, or the word "loopback"). X-Forwarded-For is read only
+   * when the connection itself comes from one of these; otherwise the header is
+   * ignored, so a client cannot choose its own address. Empty = no proxy.
+   */
+  trustedProxies: parseTrustedProxies(process.env.MARKSTACK_TRUSTED_PROXIES)
 };
 
 /** Raw HTML in Markdown is allowed only when siteconfig.json says so (server-side file, not editable from the editor). */
@@ -459,7 +490,7 @@ function sendFailure(res, err) {
  * @param {http.ServerResponse} res - HTTP response object
  */
 function handleGetTree(req, res) {
-  const tree = scanDirectory(CONFIG.contentDir);
+  const tree = filterTree(req.user, scanDirectory(CONFIG.contentDir));
   res.writeHead(200, {
     'Content-Type': 'application/json',
     'Cache-Control': 'no-cache',
@@ -488,6 +519,7 @@ function handleGetFile(req, res, url) {
   if (!isPathSecure(fullPath)) {
     return sendError(res, 403, 'Access denied');
   }
+  if (!allowed(req, res, 'read', filePath)) return;
   
   if (!fs.existsSync(fullPath)) {
     return sendError(res, 404, 'File not found');
@@ -517,6 +549,7 @@ async function handleSaveFile(req, res) {
     if (!isPathSecure(fullPath)) {
       return sendError(res, 403, 'Access denied');
     }
+    if (!allowed(req, res, 'write', filePath)) return;
     
     // Ensure directory exists
     fs.mkdirSync(path.dirname(fullPath), { recursive: true });
@@ -553,6 +586,7 @@ async function handleCreateFolder(req, res) {
     if (!isPathSecure(fullPath)) {
       return sendError(res, 403, 'Access denied');
     }
+    if (!allowed(req, res, 'create', folderPath)) return;
     
     if (fs.existsSync(fullPath)) {
       return sendError(res, 409, 'Folder already exists');
@@ -594,6 +628,7 @@ async function handleCreateFile(req, res) {
     if (!isPathSecure(fullPath)) {
       return sendError(res, 403, 'Access denied');
     }
+    if (!allowed(req, res, 'create', filePath)) return;
     
     if (fs.existsSync(fullPath)) {
       return sendError(res, 409, 'File already exists');
@@ -633,6 +668,7 @@ async function handleRename(req, res) {
     if (isContentRoot(fullOldPath) || !isPathSecure(fullOldPath) || !isPathSecure(fullNewPath)) {
       return sendError(res, 403, 'Access denied');
     }
+    if (!allowed(req, res, 'rename', oldPath, newPath)) return;
     
     if (!fs.existsSync(fullOldPath)) {
       return sendError(res, 404, 'Source not found');
@@ -670,6 +706,7 @@ function handleDelete(req, res, url) {
   if (isContentRoot(fullPath) || !isPathSecure(fullPath)) {
     return sendError(res, 403, 'Access denied');
   }
+  if (!allowed(req, res, 'delete', filePath)) return;
   
   if (!fs.existsSync(fullPath)) {
     return sendError(res, 404, 'Not found');
@@ -681,6 +718,175 @@ function handleDelete(req, res, url) {
   } catch (err) {
     sendFailure(res, err);
   }
+}
+
+
+// =============================================================================
+// Authentication, sessions and user management
+// =============================================================================
+
+const SESSION_COOKIE = 'ms_session';
+const AUTH = { users: null, sessions: null, byAccount: null, byAddress: null, byAccountAll: null, known: new Map() };
+
+/** Create the auth state. Tests and the CLI can pass their own stores. */
+function initAuth(opts = {}) {
+  AUTH.users = opts.users || new UserStore(CONFIG.usersFile);
+  AUTH.sessions = opts.sessions || new SessionStore({
+    idleMs: CONFIG.sessionIdleMinutes * 60 * 1000,
+    maxMs: CONFIG.sessionMaxMinutes * 60 * 1000
+  });
+  // Failures are counted per account AND address together, so someone guessing
+  // from one address cannot lock the real user out from another. A second,
+  // larger limit per address stops one address from trying many accounts.
+  AUTH.byAccount = opts.byAccount || new FailureLimiter({ maxFailures: 5 });
+  AUTH.byAddress = opts.byAddress || new FailureLimiter({ maxFailures: 30 });
+  // Guessing spread over many addresses: after 20 failures for one account in
+  // 15 minutes, addresses that account has not signed in from are paused for it.
+  // Addresses it has signed in from before stay allowed, so an attacker cannot
+  // lock the real user out of their usual place.
+  AUTH.byAccountAll = opts.byAccountAll || new FailureLimiter({ maxFailures: 20 });
+  AUTH.known = new Map();
+}
+
+/** Log an auth event. Never pass passwords, tokens or cookie values here. */
+function authLog(event, name) {
+  console.log(`[auth] ${new Date().toISOString()} ${event}${name ? ` user=${String(name).slice(0, 40)}` : ''}`);
+}
+
+function readCookie(req, name) {
+  const header = String(req.headers.cookie || '');
+  for (const part of header.split(';')) {
+    const i = part.indexOf('=');
+    if (i > 0 && part.slice(0, i).trim() === name) return part.slice(i + 1).trim();
+  }
+  return null;
+}
+
+function sessionCookie(token, maxAgeSeconds) {
+  const parts = [`${SESSION_COOKIE}=${token}`, 'HttpOnly', 'SameSite=Strict', 'Path=/', `Max-Age=${maxAgeSeconds}`];
+  if (CONFIG.cookieSecure) parts.push('Secure');
+  return parts.join('; ');
+}
+
+/** Resolve the signed-in user for a request, or null. Sets req.session and req.user. */
+function resolveSession(req) {
+  const token = readCookie(req, SESSION_COOKIE);
+  const sess = token ? AUTH.sessions.get(token) : null;
+  if (!sess) return null;
+  const user = AUTH.users.get(sess.user);
+  // A password, section or disabled change made by anyone (the admin screen or a
+  // command run on the server) bumps authVersion and ends older sessions.
+  if (!user || user.disabled || (sess.authVersion || 0) !== user.authVersion) { AUTH.sessions.destroy(token); return null; }
+  req.sessionToken = token;
+  req.session = sess;
+  req.user = user;
+  return user;
+}
+
+function clientAddress(req) {
+  const peer = normalizeIp(req.socket && req.socket.remoteAddress) || 'unknown';
+  const trusted = CONFIG.trustedProxies;
+  if (!trusted.length || !trusted.includes(peer)) return peer;
+  // The connection comes from our proxy. Walk X-Forwarded-For from the right,
+  // skipping our own proxies; the first other address is the client.
+  const parts = String(req.headers['x-forwarded-for'] || '').split(',').map(normalizeIp).filter(Boolean);
+  for (let i = parts.length - 1; i >= 0; i--) {
+    if (!trusted.includes(parts[i])) return parts[i].slice(0, 64);
+  }
+  return peer;
+}
+
+function sendJSONWithCookie(res, status, data, cookie) {
+  res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Set-Cookie': cookie, ...SECURITY_HEADERS });
+  res.end(JSON.stringify(data));
+}
+
+function me(user, session) {
+  return { user: { name: user.name, role: user.role, sections: user.sections, mustChangePassword: user.mustChangePassword }, csrf: session.csrf };
+}
+
+async function handleLogin(req, res) {
+  try {
+    const { name, password } = await parseJSONBody(req);
+    const addr = clientAddress(req);
+    if (typeof name !== 'string' || typeof password !== 'string') return sendError(res, 400, 'Invalid request');
+    const acct = `acct:${name.toLowerCase().slice(0, 64)}|${addr}`;
+    const nameKey = name.toLowerCase().slice(0, 64);
+    const knownHere = (AUTH.known.get(nameKey) || []).includes(addr);
+    if (AUTH.byAccount.isBlocked(acct) || AUTH.byAddress.isBlocked(`addr:${addr}`) ||
+        (!knownHere && AUTH.byAccountAll.isBlocked(`all:${nameKey}`))) {
+      authLog('login-blocked', name);
+      return sendError(res, 429, 'Too many attempts. Try again later.');
+    }
+    const user = await AUTH.users.authenticate(name, password);
+    if (!user) {
+      AUTH.byAccount.fail(acct); AUTH.byAddress.fail(`addr:${addr}`); AUTH.byAccountAll.fail(`all:${nameKey}`);
+      authLog('login-failed', name);
+      return sendError(res, 401, 'Invalid username or password');
+    }
+    AUTH.byAccount.clear(acct);
+    const seen = AUTH.known.get(user.name) || [];
+    if (!seen.includes(addr)) { seen.push(addr); if (seen.length > 5) seen.shift(); AUTH.known.set(user.name, seen); }
+    const token = AUTH.sessions.create(user.name, user.authVersion);
+    authLog('login', user.name);
+    sendJSONWithCookie(res, 200, me(user, AUTH.sessions.get(token)), sessionCookie(token, CONFIG.sessionMaxMinutes * 60));
+  } catch (err) { sendFailure(res, err); }
+}
+
+function handleLogout(req, res) {
+  AUTH.sessions.destroy(req.sessionToken);
+  authLog('logout', req.user.name);
+  sendJSONWithCookie(res, 200, { success: true }, sessionCookie('', 0));
+}
+
+async function handleChangePassword(req, res) {
+  try {
+    const { current, password } = await parseJSONBody(req);
+    if (typeof current !== 'string' || typeof password !== 'string') return sendError(res, 400, 'Invalid request');
+    if (!(await AUTH.users.authenticate(req.user.name, current))) return sendError(res, 403, 'Current password is wrong');
+    if (password === current) return sendError(res, 400, 'Choose a different password');
+    await AUTH.users.setPassword(req.user.name, password, { mustChangePassword: false });
+    AUTH.sessions.destroyUser(req.user.name);
+    const token = AUTH.sessions.create(req.user.name, AUTH.users.get(req.user.name).authVersion);
+    authLog('password-changed', req.user.name);
+    sendJSONWithCookie(res, 200, { success: true, ...me(AUTH.users.get(req.user.name), AUTH.sessions.get(token)) }, sessionCookie(token, CONFIG.sessionMaxMinutes * 60));
+  } catch (err) { sendBadInput(res, err); }
+}
+
+/** Policy and validation errors from the user store are safe to show; others are not. */
+function sendBadInput(res, err) {
+  if (err && !err.status && /^(Invalid|Password|That password|User already|No such user|Cannot disable)/.test(err.message)) {
+    return sendError(res, 400, err.message);
+  }
+  return sendFailure(res, err);
+}
+
+
+
+/** Authorize a content action for the signed-in user; sends the error and returns false when denied. */
+function allowed(req, res, action, relPath, newRelPath) {
+  const d = authorize(req.user, action, relPath, { contentDir: CONFIG.contentDir, newRelPath });
+  if (d.allow) return true;
+  const messages = { 400: 'Invalid path', 401: 'Sign in required', 403: 'Access denied', 404: 'Not found' };
+  sendError(res, d.status, messages[d.status] || 'Access denied');
+  return false;
+}
+
+function servePublicPage(res, file) {
+  const nonce = crypto.randomBytes(16).toString('base64');
+  const page = fs.readFileSync(path.join(__dirname, file), 'utf-8').replace(/__CSP_NONCE__/g, nonce);
+  res.writeHead(200, {
+    'Content-Type': 'text/html; charset=utf-8',
+    'Cache-Control': 'no-store',
+    'Content-Security-Policy': `default-src 'none'; script-src 'nonce-${nonce}'; style-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
+    ...SECURITY_HEADERS
+  });
+  res.end(page);
+}
+
+function redirect(res, location) {
+  res.writeHead(302, { Location: location, 'Cache-Control': 'no-store', ...SECURITY_HEADERS });
+  res.end();
 }
 
 // =============================================================================
@@ -695,7 +901,11 @@ function handleDelete(req, res, url) {
  * @param {string} pathname - Request pathname
  * @param {URL} url - Parsed URL object
  */
-function handleAPI(req, res, pathname, url) {
+async function handleAPI(req, res, pathname, url) {
+  if (req.method === 'GET' && pathname === '/api/me') return sendJSON(res, 200, me(req.user, req.session));
+  if (req.method === 'POST' && pathname === '/api/logout') return handleLogout(req, res);
+  if (req.method === 'POST' && pathname === '/api/change-password') return handleChangePassword(req, res);
+
   // GET /api/tree - File tree
   if (req.method === 'GET' && pathname === '/api/tree') {
     return handleGetTree(req, res);
@@ -795,8 +1005,20 @@ function requestHandler(req, res) {
   if (gate) return sendError(res, gate.status, gate.message);
   const pathname = url.pathname;
   
-  // API routes
+  if (!AUTH.users) initAuth();
+
+  // Public: the login page and the login call
+  if (pathname === '/login' && req.method === 'GET') return servePublicPage(res, 'login.html');
+  if (pathname === '/api/login' && req.method === 'POST') return handleLogin(req, res);
+
+  // API routes: a session is required for every one of them
   if (pathname.startsWith('/api/')) {
+    if (!resolveSession(req)) return sendError(res, 401, 'Sign in required');
+    const mustChange = req.user.mustChangePassword && !['/api/me', '/api/logout', '/api/change-password'].includes(pathname);
+    if (mustChange) return sendError(res, 403, 'Password change required');
+    if (req.method !== 'GET' && !AUTH.sessions.checkCsrf(req.sessionToken, req.headers['x-csrf-token'])) {
+      return sendError(res, 403, 'Invalid CSRF token');
+    }
     return handleAPI(req, res, pathname, url);
   }
   
@@ -826,6 +1048,7 @@ function requestHandler(req, res) {
   
   // Editor HTML for root and common paths
   if (pathname === '/' || pathname === '/editor' || pathname === '/editor.html') {
+    if (!resolveSession(req)) return redirect(res, '/login');
     return serveEditorPage(res);
   }
 
@@ -860,4 +1083,4 @@ if (require.main === module) {
   start();
 }
 
-module.exports = { server, CONFIG, isInside, isPathSecure, checkRequestOrigin, start };
+module.exports = { server, CONFIG, AUTH, initAuth, isInside, isPathSecure, checkRequestOrigin, start };

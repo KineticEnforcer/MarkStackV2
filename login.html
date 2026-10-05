@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign in - MarkStack Editor</title>
+<style>
+  :root { color-scheme: light dark; --bg:#f6f6f4; --card:#fff; --text:#1c1c1a; --muted:#6b6b66; --line:#d9d9d3; --accent:#2f6fed; --err:#b3261e; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#161615; --card:#1f1f1d; --text:#ececE8; --muted:#9a9a93; --line:#35352f; --accent:#6c9bff; --err:#ff8a80; } }
+  * { box-sizing: border-box; }
+  body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; background:var(--bg); color:var(--text); font:16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { width:100%; max-width:380px; margin:16px; padding:28px; background:var(--card); border:1px solid var(--line); border-radius:12px; }
+  h1 { margin:0 0 4px; font-size:1.3rem; }
+  p.sub { margin:0 0 20px; color:var(--muted); font-size:.9rem; }
+  label { display:block; margin:14px 0 6px; font-size:.85rem; font-weight:600; }
+  input { width:100%; padding:10px 12px; font:inherit; color:var(--text); background:var(--bg); border:1px solid var(--line); border-radius:8px; }
+  input:focus { outline:2px solid var(--accent); outline-offset:1px; }
+  button { width:100%; margin-top:20px; padding:11px; font:inherit; font-weight:600; color:#fff; background:var(--accent); border:0; border-radius:8px; cursor:pointer; }
+  button:disabled { opacity:.6; cursor:default; }
+  .err { min-height:1.4em; margin-top:12px; color:var(--err); font-size:.9rem; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<main>
+  <form id="login" autocomplete="on">
+    <h1>MarkStack Editor</h1>
+    <p class="sub">Sign in to continue.</p>
+    <label for="name">Username</label>
+    <input id="name" name="username" autocomplete="username" required autofocus>
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" autocomplete="current-password" required>
+    <button type="submit">Sign in</button>
+    <div class="err" id="loginErr" role="alert"></div>
+  </form>
+  <form id="change" autocomplete="off" hidden>
+    <h1>Choose a new password</h1>
+    <p class="sub">An administrator reset your password. Choose your own to continue (at least 12 characters).</p>
+    <label for="cur">Current (temporary) password</label>
+    <input id="cur" type="password" autocomplete="current-password" required>
+    <label for="next">New password</label>
+    <input id="next" type="password" autocomplete="new-password" required minlength="12">
+    <button type="submit">Save and continue</button>
+    <div class="err" id="changeErr" role="alert"></div>
+  </form>
+</main>
+<script nonce="__CSP_NONCE__">
+(function () {
+  var login = document.getElementById('login'), change = document.getElementById('change');
+  function post(url, body, csrf) {
+    var h = { 'Content-Type': 'application/json' };
+    if (csrf) h['X-CSRF-Token'] = csrf;
+    return fetch(url, { method: 'POST', headers: h, body: JSON.stringify(body), credentials: 'same-origin' })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (d) { return { ok: r.ok, status: r.status, data: d }; }); });
+  }
+  var csrf = null;
+  login.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var btn = login.querySelector('button'); btn.disabled = true;
+    document.getElementById('loginErr').textContent = '';
+    post('/api/login', { name: document.getElementById('name').value.trim().toLowerCase(), password: document.getElementById('password').value })
+      .then(function (r) {
+        btn.disabled = false;
+        if (!r.ok) { document.getElementById('loginErr').textContent = r.data.error || 'Sign in failed'; return; }
+        csrf = r.data.csrf;
+        if (r.data.user.mustChangePassword) {
+          document.getElementById('cur').value = document.getElementById('password').value;
+          login.hidden = true; change.hidden = false; document.getElementById('next').focus();
+        } else { location.href = '/'; }
+      }).catch(function () { btn.disabled = false; document.getElementById('loginErr').textContent = 'Could not reach the server'; });
+  });
+  change.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var btn = change.querySelector('button'); btn.disabled = true;
+    document.getElementById('changeErr').textContent = '';
+    post('/api/change-password', { current: document.getElementById('cur').value, password: document.getElementById('next').value }, csrf)
+      .then(function (r) {
+        btn.disabled = false;
+        if (!r.ok) { document.getElementById('changeErr').textContent = r.data.error || 'Could not change password'; return; }
+        location.href = '/';
+      }).catch(function () { btn.disabled = false; document.getElementById('changeErr').textContent = 'Could not reach the server'; });
+  });
+})();
+</script>
+</body>
+</html>
