@@ -3,6 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <script nonce="__CSP_NONCE__">
+    // If the CDN libraries did not load (offline, blocked), keep the editor
+    // working without highlighting and diagrams instead of stopping at startup.
+    window.hljs = window.hljs || { getLanguage: function () { return false; }, highlight: function () { return { value: '' }; } };
+    window.mermaid = window.mermaid || { initialize: function () {}, render: function () { return Promise.reject(new Error('Mermaid did not load')); } };
     (function() {
       const theme = localStorage.getItem('theme') || 'dark';
       document.documentElement.setAttribute('data-theme', theme);

@@ -32,6 +32,17 @@ const { hashPassword, checkPasswordPolicy } = require('./lib/passwords');
 // =============================================================================
 
 /** Server configuration constants */
+function normalizeIp(ip) {
+  return String(ip || '').trim().replace(/^::ffff:/i, '').toLowerCase();
+}
+function parseTrustedProxies(v) {
+  const out = [];
+  for (const p of String(v || '').split(',').map(x => x.trim()).filter(Boolean)) {
+    if (p.toLowerCase() === 'loopback') out.push('127.0.0.1', '::1'); else out.push(normalizeIp(p));
+  }
+  return out;
+}
+
 const CONFIG = {
   /** HTTP server port (MARKSTACK_EDITOR_PORT overrides) */
   port: parseInt(process.env.MARKSTACK_EDITOR_PORT, 10) || 3001,
@@ -57,11 +68,12 @@ const CONFIG = {
   /** Mark the session cookie Secure. Set to 1 when the site is served over HTTPS. */
   cookieSecure: process.env.MARKSTACK_EDITOR_COOKIE_SECURE === '1',
   /**
-   * Number of reverse proxies in front of the editor (0 = none). When above 0
-   * the client address is read from X-Forwarded-For, counting that many
-   * entries from the right, so a client cannot choose its own address.
+   * Addresses of reverse proxies allowed to tell the editor the client address
+   * (comma separated IPs, or the word "loopback"). X-Forwarded-For is read only
+   * when the connection itself comes from one of these; otherwise the header is
+   * ignored, so a client cannot choose its own address. Empty = no proxy.
    */
-  trustedProxyHops: parseInt(process.env.MARKSTACK_TRUSTED_PROXY_HOPS, 10) || 0
+  trustedProxies: parseTrustedProxies(process.env.MARKSTACK_TRUSTED_PROXIES)
 };
 
 /** MIME type mappings for static file serving */
@@ -707,7 +719,7 @@ function handleDelete(req, res, url) {
 // =============================================================================
 
 const SESSION_COOKIE = 'ms_session';
-const AUTH = { users: null, sessions: null, byAccount: null, byAddress: null };
+const AUTH = { users: null, sessions: null, byAccount: null, byAddress: null, byAccountAll: null, known: new Map() };
 
 /** Create the auth state. Tests and the CLI can pass their own stores. */
 function initAuth(opts = {}) {
@@ -721,6 +733,12 @@ function initAuth(opts = {}) {
   // larger limit per address stops one address from trying many accounts.
   AUTH.byAccount = opts.byAccount || new FailureLimiter({ maxFailures: 5 });
   AUTH.byAddress = opts.byAddress || new FailureLimiter({ maxFailures: 30 });
+  // Guessing spread over many addresses: after 20 failures for one account in
+  // 15 minutes, addresses that account has not signed in from are paused for it.
+  // Addresses it has signed in from before stay allowed, so an attacker cannot
+  // lock the real user out of their usual place.
+  AUTH.byAccountAll = opts.byAccountAll || new FailureLimiter({ maxFailures: 20 });
+  AUTH.known = new Map();
 }
 
 /** Log an auth event. Never pass passwords, tokens or cookie values here. */
@@ -757,12 +775,16 @@ function resolveSession(req) {
 }
 
 function clientAddress(req) {
-  const hops = CONFIG.trustedProxyHops;
-  if (hops > 0) {
-    const parts = String(req.headers['x-forwarded-for'] || '').split(',').map(x => x.trim()).filter(Boolean);
-    if (parts.length >= hops) return parts[parts.length - hops].slice(0, 64);
+  const peer = normalizeIp(req.socket && req.socket.remoteAddress) || 'unknown';
+  const trusted = CONFIG.trustedProxies;
+  if (!trusted.length || !trusted.includes(peer)) return peer;
+  // The connection comes from our proxy. Walk X-Forwarded-For from the right,
+  // skipping our own proxies; the first other address is the client.
+  const parts = String(req.headers['x-forwarded-for'] || '').split(',').map(normalizeIp).filter(Boolean);
+  for (let i = parts.length - 1; i >= 0; i--) {
+    if (!trusted.includes(parts[i])) return parts[i].slice(0, 64);
   }
-  return String((req.socket && req.socket.remoteAddress) || 'unknown');
+  return peer;
 }
 
 function sendJSONWithCookie(res, status, data, cookie) {
@@ -780,17 +802,22 @@ async function handleLogin(req, res) {
     const addr = clientAddress(req);
     if (typeof name !== 'string' || typeof password !== 'string') return sendError(res, 400, 'Invalid request');
     const acct = `acct:${name.toLowerCase().slice(0, 64)}|${addr}`;
-    if (AUTH.byAccount.isBlocked(acct) || AUTH.byAddress.isBlocked(`addr:${addr}`)) {
+    const nameKey = name.toLowerCase().slice(0, 64);
+    const knownHere = (AUTH.known.get(nameKey) || []).includes(addr);
+    if (AUTH.byAccount.isBlocked(acct) || AUTH.byAddress.isBlocked(`addr:${addr}`) ||
+        (!knownHere && AUTH.byAccountAll.isBlocked(`all:${nameKey}`))) {
       authLog('login-blocked', name);
       return sendError(res, 429, 'Too many attempts. Try again later.');
     }
     const user = await AUTH.users.authenticate(name, password);
     if (!user) {
-      AUTH.byAccount.fail(acct); AUTH.byAddress.fail(`addr:${addr}`);
+      AUTH.byAccount.fail(acct); AUTH.byAddress.fail(`addr:${addr}`); AUTH.byAccountAll.fail(`all:${nameKey}`);
       authLog('login-failed', name);
       return sendError(res, 401, 'Invalid username or password');
     }
     AUTH.byAccount.clear(acct);
+    const seen = AUTH.known.get(user.name) || [];
+    if (!seen.includes(addr)) { seen.push(addr); if (seen.length > 5) seen.shift(); AUTH.known.set(user.name, seen); }
     const token = AUTH.sessions.create(user.name);
     authLog('login', user.name);
     sendJSONWithCookie(res, 200, me(user, AUTH.sessions.get(token)), sessionCookie(token, CONFIG.sessionMaxMinutes * 60));

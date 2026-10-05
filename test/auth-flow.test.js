@@ -129,14 +129,14 @@ test('changes need the CSRF token', async () => {
 });
 
 test('repeated failures pause sign-in for that account from that address only', async () => {
-  CONFIG.trustedProxyHops = 1;
+  CONFIG.trustedProxies = ['127.0.0.1'];
   try {
     const from = ip => ({ headers: { 'X-Forwarded-For': ip } });
     const attempt = (ip, name, pw) => request('POST', '/api/login', { body: { name, password: pw }, ...from(ip) });
     for (let i = 0; i < 3; i++) await attempt('203.0.113.9', 'ada', 'wrong wrong wrong');
     assert.equal((await attempt('203.0.113.9', 'ada', ADMIN_PW)).status, 429, 'attacker address is paused, even with the right password');
     assert.equal((await attempt('198.51.100.7', 'ada', ADMIN_PW)).status, 200, 'the real user from another address still gets in');
-  } finally { CONFIG.trustedProxyHops = 0; }
+  } finally { CONFIG.trustedProxies = []; }
 });
 
 test('a client cannot pick its own address through X-Forwarded-For when no proxy is configured', async () => {
@@ -148,12 +148,43 @@ test('a client cannot pick its own address through X-Forwarded-For when no proxy
 });
 
 test('with one proxy configured, the rightmost entry is used, so a spoofed left entry does not help', async () => {
-  CONFIG.trustedProxyHops = 1;
+  CONFIG.trustedProxies = ['127.0.0.1'];
   try {
     const attempt = (xff, pw) => request('POST', '/api/login', { body: { name: 'mia2', password: pw }, headers: { 'X-Forwarded-For': xff } });
     for (let i = 0; i < 3; i++) await attempt(`1.1.1.${i}, 192.0.2.50`, 'wrong wrong wrong');
     assert.equal((await attempt('9.9.9.9, 192.0.2.50', 'wrong wrong wrong')).status, 429);
-  } finally { CONFIG.trustedProxyHops = 0; }
+  } finally { CONFIG.trustedProxies = []; }
+});
+
+test('X-Forwarded-For from a peer that is not a trusted proxy is ignored, even when proxies are configured', async () => {
+  CONFIG.trustedProxies = ['10.255.0.1'];
+  try {
+    for (let i = 0; i < 3; i++) await request('POST', '/api/login', { body: { name: 'ghost3', password: 'wrong wrong wrong' }, headers: { 'X-Forwarded-For': `10.1.0.${i}` } });
+    const r = await request('POST', '/api/login', { body: { name: 'ghost3', password: 'wrong wrong wrong' }, headers: { 'X-Forwarded-For': '10.1.9.9' } });
+    assert.equal(r.status, 429, 'all attempts counted against the real peer address');
+  } finally { CONFIG.trustedProxies = []; }
+});
+
+test('with a chain of trusted proxies, the first untrusted address from the right is the client', async () => {
+  CONFIG.trustedProxies = ['127.0.0.1', '192.0.2.50'];
+  try {
+    const attempt = xff => request('POST', '/api/login', { body: { name: 'ghost4', password: 'wrong wrong wrong' }, headers: { 'X-Forwarded-For': xff } });
+    for (let i = 0; i < 3; i++) await attempt(`1.2.3.${i}, 9.9.9.9, 192.0.2.50`);
+    assert.equal((await attempt('7.7.7.7, 9.9.9.9, 192.0.2.50')).status, 429, 'left-hand entries cannot change the client address');
+    assert.equal((await attempt('8.8.8.8')).status, 401, 'a different real client is not paused');
+  } finally { CONFIG.trustedProxies = []; }
+});
+
+test('guessing spread over many addresses pauses new addresses for that account, not the addresses it normally uses', async () => {
+  await users.create({ name: 'dora', role: 'editor', password: 'dora long password 1', sections: ['it'] });
+  CONFIG.trustedProxies = ['127.0.0.1'];
+  try {
+    const attempt = (ip, pw) => request('POST', '/api/login', { body: { name: 'dora', password: pw }, headers: { 'X-Forwarded-For': ip } });
+    assert.equal((await attempt('198.51.100.20', 'dora long password 1')).status, 200, 'normal sign-in from her usual address');
+    for (let i = 0; i < 20; i++) assert.equal((await attempt(`203.0.113.${i + 1}`, 'wrong wrong wrong')).status, 401);
+    assert.equal((await attempt('203.0.113.99', 'dora long password 1')).status, 429, 'a never-used address is paused');
+    assert.equal((await attempt('198.51.100.20', 'dora long password 1')).status, 200, 'her usual address still works');
+  } finally { CONFIG.trustedProxies = []; }
 });
 
 test('an editor sees and reaches only the assigned section, enforced on the server', async () => {
