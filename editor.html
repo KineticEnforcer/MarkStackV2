@@ -627,6 +627,20 @@
     .preview-article {
       max-width: 100%;
     }
+
+    /* The preview is rendered inside a sandboxed iframe: no scripts run in it. */
+    .preview-content.is-framed {
+      padding: 0;
+      overflow: hidden;
+      display: flex;
+    }
+    .preview-frame {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background-color: var(--color-bg-primary);
+    }
     
     /* Use article styles from main.css */
     .preview-article h1, .preview-article h2, .preview-article h3,
@@ -1109,7 +1123,7 @@
           </button>
           <div class="split-header">Preview</div>
           <div class="preview-content">
-            <article class="preview-article" id="preview-output"></article>
+            <iframe id="preview-frame" class="preview-frame" title="Preview" sandbox="allow-same-origin"></iframe>
           </div>
         </div>
       </div>
@@ -1265,6 +1279,7 @@
        */
       mermaid.initialize({
         startOnLoad: false,
+        securityLevel: 'strict',
         theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
       });
       
@@ -1273,16 +1288,22 @@
        * Converts fenced code blocks with mermaid language to SVG diagrams.
        */
       async function renderMermaid() {
+        if (!previewOutput) return;
         const mermaidBlocks = previewOutput.querySelectorAll('pre.mermaid');
         for (const block of mermaidBlocks) {
-          const code = block.textContent;
+          if (!block.dataset.code) block.dataset.code = block.textContent;
+          const code = block.dataset.code;
           const id = 'mermaid-' + Math.random().toString(36).substr(2, 9);
           try {
             const { svg } = await mermaid.render(id, code);
             block.innerHTML = svg;
             block.classList.add('mermaid-rendered');
           } catch (e) {
-            block.innerHTML = '<div class="mermaid-error">Mermaid syntax error: ' + e.message + '</div>';
+            const errBox = block.ownerDocument.createElement('div');
+            errBox.className = 'mermaid-error';
+            errBox.textContent = 'Mermaid syntax error: ' + (e && e.message ? e.message : String(e));
+            block.textContent = '';
+            block.appendChild(errBox);
           }
         }
       }
@@ -1303,9 +1324,57 @@
       const editorContent = document.querySelector('.editor-content');
       
       // Preview components
-      const previewOutput = document.getElementById('preview-output');
+      // Preview lives in a sandboxed iframe (sandbox="allow-same-origin", no allow-scripts),
+      // so script, event handlers and plugins inside rendered markdown cannot run.
+      // This page fills the frame's DOM; the frame never executes code.
+      const previewFrame = document.getElementById('preview-frame');
+      let previewOutput = null;
+      let pendingPreview = false;
+      const previewScrollListeners = [];
+
+      function buildPreviewSrcdoc() {
+        let rules = '';
+        for (const sheet of document.styleSheets) {
+          if (!sheet.ownerNode || sheet.ownerNode.tagName !== 'STYLE') continue;
+          for (const rule of sheet.cssRules) {
+            if (rule.cssText.indexOf('.preview-article') !== -1) rules += rule.cssText + '\n';
+          }
+        }
+        return '<!DOCTYPE html><html><head><meta charset="utf-8">' +
+          '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; ' +
+          'img-src data: blob: http: https:; style-src \'self\' \'unsafe-inline\' https://fonts.googleapis.com; ' +
+          'font-src https://fonts.gstatic.com data:">' +
+          '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">' +
+          '<link rel="stylesheet" href="/css/main.css"><link rel="stylesheet" href="/css/hljs-theme.css">' +
+          '<style>html,body{margin:0;padding:0;height:auto;min-height:0;display:block;background:var(--color-bg-primary);}' +
+          'body{padding:var(--space-xl);color:var(--color-text-primary);font-family:var(--font-sans);}' + rules + '</style>' +
+          '</head><body><article class="preview-article" id="preview-output"></article></body></html>';
+      }
+
+      /** Scroll surface of the preview frame, shaped like an element for the sync code. */
+      const previewContent = {
+        get el() { const d = previewFrame.contentDocument; return d && d.scrollingElement; },
+        get scrollTop() { return this.el ? this.el.scrollTop : 0; },
+        set scrollTop(v) { if (this.el) this.el.scrollTop = v; },
+        get scrollHeight() { return this.el ? this.el.scrollHeight : 0; },
+        get clientHeight() { return this.el ? this.el.clientHeight : 0; },
+        addEventListener(type, fn) { previewScrollListeners.push([type, fn]); }
+      };
+
+      previewFrame.addEventListener('load', function() {
+        const doc = previewFrame.contentDocument;
+        if (!doc) return;
+        previewOutput = doc.getElementById('preview-output');
+        previewScrollListeners.forEach(([type, fn]) => doc.addEventListener(type, fn));
+        // Links inside the preview must not navigate the frame
+        doc.addEventListener('click', function(ev) {
+          if (ev.target && ev.target.closest && ev.target.closest('a')) ev.preventDefault();
+        });
+        if (pendingPreview) { pendingPreview = false; updatePreview(); }
+      });
+      document.querySelector('.preview-content').classList.add('is-framed');
+      previewFrame.srcdoc = buildPreviewSrcdoc();
       const splitPreview = document.getElementById('split-preview');
-      const previewContent = document.querySelector('.preview-content');
       
       // UI state elements
       const emptyState = document.getElementById('empty-state');
@@ -1355,7 +1424,7 @@
         highlight: function(str, lang) {
           // Handle Mermaid diagrams - wrap for client-side rendering
           if (lang === 'mermaid') {
-            return '<pre class="mermaid">' + str + '</pre>';
+            return '<pre class="mermaid">' + md.utils.escapeHtml(str) + '</pre>';
           }
           // Syntax highlight with highlight.js if language is supported
           if (lang && hljs.getLanguage(lang)) {
@@ -1418,9 +1487,11 @@
         // Update Mermaid theme configuration
         mermaid.initialize({
           startOnLoad: false,
+          securityLevel: 'strict',
           theme: theme === 'dark' ? 'dark' : 'default'
         });
         
+        if (previewOutput) previewOutput.ownerDocument.documentElement.setAttribute('data-theme', theme);
         // Re-render any visible Mermaid diagrams
         renderMermaid();
       }
@@ -1679,6 +1750,9 @@
           content = content.slice(match[0].length);
         }
         
+        if (!previewOutput) { pendingPreview = true; return; }
+        previewOutput.ownerDocument.documentElement.setAttribute(
+          'data-theme', document.documentElement.getAttribute('data-theme') || 'light');
         previewOutput.innerHTML = md.render(content);
         
         // Re-render Mermaid diagrams
@@ -2219,7 +2293,7 @@
           if (currentFilePath === filePath || currentFilePath?.startsWith(filePath + '/')) {
             currentFilePath = null;
             markdownInput.value = '';
-            previewOutput.innerHTML = '';
+            if (previewOutput) previewOutput.innerHTML = '';
             emptyState.style.display = 'flex';
             splitEditor.style.display = 'none';
             splitPreview.style.display = 'none';
