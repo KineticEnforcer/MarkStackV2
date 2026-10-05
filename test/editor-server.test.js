@@ -151,3 +151,38 @@ test('security headers are present', async () => {
   assert.equal(r.headers['x-content-type-options'], 'nosniff');
   assert.equal(r.headers['x-frame-options'], 'DENY');
 });
+
+test('editor page is served with a nonce CSP and no unpinned scripts', async () => {
+  const r = await request('GET', '/');
+  assert.equal(r.status, 200);
+  const csp = r.headers['content-security-policy'];
+  assert.ok(csp, 'CSP header present');
+  const nonce = (csp.match(/'nonce-([^']+)'/) || [])[1];
+  assert.ok(nonce, 'nonce in CSP');
+  assert.ok(r.body.includes(`<script nonce="${nonce}">`), 'inline scripts carry the nonce');
+  assert.equal(r.body.includes('__CSP_NONCE__'), false);
+  assert.match(csp, /default-src 'none'/);
+  assert.match(csp, /frame-ancestors 'none'/);
+  assert.equal(/script-src[^;]*'unsafe-(inline|eval)'/.test(csp), false);
+  const second = (await request('GET', '/')).headers['content-security-policy'].match(/'nonce-([^']+)'/)[1];
+  assert.notEqual(second, nonce, 'nonce changes per response');
+});
+
+test('every external script is version-pinned, has integrity, and is allowed by hash in the CSP', async () => {
+  const r = await request('GET', '/');
+  const csp = r.headers['content-security-policy'];
+  const tags = r.body.match(/<script[^>]*\ssrc="https?:[^"]*"[^>]*>/g) || [];
+  assert.ok(tags.length >= 2);
+  for (const t of tags) {
+    assert.match(t, /@\d+\.\d+\.\d+\//, 'exact version in URL: ' + t);
+    const integrity = (t.match(/integrity="([^"]+)"/) || [])[1];
+    assert.ok(integrity && csp.includes(`'${integrity}'`), 'integrity hash allowed in CSP: ' + t);
+  }
+});
+
+test('markdown-it is served from the installed package', async () => {
+  const r = await request('GET', '/vendor/markdown-it.js');
+  assert.equal(r.status, 200);
+  assert.match(r.headers['content-type'], /javascript/);
+  assert.ok(r.body.includes('markdownit'));
+});

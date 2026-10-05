@@ -433,6 +433,7 @@ The visual editor (`npm run editor`) has no login yet. It is for local use only:
 - `MARKSTACK_EDITOR_PORT` changes the port (default 3001). `MARKSTACK_EDITOR_MAX_BODY` sets the largest request body in bytes (default 2 MiB).
 - Requests need a known `Host`, a matching `Origin` when one is sent, and `Content-Type: application/json` for writes. The content root cannot be deleted or renamed and paths cannot leave `content/` (symlinks included).
 - The live preview renders inside a sandboxed iframe (no scripts) with a restrictive Content-Security-Policy, so raw HTML or Mermaid blocks in a markdown file cannot run code in the editor page.
+- The editor page is served with a Content-Security-Policy that allows scripts only with a per-response nonce or a pinned integrity hash. markdown-it comes from the installed package; highlight.js 11.12.0 and Mermaid 11.17.2 load from pinned jsDelivr URLs with integrity hashes (Google Fonts also loads from Google). When you bump highlight.js or Mermaid, update the URL, the `integrity` attribute and `EDITOR_SCRIPT_HASHES` together; the tests check they agree.
 - Run `npm test` to run the regression tests.
 - GitHub Actions runs the tests, the build and `npm audit --audit-level=high` on Node 24 for pull requests and pushes to main that touch code, content, templates, static files, tests, package files or the workflow (`.github/workflows/ci.yml`). Docs-only changes skip it.
 

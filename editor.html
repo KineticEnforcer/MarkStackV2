@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <script>
+  <script nonce="__CSP_NONCE__">
     (function() {
       const theme = localStorage.getItem('theme') || 'dark';
       document.documentElement.setAttribute('data-theme', theme);
@@ -1204,12 +1204,14 @@
     </div>
   </div>
 
-  <!-- Load markdown-it and plugins from CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/markdown-it@14.0.0/dist/markdown-it.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
-  
-  <script>
+  <!-- markdown-it is served from the installed package so the editor matches the build.
+       highlight.js and Mermaid load from pinned CDN versions with integrity hashes
+       (the same hashes are allowed in the page CSP, see editor-server.js). -->
+  <script src="/vendor/markdown-it.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.12.0/build/highlight.min.js" integrity="sha384-wjfDDhOPPdjtva8vWBhWeVprSpmxisEu5aYT3q1JyACqXpdKpo3PWZTMVq24MBix" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js" integrity="sha384-EOXBFmc3gx5mb+vn0vPvvGqACToJD24hhacX5Yx+8NUUQrHIle/Qi5Bg9o3zKwW2" crossorigin="anonymous"></script>
+
+  <script nonce="__CSP_NONCE__">
     /**
      * MarkStack Editor - Client-side Application
      * 
