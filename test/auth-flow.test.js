@@ -13,6 +13,7 @@ const { UserStore } = require('../lib/user-store');
 const { SessionStore } = require('../lib/sessions');
 const { FailureLimiter } = require('../lib/rate-limit');
 
+let users;
 let tmp, port;
 const logs = [];
 const realLog = console.log;
@@ -57,7 +58,7 @@ test.before(async () => {
     fs.writeFileSync(path.join(CONFIG.contentDir, s, '_index.md'), `---\ntitle: ${s}\n---\n`);
     fs.writeFileSync(path.join(CONFIG.contentDir, s, 'page.md'), `# ${s} page\n`);
   }
-  const users = new UserStore(path.join(tmp, 'users.json'), { hashOpts: { N: 1 << 10 } });
+  users = new UserStore(path.join(tmp, 'users.json'), { hashOpts: { N: 1 << 10 } });
   await users.create({ name: 'ada', role: 'admin', password: ADMIN_PW });
   await users.create({ name: 'ian', role: 'editor', password: EDITOR_PW, sections: ['it'] });
   editor.initAuth({
