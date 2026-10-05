@@ -1,0 +1,77 @@
+'use strict';
+// Two content folders or pages that produce the same URL must fail the build
+// instead of one silently replacing the other in dist/.
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { spawnSync } = require('child_process');
+
+const root = path.join(__dirname, '..');
+
+function scratchSite(files) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'markstack-dup-'));
+  fs.copyFileSync(path.join(root, 'build.js'), path.join(dir, 'build.js'));
+  for (const name of ['siteconfig.json', 'static', 'templates', 'template']) {
+    const src = path.join(root, name);
+    if (fs.existsSync(src)) fs.cpSync(src, path.join(dir, name), { recursive: true });
+  }
+  fs.symlinkSync(path.join(root, 'node_modules'), path.join(dir, 'node_modules'), 'dir');
+  for (const [rel, body] of Object.entries(files)) {
+    const file = path.join(dir, 'content', rel);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, body);
+  }
+  return dir;
+}
+
+const page = (title, text) => `---\ntitle: ${title}\n---\n${text}\n`;
+
+test('two folders with the same title fail the build and name both folders', () => {
+  const dir = scratchSite({
+    '_index.md': page('Home', 'home'),
+    'marketing/_index.md': page('Marketing', 'a'),
+    'marketing/news.md': page('News', 'marketing news'),
+    'it/_index.md': page('Marketing', 'b'),
+    'it/news.md': page('News', 'it news'),
+  });
+  try {
+    const r = spawnSync(process.execPath, ['build.js'], { cwd: dir, encoding: 'utf-8' });
+    assert.notEqual(r.status, 0);
+    assert.match(r.stderr, /Duplicate URL/);
+    assert.match(r.stderr, /marketing/);
+    assert.match(r.stderr, /it/);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('a failed duplicate-URL build leaves the previous dist/ untouched', () => {
+  const dir = scratchSite({
+    '_index.md': page('Home', 'home'),
+    'a.md': page('Same', 'one'),
+    'b.md': page('Same', 'two'),
+  });
+  try {
+    fs.mkdirSync(path.join(dir, 'dist'));
+    fs.writeFileSync(path.join(dir, 'dist', 'keep.txt'), 'old');
+    const r = spawnSync(process.execPath, ['build.js'], { cwd: dir, encoding: 'utf-8' });
+    assert.notEqual(r.status, 0);
+    assert.equal(fs.readFileSync(path.join(dir, 'dist', 'keep.txt'), 'utf-8'), 'old');
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('distinct titles build normally', () => {
+  const dir = scratchSite({
+    '_index.md': page('Home', 'home'),
+    'a/_index.md': page('Alpha', 'x'),
+    'a/p.md': page('Page', 'one'),
+    'b/_index.md': page('Beta', 'y'),
+    'b/p.md': page('Page', 'two'),
+  });
+  try {
+    const r = spawnSync(process.execPath, ['build.js'], { cwd: dir, encoding: 'utf-8' });
+    assert.equal(r.status, 0, r.stderr);
+    assert.ok(fs.existsSync(path.join(dir, 'dist', 'alpha', 'page', 'index.html')));
+    assert.ok(fs.existsSync(path.join(dir, 'dist', 'beta', 'page', 'index.html')));
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
