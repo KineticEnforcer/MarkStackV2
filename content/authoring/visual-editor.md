@@ -9,13 +9,16 @@ MarkStack includes a browser-based visual editor that lets you write markdown wh
 
 ## Starting the Editor
 
-Launch the visual editor with:
+The editor needs an account. Create the first administrator once, then launch the editor:
 
 ```bash
+npm run editor:create-admin -- --user NAME
 npm run editor
 ```
 
-This starts a local server and opens the editor in your browser at `http://localhost:3001`. The editor runs entirely locally—no content is sent to external servers.
+The first command asks for the password at a hidden prompt. The second starts a local server on `http://localhost:3001`, where you sign in. The editor runs entirely locally—no content is sent to external servers.
+
+Administrators open **Users** (bottom right of the editor, or `/admin/users`) to add people, assign editors to sections (top-level content folders), disable accounts and reset editor passwords. Editors see and change only their assigned sections.
 
 > [!TIP]
 > Use the visual editor for focused writing sessions where you want immediate feedback. For quick edits or working with Git workflows, editing markdown files directly works just as well.
@@ -233,7 +236,7 @@ A Node.js HTTP server that provides:
 - File tree endpoint for navigation
 - Site build trigger endpoint
 
-The server runs on port 3001 by default and listens on `127.0.0.1` only. Change this with `MARKSTACK_EDITOR_HOST`, `MARKSTACK_EDITOR_PORT` and `MARKSTACK_EDITOR_ALLOWED_HOSTS`. The editor has no login yet, so do not expose it to a network.
+The server runs on port 3001 by default and listens on `127.0.0.1` only. Change this with `MARKSTACK_EDITOR_HOST`, `MARKSTACK_EDITOR_PORT` and `MARKSTACK_EDITOR_ALLOWED_HOSTS`. Sign-in is required; if you expose the editor beyond your machine, serve it over HTTPS behind a reverse proxy and set `MARKSTACK_EDITOR_COOKIE_SECURE=1`.
 
 ### Editor Interface (editor.html)
 

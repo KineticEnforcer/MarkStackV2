@@ -8,6 +8,53 @@
       document.documentElement.setAttribute('data-theme', theme);
     })();
   </script>
+  <script nonce="__CSP_NONCE__">
+    // Sign-in support: add the CSRF token to every change request and go to
+    // the sign-in page when the session is gone.
+    (function() {
+      const nativeFetch = window.fetch.bind(window);
+      let csrf = null;
+      const ready = nativeFetch('/api/me', { credentials: 'same-origin' }).then(r => {
+        if (r.status === 401) { location.href = '/login'; return null; }
+        return r.json();
+      }).then(d => {
+        if (!d) return;
+        csrf = d.csrf;
+        window.__markstackUser = d.user;
+        if (d.user.mustChangePassword) { location.href = '/login'; return; }
+        document.addEventListener('DOMContentLoaded', () => {
+          const bar = document.createElement('div');
+          bar.style.cssText = 'position:fixed;right:12px;bottom:12px;z-index:9999;display:flex;gap:10px;align-items:center;padding:6px 12px;font:13px system-ui,sans-serif;background:var(--color-bg-secondary,#222);color:var(--color-text-secondary,#ccc);border:1px solid var(--color-border,#444);border-radius:8px;opacity:.9';
+          const who = document.createElement('span');
+          who.textContent = d.user.name + ' (' + d.user.role + ')';
+          bar.appendChild(who);
+          if (d.user.role === 'admin') {
+            const a = document.createElement('a'); a.href = '/admin/users'; a.textContent = 'Users'; a.style.color = 'inherit';
+            bar.appendChild(a);
+          }
+          const out = document.createElement('a'); out.href = '#'; out.textContent = 'Sign out'; out.style.color = 'inherit';
+          out.addEventListener('click', async e => {
+            e.preventDefault();
+            await nativeFetch('/api/logout', { method: 'POST', headers: { 'X-CSRF-Token': csrf, 'Content-Type': 'application/json' }, body: '{}', credentials: 'same-origin' });
+            location.href = '/login';
+          });
+          bar.appendChild(out);
+          document.body.appendChild(bar);
+        });
+      });
+      window.fetch = async function(input, init) {
+        init = init || {};
+        const method = String(init.method || 'GET').toUpperCase();
+        if (method !== 'GET' && method !== 'HEAD') {
+          await ready;
+          init.headers = Object.assign({}, init.headers, { 'X-CSRF-Token': csrf });
+        }
+        const res = await nativeFetch(input, init);
+        if (res.status === 401) location.href = '/login';
+        return res;
+      };
+    })();
+  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MarkStack Editor</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">

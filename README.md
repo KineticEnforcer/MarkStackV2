@@ -178,6 +178,10 @@ markstack/
 ├── build.js              # Build script (single-file static site generator)
 ├── editor-server.js      # Visual editor server
 ├── editor.html           # Visual editor interface
+├── login.html            # Editor sign-in page
+├── admin-users.html      # Editor user management page
+├── lib/                  # Editor auth, sessions, section rules
+├── scripts/              # create-admin command
 ├── siteconfig.json       # Site configuration
 ├── content/              # Markdown content directory
 │   ├── _index.md         # Homepage content (optional)
@@ -321,7 +325,8 @@ flowchart LR
 |---------|-------------|
 | `npm run build` | Generate static site to the `dist/` directory |
 | `npm run watch` | Rebuild automatically when content files change |
-| `npm run editor` | Launch the visual markdown editor with live preview |
+| `npm run editor` | Launch the visual markdown editor with live preview (sign-in required) |
+| `npm run editor:create-admin -- --user NAME` | Create an editor administrator (password at a hidden prompt) |
 | `npm run serve` | Start a local preview server on port 3000 |
 | `npm run clean` | Remove the `dist/` directory |
 
@@ -429,9 +434,19 @@ This release introduces the Visual Editor and significantly improves code qualit
 
 ### Editor security
 
-The visual editor (`npm run editor`) has no login yet. It is for local use only:
+The visual editor (`npm run editor`) requires sign-in. Accounts are stored in `.markstack/users.json` (owner-only, git-ignored; `MARKSTACK_USERS_FILE` changes the path).
 
-- It binds to `127.0.0.1` by default. Set `MARKSTACK_EDITOR_HOST` to change this, and add the public host name to `MARKSTACK_EDITOR_ALLOWED_HOSTS` (comma separated) or requests are refused. Do not expose it to a network until authentication ships.
+- Create the first administrator on the server with `npm run editor:create-admin -- --user NAME`. The password is typed at a hidden prompt (or piped on standard input for scripts). It is never a command line argument and is never logged.
+- Administrators manage accounts at `/admin/users` in the editor: add users, assign editors to sections, disable accounts and reset editor passwords. A reset shows a one-time temporary password once; the editor must choose a new password at the next sign-in and their open sessions end.
+- A section is a top-level folder of `content/`. An editor sees and edits only the sections assigned to them; anything else answers as "not found". Editors cannot create top-level folders or rename or delete a section folder. Administrators can edit everything. There is no build button or build endpoint; publishing is a build run by whoever runs the site build.
+- Passwords are hashed with scrypt (Node built-in) with a per-user salt, at least 12 characters, no composition rules. Sessions use a random token in an `HttpOnly`, `SameSite=Strict` cookie; only a hash of the token is kept in memory, so restarting the editor signs everyone out. Every change request needs a CSRF token header. After 5 failed sign-ins for an account (or 30 from one address) sign-in is paused for 15 minutes.
+- Session limits default to 8 hours idle and 7 days total (`MARKSTACK_SESSION_IDLE_MINUTES`, `MARKSTACK_SESSION_MAX_MINUTES`). Set `MARKSTACK_EDITOR_COOKIE_SECURE=1` when the editor is served over HTTPS so the cookie is marked `Secure`.
+- Behind a reverse proxy every request looks like it comes from the proxy, so the per-address limit is shared; the per-account limit still applies.
+- Two-factor sign-in and a recovery command for a locked-out administrator are not included.
+
+Other protections:
+
+- It binds to `127.0.0.1` by default. Set `MARKSTACK_EDITOR_HOST` to change this, and add the public host name to `MARKSTACK_EDITOR_ALLOWED_HOSTS` (comma separated) or requests are refused. Serve it over HTTPS behind a reverse proxy if you expose it.
 - `MARKSTACK_EDITOR_PORT` changes the port (default 3001). `MARKSTACK_EDITOR_MAX_BODY` sets the largest request body in bytes (default 2 MiB).
 - Requests need a known `Host`, a matching `Origin` when one is sent, and `Content-Type: application/json` for writes. The content root cannot be deleted or renamed and paths cannot leave `content/` (symlinks included).
 - The live preview renders inside a sandboxed iframe (no scripts) with a restrictive Content-Security-Policy, so raw HTML or Mermaid blocks in a markdown file cannot run code in the editor page.
