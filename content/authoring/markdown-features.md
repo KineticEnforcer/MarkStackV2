@@ -127,13 +127,13 @@ Use NOTE for general information readers should notice while scanning:
 
 ```markdown
 > [!NOTE]
-> MarkStack requires Node.js version 18 or later. Check your version with `node --version`.
+> MarkStack requires Node.js version 24 or later. Check your version with `node --version`.
 ```
 
 Renders as:
 
 > [!NOTE]
-> MarkStack requires Node.js version 18 or later. Check your version with `node --version`.
+> MarkStack requires Node.js version 24 or later. Check your version with `node --version`.
 
 ### TIP
 
@@ -334,7 +334,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
       - run: npm ci
       - run: npm run build
 ```

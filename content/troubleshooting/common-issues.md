@@ -381,7 +381,7 @@ YAMLException: can not read a block mapping entry
 
 4. **Node version mismatch**
    - Specify Node version in platform settings
-   - Use Node 18 or higher
+   - Use Node 24 or higher
 
 ### Clean URLs not working
 

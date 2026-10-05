@@ -57,7 +57,7 @@ For consistent builds, add a `netlify.toml` file to your project root:
   publish = "dist"
 
 [build.environment]
-  NODE_VERSION = "20"
+  NODE_VERSION = "24"
 
 # Redirect rules for clean URLs
 [[redirects]]
@@ -174,7 +174,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
 
       - name: Install dependencies
@@ -368,7 +368,7 @@ scp -r dist/* user@server:/var/www/docs.yoursite.com/
 ### Create Dockerfile
 
 ```dockerfile
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci

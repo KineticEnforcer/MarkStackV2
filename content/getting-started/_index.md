@@ -58,7 +58,7 @@ MarkStack has minimal requirements:
 
 | Requirement | Details |
 |-------------|---------|
-| **Node.js** | Version 18 or later (LTS releases recommended) |
+| **Node.js** | Version 24 or later (use an LTS release) |
 | **npm** | Comes bundled with Node.js |
 | **Operating System** | Windows, macOS, or Linux |
 | **Disk Space** | Less than 50 MB for dependencies |

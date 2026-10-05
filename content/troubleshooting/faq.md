@@ -39,7 +39,7 @@ MarkStack is ideal for:
 
 ### What are the system requirements?
 
-- Node.js 18.0.0 or higher
+- Node.js 24.0.0 or higher
 - Any operating system (Windows, macOS, Linux)
 - Approximately 50MB disk space for dependencies
 
