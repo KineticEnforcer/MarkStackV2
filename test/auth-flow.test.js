@@ -209,6 +209,22 @@ test('an editor sees and reaches only the assigned section, enforced on the serv
   assert.equal(delRoot.status, 403);
 });
 
+test('with the user file locked by another process, a password change fails closed and nothing changes', async () => {
+  await users.create({ name: 'lena', role: 'editor', password: 'lena first password 1', sections: ['it'] });
+  const s = await login('lena', 'lena first password 1');
+  const file = path.join(tmp, 'users.json');
+  const before = fs.readFileSync(file, 'utf-8');
+  users.lockTimeoutMs = 200;
+  fs.writeFileSync(`${file}.lock`, JSON.stringify({ pid: process.pid, at: Date.now() }));
+  try {
+    const r = await request('POST', '/api/change-password', { cookie: s.cookie, csrf: s.csrf, body: { current: 'lena first password 1', password: 'lena second password 2' } });
+    assert.equal(r.status, 500);
+    assert.equal(fs.readFileSync(file, 'utf-8'), before);
+  } finally { fs.unlinkSync(`${file}.lock`); users.lockTimeoutMs = 5000; }
+  assert.equal((await login('lena', 'lena first password 1')).r.status, 200);
+  assert.equal((await login('lena', 'lena second password 2')).r.status, 401);
+});
+
 test('a password-change-required account is blocked until it changes; the change ends the old session', async () => {
   await users.create({ name: 'tess', role: 'editor', password: 'temporary pass 123', sections: ['marketing'], mustChangePassword: true });
   const t = await login('tess', 'temporary pass 123');
