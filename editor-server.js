@@ -27,8 +27,18 @@ const path = require('path');
 
 /** Server configuration constants */
 const CONFIG = {
-  /** HTTP server port */
-  port: 3001,
+  /** HTTP server port (MARKSTACK_EDITOR_PORT overrides) */
+  port: parseInt(process.env.MARKSTACK_EDITOR_PORT, 10) || 3001,
+  /**
+   * Interface to bind. Defaults to loopback so the editor is not reachable
+   * from the network. Set MARKSTACK_EDITOR_HOST explicitly to expose it.
+   */
+  host: process.env.MARKSTACK_EDITOR_HOST || '127.0.0.1',
+  /** Extra Host header values to accept, comma separated (e.g. behind a proxy) */
+  allowedHosts: (process.env.MARKSTACK_EDITOR_ALLOWED_HOSTS || '')
+    .split(',').map(h => h.trim().toLowerCase()).filter(Boolean),
+  /** Maximum JSON request body in bytes */
+  maxBodyBytes: parseInt(process.env.MARKSTACK_EDITOR_MAX_BODY, 10) || 2 * 1024 * 1024,
   /** Path to content directory */
   contentDir: path.join(__dirname, 'content'),
   /** Path to static assets directory */
@@ -226,7 +236,44 @@ function formatTitle(slug) {
  * @returns {boolean} True if path is within content directory
  */
 function isPathSecure(fullPath) {
-  return fullPath.startsWith(CONFIG.contentDir);
+  return isInside(CONFIG.contentDir, fullPath);
+}
+
+/**
+ * True when target is base itself or a path below it. Uses path.relative so a
+ * sibling such as "content-evil" does not pass a prefix check, and resolves
+ * symlinks on the deepest existing ancestor so a link inside content/ cannot
+ * lead outside it.
+ */
+function isInside(base, target) {
+  const resolvedTarget = path.resolve(target);
+  const lexical = path.relative(path.resolve(base), resolvedTarget);
+  if (lexical.startsWith('..') || path.isAbsolute(lexical)) return false;
+  let probe = resolvedTarget;
+  while (!fs.existsSync(probe)) {
+    const parent = path.dirname(probe);
+    if (parent === probe) return false;
+    probe = parent;
+  }
+  let realBase, realProbe;
+  try {
+    realBase = fs.realpathSync(base);
+    realProbe = fs.realpathSync(probe);
+  } catch (e) {
+    return false;
+  }
+  const real = path.relative(realBase, realProbe);
+  return !(real.startsWith('..') || path.isAbsolute(real));
+}
+
+/** True when the path is the content root itself (never delete/rename it). */
+function isContentRoot(fullPath) {
+  return path.resolve(fullPath) === path.resolve(CONFIG.contentDir);
+}
+
+/** Reject non-strings and NUL bytes in user supplied relative paths. */
+function isValidRelPath(p) {
+  return typeof p === 'string' && p.length > 0 && !p.includes('\0');
 }
 
 // =============================================================================
@@ -240,8 +287,53 @@ function isPathSecure(fullPath) {
  * @param {number} statusCode - HTTP status code
  * @param {Object} data - Data to serialize as JSON
  */
+/** Headers added to every response. CSP is added separately with the preview fix. */
+const SECURITY_HEADERS = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'no-referrer',
+  'Cross-Origin-Resource-Policy': 'same-origin'
+};
+
+/** Host header values accepted for this server (DNS rebinding defence). */
+function allowedHostValues() {
+  const p = CONFIG.port;
+  return new Set([
+    `localhost:${p}`, `127.0.0.1:${p}`, `[::1]:${p}`,
+    ...CONFIG.allowedHosts
+  ]);
+}
+
+/**
+ * Reject requests that did not come from this editor page. Checks the Host
+ * header against an allow-list, requires Origin (when sent) to match Host,
+ * and requires JSON content type on POST so cross-site "simple" requests
+ * (text/plain forms) cannot write. Returns null when OK.
+ */
+function checkRequestOrigin(req) {
+  const host = String(req.headers.host || '').toLowerCase();
+  if (!allowedHostValues().has(host)) {
+    return { status: 403, message: 'Host not allowed' };
+  }
+  const origin = req.headers.origin;
+  if (origin !== undefined) {
+    let originHost;
+    try { originHost = new URL(origin).host.toLowerCase(); } catch (e) { originHost = null; }
+    if (originHost !== host) {
+      return { status: 403, message: 'Cross-origin request blocked' };
+    }
+  }
+  if (req.method === 'POST') {
+    const type = String(req.headers['content-type'] || '').split(';')[0].trim().toLowerCase();
+    if (type !== 'application/json') {
+      return { status: 415, message: 'Content-Type must be application/json' };
+    }
+  }
+  return null;
+}
+
 function sendJSON(res, statusCode, data) {
-  res.writeHead(statusCode, { 'Content-Type': 'application/json' });
+  res.writeHead(statusCode, { 'Content-Type': 'application/json', ...SECURITY_HEADERS });
   res.end(JSON.stringify(data));
 }
 
@@ -278,17 +370,40 @@ function sendSuccess(res, data = {}) {
  */
 function parseJSONBody(req) {
   return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', chunk => body += chunk);
+    const chunks = [];
+    let size = 0;
+    let failed = false;
+    req.on('data', chunk => {
+      if (failed) return;
+      size += chunk.length;
+      if (size > CONFIG.maxBodyBytes) {
+        failed = true;
+        const err = new Error('Request body too large');
+        err.status = 413;
+        req.resume();
+        return reject(err);
+      }
+      chunks.push(chunk);
+    });
     req.on('end', () => {
+      if (failed) return;
       try {
-        resolve(JSON.parse(body));
+        resolve(JSON.parse(Buffer.concat(chunks).toString('utf-8')));
       } catch (err) {
-        reject(new Error('Invalid JSON'));
+        const e = new Error('Invalid JSON');
+        e.status = 400;
+        reject(e);
       }
     });
     req.on('error', reject);
   });
+}
+
+/** Map a caught error to a response without leaking internals. */
+function sendFailure(res, err) {
+  if (err && err.status) return sendError(res, err.status, err.message);
+  console.error('Editor error:', err);
+  return sendError(res, 500, 'Internal server error');
 }
 
 // =============================================================================
@@ -305,7 +420,8 @@ function handleGetTree(req, res) {
   const tree = scanDirectory(CONFIG.contentDir);
   res.writeHead(200, {
     'Content-Type': 'application/json',
-    'Cache-Control': 'no-cache'
+    'Cache-Control': 'no-cache',
+    ...SECURITY_HEADERS
   });
   res.end(JSON.stringify(tree));
 }
@@ -320,7 +436,7 @@ function handleGetTree(req, res) {
 function handleGetFile(req, res, url) {
   const filePath = url.searchParams.get('path');
   
-  if (!filePath) {
+  if (!isValidRelPath(filePath)) {
     return sendError(res, 400, 'Missing path parameter');
   }
   
@@ -349,8 +465,8 @@ async function handleSaveFile(req, res) {
   try {
     const { path: filePath, content } = await parseJSONBody(req);
     
-    if (!filePath) {
-      return sendError(res, 400, 'Missing path');
+    if (!isValidRelPath(filePath) || typeof content !== 'string') {
+      return sendError(res, 400, 'Invalid path or content');
     }
     
     const fullPath = path.join(CONFIG.contentDir, filePath);
@@ -366,7 +482,7 @@ async function handleSaveFile(req, res) {
     
     sendSuccess(res);
   } catch (err) {
-    sendError(res, 500, err.message);
+    sendFailure(res, err);
   }
 }
 
@@ -379,6 +495,9 @@ async function handleSaveFile(req, res) {
 async function handleCreateFolder(req, res) {
   try {
     const { parentPath, name } = await parseJSONBody(req);
+    if (parentPath !== undefined && parentPath !== '' && !isValidRelPath(parentPath)) {
+      return sendError(res, 400, 'Invalid parent path');
+    }
     const folderName = normalizeFolderName(name);
     
     if (!folderName) {
@@ -404,7 +523,7 @@ async function handleCreateFolder(req, res) {
     
     sendSuccess(res, { path: folderPath });
   } catch (err) {
-    sendError(res, 500, err.message);
+    sendFailure(res, err);
   }
 }
 
@@ -417,6 +536,9 @@ async function handleCreateFolder(req, res) {
 async function handleCreateFile(req, res) {
   try {
     const { parentPath, name } = await parseJSONBody(req);
+    if (parentPath !== undefined && parentPath !== '' && !isValidRelPath(parentPath)) {
+      return sendError(res, 400, 'Invalid parent path');
+    }
     const fileName = normalizeFilename(name);
     
     if (!fileName) {
@@ -441,7 +563,7 @@ async function handleCreateFile(req, res) {
     
     sendSuccess(res, { path: filePath });
   } catch (err) {
-    sendError(res, 500, err.message);
+    sendFailure(res, err);
   }
 }
 
@@ -455,6 +577,9 @@ async function handleRename(req, res) {
   try {
     const { oldPath, newName, isFolder } = await parseJSONBody(req);
     
+    if (!isValidRelPath(oldPath) || typeof newName !== 'string') {
+      return sendError(res, 400, 'Invalid rename request');
+    }
     const normalizedName = isFolder ? normalizeFolderName(newName) : normalizeFilename(newName);
     const parentDir = path.dirname(oldPath);
     const newPath = parentDir === '.' ? normalizedName : path.join(parentDir, normalizedName);
@@ -463,7 +588,7 @@ async function handleRename(req, res) {
     const fullNewPath = path.join(CONFIG.contentDir, newPath);
     
     // Security check
-    if (!isPathSecure(fullOldPath) || !isPathSecure(fullNewPath)) {
+    if (isContentRoot(fullOldPath) || !isPathSecure(fullOldPath) || !isPathSecure(fullNewPath)) {
       return sendError(res, 403, 'Access denied');
     }
     
@@ -479,7 +604,7 @@ async function handleRename(req, res) {
     
     sendSuccess(res, { newPath });
   } catch (err) {
-    sendError(res, 500, err.message);
+    sendFailure(res, err);
   }
 }
 
@@ -493,14 +618,14 @@ async function handleRename(req, res) {
 function handleDelete(req, res, url) {
   const filePath = url.searchParams.get('path');
   
-  if (!filePath) {
+  if (!isValidRelPath(filePath)) {
     return sendError(res, 400, 'Missing path parameter');
   }
   
   const fullPath = path.join(CONFIG.contentDir, filePath);
   
-  // Security check
-  if (!isPathSecure(fullPath)) {
+  // Security check; the content root itself can never be deleted
+  if (isContentRoot(fullPath) || !isPathSecure(fullPath)) {
     return sendError(res, 403, 'Access denied');
   }
   
@@ -509,10 +634,10 @@ function handleDelete(req, res, url) {
   }
   
   try {
-    fs.rmSync(fullPath, { recursive: true });
+    fs.rmSync(fullPath, { recursive: true });  // symlinks are removed, not followed
     sendSuccess(res);
   } catch (err) {
-    sendError(res, 500, err.message);
+    sendFailure(res, err);
   }
 }
 
@@ -578,9 +703,14 @@ function handleAPI(req, res, pathname, url) {
  * @param {http.ServerResponse} res - HTTP response object
  * @param {string} filePath - Absolute path to the file
  */
-function serveStatic(res, filePath) {
-  if (!fs.existsSync(filePath)) {
-    res.writeHead(404, { 'Content-Type': 'text/plain' });
+function serveStatic(res, filePath, root) {
+  if (root && !isInside(root, filePath)) {
+    res.writeHead(403, { 'Content-Type': 'text/plain', ...SECURITY_HEADERS });
+    res.end('Forbidden');
+    return;
+  }
+  if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+    res.writeHead(404, { 'Content-Type': 'text/plain', ...SECURITY_HEADERS });
     res.end('Not found');
     return;
   }
@@ -595,7 +725,8 @@ function serveStatic(res, filePath) {
     'Content-Type': contentType,
     'Cache-Control': 'no-cache, no-store, must-revalidate',
     'Pragma': 'no-cache',
-    'Expires': '0'
+    'Expires': '0',
+    ...SECURITY_HEADERS
   });
   res.end(content);
 }
@@ -612,7 +743,14 @@ function serveStatic(res, filePath) {
  * @param {http.ServerResponse} res - HTTP response object
  */
 function requestHandler(req, res) {
-  const url = new URL(req.url, `http://localhost:${CONFIG.port}`);
+  let url;
+  try {
+    url = new URL(req.url, `http://localhost:${CONFIG.port}`);
+  } catch (e) {
+    return sendError(res, 400, 'Bad request');
+  }
+  const gate = checkRequestOrigin(req);
+  if (gate) return sendError(res, gate.status, gate.message);
   const pathname = url.pathname;
   
   // API routes
@@ -623,25 +761,25 @@ function requestHandler(req, res) {
   // Static asset routes - serve from static directory
   if (pathname.startsWith('/static/')) {
     const staticPath = path.join(CONFIG.staticDir, pathname.replace('/static/', ''));
-    return serveStatic(res, staticPath);
+    return serveStatic(res, staticPath, CONFIG.staticDir);
   }
   
   // CSS files
   if (pathname.startsWith('/css/')) {
     const cssPath = path.join(CONFIG.staticDir, pathname);
-    return serveStatic(res, cssPath);
+    return serveStatic(res, cssPath, CONFIG.staticDir);
   }
   
   // JavaScript files
   if (pathname.startsWith('/js/')) {
     const jsPath = path.join(CONFIG.staticDir, pathname);
-    return serveStatic(res, jsPath);
+    return serveStatic(res, jsPath, CONFIG.staticDir);
   }
   
   // SVG files
   if (pathname.startsWith('/svg/')) {
     const svgPath = path.join(CONFIG.staticDir, pathname);
-    return serveStatic(res, svgPath);
+    return serveStatic(res, svgPath, CONFIG.staticDir);
   }
   
   // Editor HTML for root and common paths
@@ -651,7 +789,7 @@ function requestHandler(req, res) {
   }
   
   // 404 for everything else
-  res.writeHead(404, { 'Content-Type': 'text/plain' });
+  res.writeHead(404, { 'Content-Type': 'text/plain', ...SECURITY_HEADERS });
   res.end('Not found');
 }
 
@@ -661,10 +799,18 @@ function requestHandler(req, res) {
 
 const server = http.createServer(requestHandler);
 
-server.listen(CONFIG.port, () => {
+function start() {
+server.listen(CONFIG.port, CONFIG.host, () => {
   console.log('\n📝 MarkStack Editor Server');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  console.log(`✓ Editor running at: http://localhost:${CONFIG.port}`);
+  console.log(`✓ Editor running at: http://${CONFIG.host}:${CONFIG.port}`);
   console.log(`✓ Content directory: ${CONFIG.contentDir}`);
   console.log('\nPress Ctrl+C to stop the server.\n');
 });
+}
+
+if (require.main === module) {
+  start();
+}
+
+module.exports = { server, CONFIG, isInside, isPathSecure, checkRequestOrigin, start };

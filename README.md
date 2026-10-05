@@ -425,6 +425,15 @@ This release introduces the Visual Editor and significantly improves code qualit
 
 ---
 
+### Editor security
+
+The visual editor (`npm run editor`) has no login yet. It is for local use only:
+
+- It binds to `127.0.0.1` by default. Set `MARKSTACK_EDITOR_HOST` to change this, and add the public host name to `MARKSTACK_EDITOR_ALLOWED_HOSTS` (comma separated) or requests are refused. Do not expose it to a network until authentication ships.
+- `MARKSTACK_EDITOR_PORT` changes the port (default 3001). `MARKSTACK_EDITOR_MAX_BODY` sets the largest request body in bytes (default 2 MiB).
+- Requests need a known `Host`, a matching `Origin` when one is sent, and `Content-Type: application/json` for writes. The content root cannot be deleted or renamed and paths cannot leave `content/` (symlinks included).
+- Run `npm test` to run the regression tests.
+
 ## License
 
 This project is licensed under the GPL-3.0 license. See [LICENSE](LICENSE) for the full license text.
