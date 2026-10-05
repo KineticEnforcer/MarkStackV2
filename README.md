@@ -222,6 +222,7 @@ Edit `siteconfig.json` to customize your site:
 | `defaultDescription` | Fallback description for pages without frontmatter |
 | `showHero` | Toggle homepage hero section visibility |
 | `copyrightText` | Footer copyright notice |
+| `allowRawHtml` | Optional. Raw HTML inside Markdown (tags such as `<div>`, `<iframe>`, `<script>`) is shown as plain text unless this is the boolean `true`. Default is off. Only set it for sites where everyone who can edit content is fully trusted: raw HTML is copied unchanged into the public pages. The setting lives in this file on the server; the editor cannot change it |
 
 ### Base URL Configuration
 
