@@ -35,8 +35,8 @@ async function main() {
   const user = store.get(name);
   if (!user || user.role !== 'admin') { console.error(`No administrator named "${name}" in ${usersFile}.`); process.exit(1); }
   const password = await readPassword();
-  await store.setPassword(name, password, { mustChangePassword: false });
-  if (user.disabled) store.setDisabled(name, false);
+  // One locked change: new password and account enabled together, or nothing is written.
+  await store.setPassword(name, password, { mustChangePassword: false, enable: true });
   console.log(`Password for administrator "${name}" was reset. Sessions open for this account end on the editor's next request.`);
 }
 
