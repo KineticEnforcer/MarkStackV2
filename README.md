@@ -179,7 +179,6 @@ markstack/
 ├── editor-server.js      # Visual editor server
 ├── editor.html           # Visual editor interface
 ├── login.html            # Editor sign-in page
-├── admin-users.html      # Editor user management page
 ├── lib/                  # Editor auth, sessions, section rules
 ├── scripts/              # create-admin command
 ├── siteconfig.json       # Site configuration
@@ -437,7 +436,7 @@ This release introduces the Visual Editor and significantly improves code qualit
 The visual editor (`npm run editor`) requires sign-in. Accounts are stored in `.markstack/users.json` (owner-only, git-ignored; `MARKSTACK_USERS_FILE` changes the path).
 
 - Create the first administrator on the server with `npm run editor:create-admin -- --user NAME`. The password is typed at a hidden prompt (or piped on standard input for scripts). It is never a command line argument and is never logged.
-- Administrators manage accounts at `/admin/users` in the editor: add users, assign editors to sections, disable accounts and reset editor passwords. A reset shows a one-time temporary password once; the editor must choose a new password at the next sign-in and their open sessions end.
+- This release has no account screen yet: the administrator created with the command above can sign in, and editor accounts arrive with the admin interface. The server already enforces roles, section access, forced password change and session ending for any account in the user file.
 - A section is a top-level folder of `content/`. An editor sees and edits only the sections assigned to them; anything else answers as "not found". Editors cannot create top-level folders or rename or delete a section folder. Administrators can edit everything. There is no build button or build endpoint; publishing is a build run by whoever runs the site build.
 - Passwords are hashed with scrypt (Node built-in) with a per-user salt, at least 12 characters, no composition rules. Sessions use a random token in an `HttpOnly`, `SameSite=Strict` cookie; only a hash of the token is kept in memory, so restarting the editor signs everyone out. Every change request needs a CSRF token header. After 5 failed sign-ins for the same account from the same address, that address is paused for that account for 15 minutes; 30 failures from one address pause all sign-ins from it. Someone guessing from one address therefore cannot lock the real user out from another. The per-account guess rate across many addresses is limited only by the cost of the password hash.
 - Session limits default to 8 hours idle and 7 days total (`MARKSTACK_SESSION_IDLE_MINUTES`, `MARKSTACK_SESSION_MAX_MINUTES`). Set `MARKSTACK_EDITOR_COOKIE_SECURE=1` when the editor is served over HTTPS so the cookie is marked `Secure`.
