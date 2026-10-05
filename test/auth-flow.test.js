@@ -127,10 +127,32 @@ test('changes need the CSRF token', async () => {
   assert.equal(good.status, 200);
 });
 
-test('repeated failures lock the account, even for the right password', async () => {
-  for (let i = 0; i < 3; i++) await request('POST', '/api/login', { body: { name: 'lockme', password: 'wrong wrong wrong' } });
-  const r = await request('POST', '/api/login', { body: { name: 'lockme', password: 'wrong wrong wrong' } });
-  assert.equal(r.status, 429);
+test('repeated failures pause sign-in for that account from that address only', async () => {
+  CONFIG.trustedProxyHops = 1;
+  try {
+    const from = ip => ({ headers: { 'X-Forwarded-For': ip } });
+    const attempt = (ip, name, pw) => request('POST', '/api/login', { body: { name, password: pw }, ...from(ip) });
+    for (let i = 0; i < 3; i++) await attempt('203.0.113.9', 'ada', 'wrong wrong wrong');
+    assert.equal((await attempt('203.0.113.9', 'ada', ADMIN_PW)).status, 429, 'attacker address is paused, even with the right password');
+    assert.equal((await attempt('198.51.100.7', 'ada', ADMIN_PW)).status, 200, 'the real user from another address still gets in');
+  } finally { CONFIG.trustedProxyHops = 0; }
+});
+
+test('a client cannot pick its own address through X-Forwarded-For when no proxy is configured', async () => {
+  for (let i = 0; i < 3; i++) {
+    await request('POST', '/api/login', { body: { name: 'ghost', password: 'wrong wrong wrong' }, headers: { 'X-Forwarded-For': `10.0.0.${i}` } });
+  }
+  const r = await request('POST', '/api/login', { body: { name: 'ghost', password: EDITOR_PW }, headers: { 'X-Forwarded-For': '10.9.9.9' } });
+  assert.equal(r.status, 429, 'spoofed header ignored, same real address');
+});
+
+test('with one proxy configured, the rightmost entry is used, so a spoofed left entry does not help', async () => {
+  CONFIG.trustedProxyHops = 1;
+  try {
+    const attempt = (xff, pw) => request('POST', '/api/login', { body: { name: 'mia2', password: pw }, headers: { 'X-Forwarded-For': xff } });
+    for (let i = 0; i < 3; i++) await attempt(`1.1.1.${i}, 192.0.2.50`, 'wrong wrong wrong');
+    assert.equal((await attempt('9.9.9.9, 192.0.2.50', 'wrong wrong wrong')).status, 429);
+  } finally { CONFIG.trustedProxyHops = 0; }
 });
 
 test('an editor sees and reaches only the assigned section, enforced on the server', async () => {

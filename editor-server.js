@@ -55,7 +55,13 @@ const CONFIG = {
   sessionIdleMinutes: parseInt(process.env.MARKSTACK_SESSION_IDLE_MINUTES, 10) || 8 * 60,
   sessionMaxMinutes: parseInt(process.env.MARKSTACK_SESSION_MAX_MINUTES, 10) || 7 * 24 * 60,
   /** Mark the session cookie Secure. Set to 1 when the site is served over HTTPS. */
-  cookieSecure: process.env.MARKSTACK_EDITOR_COOKIE_SECURE === '1'
+  cookieSecure: process.env.MARKSTACK_EDITOR_COOKIE_SECURE === '1',
+  /**
+   * Number of reverse proxies in front of the editor (0 = none). When above 0
+   * the client address is read from X-Forwarded-For, counting that many
+   * entries from the right, so a client cannot choose its own address.
+   */
+  trustedProxyHops: parseInt(process.env.MARKSTACK_TRUSTED_PROXY_HOPS, 10) || 0
 };
 
 /** MIME type mappings for static file serving */
@@ -710,6 +716,9 @@ function initAuth(opts = {}) {
     idleMs: CONFIG.sessionIdleMinutes * 60 * 1000,
     maxMs: CONFIG.sessionMaxMinutes * 60 * 1000
   });
+  // Failures are counted per account AND address together, so someone guessing
+  // from one address cannot lock the real user out from another. A second,
+  // larger limit per address stops one address from trying many accounts.
   AUTH.byAccount = opts.byAccount || new FailureLimiter({ maxFailures: 5 });
   AUTH.byAddress = opts.byAddress || new FailureLimiter({ maxFailures: 30 });
 }
@@ -748,6 +757,11 @@ function resolveSession(req) {
 }
 
 function clientAddress(req) {
+  const hops = CONFIG.trustedProxyHops;
+  if (hops > 0) {
+    const parts = String(req.headers['x-forwarded-for'] || '').split(',').map(x => x.trim()).filter(Boolean);
+    if (parts.length >= hops) return parts[parts.length - hops].slice(0, 64);
+  }
   return String((req.socket && req.socket.remoteAddress) || 'unknown');
 }
 
@@ -764,8 +778,8 @@ async function handleLogin(req, res) {
   try {
     const { name, password } = await parseJSONBody(req);
     const addr = clientAddress(req);
-    const acct = `acct:${String(name).toLowerCase().slice(0, 64)}`;
     if (typeof name !== 'string' || typeof password !== 'string') return sendError(res, 400, 'Invalid request');
+    const acct = `acct:${name.toLowerCase().slice(0, 64)}|${addr}`;
     if (AUTH.byAccount.isBlocked(acct) || AUTH.byAddress.isBlocked(`addr:${addr}`)) {
       authLog('login-blocked', name);
       return sendError(res, 429, 'Too many attempts. Try again later.');
