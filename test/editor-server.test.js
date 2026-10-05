@@ -186,3 +186,10 @@ test('markdown-it is served from the installed package', async () => {
   assert.match(r.headers['content-type'], /javascript/);
   assert.ok(r.body.includes('markdownit'));
 });
+
+test('the editor page follows the site setting for raw HTML (off unless siteconfig.json allows it)', async () => {
+  const r = await request('GET', '/');
+  assert.equal(r.status, 200);
+  assert.ok(r.body.includes('html: false,'));
+  assert.ok(!r.body.includes('__ALLOW_RAW_HTML__'));
+});

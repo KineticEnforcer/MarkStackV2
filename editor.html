@@ -1420,7 +1420,8 @@
        * Configured to match the build.js markdown processing pipeline.
        */
       const md = window.markdownit({
-        html: true,
+        // Raw HTML in Markdown follows the site setting (allowRawHtml in siteconfig.json).
+        html: __ALLOW_RAW_HTML__,
         linkify: true,
         typographer: true,
         highlight: function(str, lang) {
@@ -1464,7 +1465,7 @@
                   tokens[i].attrJoin('class', 'alert');
                   tokens[i].attrJoin('class', 'alert-' + alertTypeLower);
                   tokens[j].content = content.replace(alertMatch[0], '');
-                  tokens[j].content = '<span class="alert-title"><span class="alert-icon">' + icon + '</span>' + alertType + '</span>\n' + tokens[j].content;
+                  tokens[j].meta = Object.assign({}, tokens[j].meta, { alertType: alertType });
                 }
               }
               j++;
@@ -1472,6 +1473,22 @@
           }
         }
       });
+
+      // The alert title is a real token, so it does not depend on raw HTML being enabled.
+      md.core.ruler.after('inline', 'github-alert-titles', function(state) {
+        state.tokens.forEach(function(tok) {
+          if (tok.type !== 'inline' || !tok.meta || !tok.meta.alertType || !tok.children) return;
+          const title = new state.Token('alert_title', '', 0);
+          title.meta = { alertType: tok.meta.alertType };
+          const nl = new state.Token('text', '', 0);
+          nl.content = '\n';
+          tok.children.unshift(title, nl);
+        });
+      });
+      md.renderer.rules.alert_title = function(tokens, idx) {
+        const type = tokens[idx].meta.alertType;
+        return '<span class="alert-title"><span class="alert-icon">' + (alertIcons[type.toLowerCase()] || '') + '</span>' + type + '</span>';
+      };
       
       // =========================================================================
       // Theme Toggle

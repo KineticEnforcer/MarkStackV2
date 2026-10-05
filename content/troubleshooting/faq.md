@@ -61,14 +61,10 @@ See the [Markdown Features](/authoring/markdown-features/) page for complete doc
 
 ### Can I use HTML in my markdown?
 
-Yes, raw HTML is allowed in markdown files. However, use markdown when possible for consistency and maintainability:
+Not by default. Raw HTML in a markdown file is shown as plain text, so nobody who can edit content can add scripts or embeds to the public site. The site owner can allow it by setting `"allowRawHtml": true` in `siteconfig.json` on the server. Only do that when everyone who can edit content is fully trusted. Use markdown when possible:
 
 ```markdown
 This is **markdown** formatting.
-
-<div class="custom">
-  This is <strong>HTML</strong> formatting.
-</div>
 ```
 
 ### How do I create a new page?
@@ -153,7 +149,7 @@ Or use external URLs:
 
 ### Can I embed videos?
 
-Use HTML to embed videos:
+Videos and iframes need raw HTML, which is off by default (see "Can I use HTML in my markdown?"). With `"allowRawHtml": true` in `siteconfig.json` you can embed them:
 
 ```html
 <video controls width="100%">
@@ -161,11 +157,11 @@ Use HTML to embed videos:
 </video>
 ```
 
-Or embed from YouTube/Vimeo:
-
 ```html
 <iframe width="560" height="315" src="https://www.youtube.com/embed/VIDEO_ID" frameborder="0" allowfullscreen></iframe>
 ```
+
+Without it, link to the video instead.
 
 ## Configuration Questions
 

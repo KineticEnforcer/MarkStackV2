@@ -45,6 +45,13 @@ const CONFIG = {
   staticDir: path.join(__dirname, 'static')
 };
 
+/** Raw HTML in Markdown is allowed only when siteconfig.json says so (server-side file, not editable from the editor). */
+function siteAllowsRawHtml() {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(__dirname, 'siteconfig.json'), 'utf-8')).allowRawHtml === true;
+  } catch (e) { return false; }
+}
+
 /** MIME type mappings for static file serving */
 const MIME_TYPES = {
   '.html': 'text/html',
@@ -320,7 +327,7 @@ function editorCsp(nonce) {
 /** Serve editor.html with a fresh nonce and its CSP header. */
 function serveEditorPage(res) {
   const nonce = require('crypto').randomBytes(16).toString('base64');
-  const page = fs.readFileSync(path.join(__dirname, 'editor.html'), 'utf-8').replace(/__CSP_NONCE__/g, nonce);
+  const page = fs.readFileSync(path.join(__dirname, 'editor.html'), 'utf-8').replace(/__CSP_NONCE__/g, nonce).replace(/__ALLOW_RAW_HTML__/g, siteAllowsRawHtml() ? 'true' : 'false');
   res.writeHead(200, {
     'Content-Type': 'text/html; charset=utf-8',
     'Cache-Control': 'no-cache, no-store, must-revalidate',

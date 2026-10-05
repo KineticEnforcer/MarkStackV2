@@ -23,18 +23,37 @@ const matter = require('gray-matter');
 const hljs = require('highlight.js');
 
 // =============================================================================
+// Site Configuration
+// =============================================================================
+
+// Load site configuration from siteconfig.json
+const siteConfigPath = path.join(__dirname, 'siteconfig.json');
+let siteConfig = {};
+if (fs.existsSync(siteConfigPath)) {
+  try {
+    siteConfig = JSON.parse(fs.readFileSync(siteConfigPath, 'utf-8'));
+  } catch (e) {
+    console.warn('⚠ Warning: Could not parse siteconfig.json, using defaults');
+  }
+}
+
+const SITE_ALLOWS_RAW_HTML = siteConfig.allowRawHtml === true;
+
+// =============================================================================
 // Markdown Configuration
 // =============================================================================
 
 // Initialize markdown-it with GitHub Flavored Markdown support
 const md = require('markdown-it')({
-  html: true,
+  // Raw HTML in Markdown is off unless the site owner sets "allowRawHtml": true in
+  // siteconfig.json (a file on the server; the editor cannot change it).
+  html: SITE_ALLOWS_RAW_HTML,
   linkify: true,
   typographer: true,
   highlight: function (str, lang) {
     // Handle Mermaid diagrams - don't highlight, just wrap for client-side rendering
     if (lang === 'mermaid') {
-      return '<pre class="mermaid">' + str + '</pre>';
+      return '<pre class="mermaid">' + md.utils.escapeHtml(str) + '</pre>';
     }
     if (lang && hljs.getLanguage(lang)) {
       try {
@@ -84,7 +103,7 @@ const alertIcons = {
 
 md.core.ruler.after('block', 'github-alerts', function(state) {
   const tokens = state.tokens;
-  
+
   for (let i = 0; i < tokens.length; i++) {
     if (tokens[i].type === 'blockquote_open') {
       // Find the content inside the blockquote
@@ -93,18 +112,15 @@ md.core.ruler.after('block', 'github-alerts', function(state) {
         if (tokens[j].type === 'inline') {
           const content = tokens[j].content;
           const alertMatch = content.match(/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*/i);
-          
+
           if (alertMatch) {
             const alertType = alertMatch[1].toUpperCase();
-            const alertTypeLower = alertType.toLowerCase();
-            const icon = alertIcons[alertTypeLower] || '';
             // Add class to blockquote
             tokens[i].attrJoin('class', 'alert');
-            tokens[i].attrJoin('class', `alert-${alertTypeLower}`);
-            // Remove the alert marker from content
+            tokens[i].attrJoin('class', `alert-${alertType.toLowerCase()}`);
+            // Remove the alert marker from content; the title is added after inline parsing
             tokens[j].content = content.replace(alertMatch[0], '');
-            // Add alert title with SVG icon
-            tokens[j].content = `<span class="alert-title"><span class="alert-icon">${icon}</span>${alertType}</span>\n${tokens[j].content}`;
+            tokens[j].meta = Object.assign({}, tokens[j].meta, { alertType });
           }
         }
         j++;
@@ -113,20 +129,23 @@ md.core.ruler.after('block', 'github-alerts', function(state) {
   }
 });
 
-// =============================================================================
-// Site Configuration
-// =============================================================================
-
-// Load site configuration from siteconfig.json
-const siteConfigPath = path.join(__dirname, 'siteconfig.json');
-let siteConfig = {};
-if (fs.existsSync(siteConfigPath)) {
-  try {
-    siteConfig = JSON.parse(fs.readFileSync(siteConfigPath, 'utf-8'));
-  } catch (e) {
-    console.warn('⚠ Warning: Could not parse siteconfig.json, using defaults');
+// The alert title is a real token, so it does not depend on raw HTML being enabled.
+md.core.ruler.after('inline', 'github-alert-titles', function(state) {
+  for (const tok of state.tokens) {
+    if (tok.type !== 'inline' || !tok.meta || !tok.meta.alertType || !tok.children) continue;
+    const title = new state.Token('alert_title', '', 0);
+    title.meta = { alertType: tok.meta.alertType };
+    const nl = new state.Token('text', '', 0);
+    nl.content = '\n';
+    tok.children.unshift(title, nl);
   }
-}
+});
+
+md.renderer.rules.alert_title = function(tokens, idx) {
+  const type = tokens[idx].meta.alertType;
+  const icon = alertIcons[type.toLowerCase()] || '';
+  return '<span class="alert-title"><span class="alert-icon">' + icon + '</span>' + type + '</span>';
+};
 
 // Configuration
 const CONFIG = {
