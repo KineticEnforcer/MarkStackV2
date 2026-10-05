@@ -434,6 +434,7 @@ The visual editor (`npm run editor`) has no login yet. It is for local use only:
 - Requests need a known `Host`, a matching `Origin` when one is sent, and `Content-Type: application/json` for writes. The content root cannot be deleted or renamed and paths cannot leave `content/` (symlinks included).
 - The live preview renders inside a sandboxed iframe (no scripts) with a restrictive Content-Security-Policy, so raw HTML or Mermaid blocks in a markdown file cannot run code in the editor page.
 - Run `npm test` to run the regression tests.
+- GitHub Actions runs the tests, the build and `npm audit --audit-level=high` on Node 24 for pull requests and pushes to main that touch code, content, templates, static files, tests, package files or the workflow (`.github/workflows/ci.yml`). Docs-only changes skip it.
 
 ## License
 
