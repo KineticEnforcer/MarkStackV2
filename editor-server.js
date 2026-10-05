@@ -295,6 +295,41 @@ const SECURITY_HEADERS = {
   'Cross-Origin-Resource-Policy': 'same-origin'
 };
 
+/** Pinned third-party scripts the editor page may load (integrity hashes must match editor.html). */
+const EDITOR_SCRIPT_HASHES = [
+  'sha384-wjfDDhOPPdjtva8vWBhWeVprSpmxisEu5aYT3q1JyACqXpdKpo3PWZTMVq24MBix',
+  'sha384-EOXBFmc3gx5mb+vn0vPvvGqACToJD24hhacX5Yx+8NUUQrHIle/Qi5Bg9o3zKwW2'
+];
+
+/** Content-Security-Policy for the editor page. Inline scripts need the per-response nonce. */
+function editorCsp(nonce) {
+  return [
+    "default-src 'none'",
+    `script-src 'self' 'nonce-${nonce}' ${EDITOR_SCRIPT_HASHES.map(h => `'${h}'`).join(' ')}`,
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src https://fonts.gstatic.com data:",
+    "img-src 'self' data: blob: http: https:",
+    "connect-src 'self'",
+    "base-uri 'none'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+    "object-src 'none'"
+  ].join('; ');
+}
+
+/** Serve editor.html with a fresh nonce and its CSP header. */
+function serveEditorPage(res) {
+  const nonce = require('crypto').randomBytes(16).toString('base64');
+  const page = fs.readFileSync(path.join(__dirname, 'editor.html'), 'utf-8').replace(/__CSP_NONCE__/g, nonce);
+  res.writeHead(200, {
+    'Content-Type': 'text/html; charset=utf-8',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Content-Security-Policy': editorCsp(nonce),
+    ...SECURITY_HEADERS
+  });
+  res.end(page);
+}
+
 /** Host header values accepted for this server (DNS rebinding defence). */
 function allowedHostValues() {
   const p = CONFIG.port;
@@ -784,8 +819,13 @@ function requestHandler(req, res) {
   
   // Editor HTML for root and common paths
   if (pathname === '/' || pathname === '/editor' || pathname === '/editor.html') {
-    const editorPath = path.join(__dirname, 'editor.html');
-    return serveStatic(res, editorPath);
+    return serveEditorPage(res);
+  }
+
+  // markdown-it browser build from the installed package (same version as the site build)
+  if (pathname === '/vendor/markdown-it.js') {
+    const p = require.resolve('markdown-it/package.json').replace(/package\.json$/, 'dist/browser/markdown-it.umd.min.js');
+    return serveStatic(res, p);
   }
   
   // 404 for everything else
