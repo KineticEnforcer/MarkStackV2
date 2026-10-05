@@ -127,10 +127,10 @@ npm run build
 
 ### Search
 
-- **Full-text client-side search** that works offline
-- **Fuzzy matching** to find results even with partial or misspelled queries
-- **Keyboard navigation** with Ctrl+K shortcut to open search
-- **Context highlighting** showing matches within search results
+- **Full-text client-side search** that works offline. The build writes `search-index.json` with one entry per page and one per heading (h2 to h4), so a result can open the page at the matching heading. No search server.
+- **One search window.** Press `Ctrl+K` (or `Cmd+K`, or `/`) or click the search box. Results are grouped into Pages and Sections with the folder path shown. Arrow keys move, Enter opens the selected result, Esc closes.
+- **Forgiving matching.** Partial words match, all typed words must match, small typos are tolerated for words of five or more letters, and `"quoted phrases"` must match exactly.
+- **Context highlighting** showing matches within search results. The matching code is in `static/js/search-core.js` and is covered by tests.
 
 ---
 
