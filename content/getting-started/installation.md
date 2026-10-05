@@ -11,7 +11,7 @@ This guide walks through every step needed to get MarkStack running on your mach
 
 Before installing MarkStack, you need two things on your computer:
 
-### Node.js (version 18 or later)
+### Node.js (version 24 or later)
 
 Node.js is a JavaScript runtime that executes the MarkStack build script. MarkStack requires Node.js version 24 or later because the build script uses modern JavaScript features not available in older versions.
 
@@ -21,7 +21,7 @@ To check if Node.js is already installed, open a terminal and run:
 node --version
 ```
 
-If you see a version number starting with v18 or higher (like `v18.17.0` or `v20.10.0`), you are ready to proceed. If you see "command not found" or a version below 18, you need to install or upgrade Node.js.
+If you see a version number starting with v24 or higher (like `v24.1.0`), you are ready to proceed. If you see "command not found" or a version below 24, you need to install or upgrade Node.js.
 
 #### Installing Node.js
 
@@ -223,7 +223,7 @@ If you use Windows Subsystem for Linux (WSL), you can follow the Linux instructi
 
 ### Build fails with syntax errors
 
-If `npm run build` fails with JavaScript syntax errors, your Node.js version is likely too old. Verify you have version 18 or later:
+If `npm run build` fails with JavaScript syntax errors, your Node.js version is likely too old. Verify you have version 24 or later:
 
 ```bash
 node --version

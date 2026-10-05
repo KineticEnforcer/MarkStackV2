@@ -348,7 +348,7 @@ No. The application runs without a database by default, storing data in memory. 
 
 ### What Node.js version do I need?
 
-Node.js 18 or later. Check your version with:
+Node.js 24 or later. Check your version with:
 ```
 
 ```bash

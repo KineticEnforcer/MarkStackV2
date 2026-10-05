@@ -17,7 +17,7 @@ Before diving into specific issues, try these basic checks:
 node --version
 ```
 
-MarkStack requires Node.js 18.0.0 or higher. If your version is older, upgrade Node.js.
+MarkStack requires Node.js 24.0.0 or higher. If your version is older, upgrade Node.js.
 
 ### 2. Reinstall Dependencies
 

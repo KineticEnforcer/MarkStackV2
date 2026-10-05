@@ -46,7 +46,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
 
       - name: Install dependencies
@@ -101,7 +101,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
 
       - name: Install dependencies
@@ -154,7 +154,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
 
       - name: Install dependencies
@@ -199,7 +199,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
 
       - name: Install dependencies
@@ -239,7 +239,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
 
       - name: Install dependencies
@@ -269,7 +269,7 @@ GitLab CI uses a `.gitlab-ci.yml` file in your repository root.
 ### Basic Pipeline
 
 ```yaml
-image: node:20-alpine
+image: node:24-alpine
 
 stages:
   - build
@@ -306,7 +306,7 @@ This deploys to GitLab Pages. The site will be at `https://username.gitlab.io/re
 ### Deploy to External Host
 
 ```yaml
-image: node:20-alpine
+image: node:24-alpine
 
 stages:
   - build
@@ -364,7 +364,7 @@ pool:
 steps:
   - task: NodeTool@0
     inputs:
-      versionSpec: '20.x'
+      versionSpec: '24.x'
     displayName: 'Install Node.js'
 
   - script: npm ci
@@ -394,7 +394,7 @@ pool:
 steps:
   - task: NodeTool@0
     inputs:
-      versionSpec: '20.x'
+      versionSpec: '24.x'
 
   - script: npm ci
     displayName: 'Install dependencies'
@@ -420,7 +420,7 @@ version: 2.1
 executors:
   node-executor:
     docker:
-      - image: cimg/node:20.0
+      - image: cimg/node:24.0
 
 jobs:
   build:
@@ -481,7 +481,7 @@ Most CI systems support caching `node_modules`:
 ```yaml
 - uses: actions/setup-node@v4
   with:
-    node-version: '20'
+    node-version: '24'
     cache: 'npm'
 ```
 
