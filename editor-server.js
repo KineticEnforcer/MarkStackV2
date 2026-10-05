@@ -854,7 +854,59 @@ function sendBadInput(res, err) {
   return sendFailure(res, err);
 }
 
+function temporaryPassword() {
+  const alphabet = 'abcdefghjkmnpqrstuvwxyz23456789';
+  const bytes = crypto.randomBytes(20);
+  let out = '';
+  for (let i = 0; i < 20; i++) out += alphabet[bytes[i] % alphabet.length];
+  return out.replace(/(.{5})(?=.)/g, '$1-');
+}
 
+function listSections() {
+  return scanDirectory(CONFIG.contentDir).filter(n => n.type === 'folder').map(n => n.name);
+}
+
+/** Admin-only user management API. Returns true when the request was handled. */
+async function handleAdminAPI(req, res, pathname) {
+  if (req.user.role !== 'admin') { sendError(res, 403, 'Administrator only'); return true; }
+  try {
+    if (req.method === 'GET' && pathname === '/api/users') { sendJSON(res, 200, { users: AUTH.users.list(), sections: listSections() }); return true; }
+    if (req.method !== 'POST') return false;
+    if (pathname === '/api/users') {
+      const { name, role, password, sections } = await parseJSONBody(req);
+      const u = await AUTH.users.create({ name, role, password, sections: sections || [] });
+      authLog('user-created', name);
+      sendSuccess(res, { user: u }); return true;
+    }
+    if (pathname === '/api/users/sections') {
+      const { name, sections } = await parseJSONBody(req);
+      AUTH.users.setSections(name, sections);
+      AUTH.sessions.destroyUser(name);
+      authLog('sections-changed', name);
+      sendSuccess(res); return true;
+    }
+    if (pathname === '/api/users/disable') {
+      const { name, disabled } = await parseJSONBody(req);
+      if (name === req.user.name && disabled) return sendError(res, 400, 'You cannot disable your own account'), true;
+      AUTH.users.setDisabled(name, !!disabled);
+      if (disabled) AUTH.sessions.destroyUser(name);
+      authLog(disabled ? 'user-disabled' : 'user-enabled', name);
+      sendSuccess(res); return true;
+    }
+    if (pathname === '/api/users/reset-password') {
+      const { name } = await parseJSONBody(req);
+      const target = AUTH.users.get(name);
+      if (!target) return sendError(res, 400, 'No such user'), true;
+      if (target.role !== 'editor') return sendError(res, 400, 'Only editor accounts are reset here'), true;
+      const temp = temporaryPassword();
+      await AUTH.users.setPassword(name, temp, { mustChangePassword: true });
+      AUTH.sessions.destroyUser(name);
+      authLog('password-reset', name);
+      sendSuccess(res, { temporaryPassword: temp }); return true;
+    }
+  } catch (err) { sendBadInput(res, err); return true; }
+  return false;
+}
 
 /** Authorize a content action for the signed-in user; sends the error and returns false when denied. */
 function allowed(req, res, action, relPath, newRelPath) {
@@ -898,6 +950,9 @@ async function handleAPI(req, res, pathname, url) {
   if (req.method === 'GET' && pathname === '/api/me') return sendJSON(res, 200, me(req.user, req.session));
   if (req.method === 'POST' && pathname === '/api/logout') return handleLogout(req, res);
   if (req.method === 'POST' && pathname === '/api/change-password') return handleChangePassword(req, res);
+  if (pathname === '/api/users' || pathname.startsWith('/api/users/')) {
+    if (await handleAdminAPI(req, res, pathname)) return;
+  }
 
   // GET /api/tree - File tree
   if (req.method === 'GET' && pathname === '/api/tree') {
@@ -1040,6 +1095,11 @@ function requestHandler(req, res) {
   }
   
   // Editor HTML for root and common paths
+  if (pathname === '/admin/users') {
+    if (!resolveSession(req)) return redirect(res, '/login');
+    if (req.user.role !== 'admin') return sendError(res, 403, 'Administrator only');
+    return servePublicPage(res, 'admin-users.html');
+  }
   if (pathname === '/' || pathname === '/editor' || pathname === '/editor.html') {
     if (!resolveSession(req)) return redirect(res, '/login');
     return serveEditorPage(res);

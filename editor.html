@@ -32,6 +32,10 @@
           const who = document.createElement('span');
           who.textContent = d.user.name + ' (' + d.user.role + ')';
           bar.appendChild(who);
+          if (d.user.role === 'admin') {
+            const a = document.createElement('a'); a.href = '/admin/users'; a.textContent = 'Users'; a.style.color = 'inherit';
+            bar.appendChild(a);
+          }
           const out = document.createElement('a'); out.href = '#'; out.textContent = 'Sign out'; out.style.color = 'inherit';
           out.addEventListener('click', async e => {
             e.preventDefault();

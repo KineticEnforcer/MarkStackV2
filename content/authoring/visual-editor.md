@@ -18,6 +18,7 @@ npm run editor
 
 The first command asks for the password at a hidden prompt. The second starts a local server on `http://localhost:3001`, where you sign in. The editor runs entirely locally—no content is sent to external servers.
 
+Administrators open **Users** (bottom right of the editor, or `/admin/users`) to add people, assign editors to sections (top-level content folders), disable accounts and reset editor passwords. Editors see and change only their assigned sections.
 
 > [!TIP]
 > Use the visual editor for focused writing sessions where you want immediate feedback. For quick edits or working with Git workflows, editing markdown files directly works just as well.
