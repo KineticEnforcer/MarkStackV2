@@ -239,10 +239,29 @@ function slugify(title) {
 const urlMap = new Map();
 
 /**
+ * Register a page or folder URL and fail the build if another source already
+ * produces the same output URL. Without this a later page silently replaces an
+ * earlier one in dist/.
+ * @param {Map<string, string>} seen - Normalized URL to source path
+ * @param {string} url - URL path being registered
+ * @param {string} source - Content path that produces the URL
+ */
+function claimUrl(seen, url, source) {
+  const key = url.replace(/\/+$/, '') || '/';
+  if (seen.has(key)) {
+    const a = path.relative(CONFIG.contentDir, seen.get(key));
+    const b = path.relative(CONFIG.contentDir, source);
+    throw new Error(`Duplicate URL ${key}/ is produced by both "${a}" and "${b}". Change one of the titles.`);
+  }
+  seen.set(key, source);
+}
+
+/**
  * Build URL map for all content by scanning the content directory.
  * Populates the global urlMap with file path to URL mappings.
  */
 function buildUrlMap() {
+  const seenUrls = new Map();
   function scanDirectory(dirPath, parentSlugPath = '') {
     const entries = fs.readdirSync(dirPath, { withFileTypes: true });
     
@@ -264,6 +283,7 @@ function buildUrlMap() {
         
         const folderSlug = slugify(folderTitle);
         const folderUrlPath = parentSlugPath + '/' + folderSlug;
+        claimUrl(seenUrls, folderUrlPath, entryPath);
         
         // Map the _index.md file
         if (fs.existsSync(indexPath)) {
@@ -281,6 +301,7 @@ function buildUrlMap() {
         const pageTitle = data.title || formatTitle(entry.name.replace('.md', ''));
         const pageSlug = slugify(pageTitle);
         const pageUrlPath = parentSlugPath + '/' + pageSlug;
+        claimUrl(seenUrls, pageUrlPath, entryPath);
         
         urlMap.set(entryPath, pageUrlPath);
       }
@@ -801,6 +822,16 @@ function build() {
   urlMap.clear();
   searchIndex.length = 0;
   
+  // Build URL map for title-based URLs. Done before touching dist/ so a
+  // duplicate URL fails the build and leaves the last good output in place.
+  try {
+    buildUrlMap();
+  } catch (err) {
+    console.error(`\n❌ Build failed: ${err.message}\n`);
+    process.exitCode = 1;
+    return false;
+  }
+  
   // Clean dist directory
   if (fs.existsSync(CONFIG.distDir)) {
     fs.rmSync(CONFIG.distDir, { recursive: true });
@@ -812,9 +843,6 @@ function build() {
     copyDir(CONFIG.staticDir, CONFIG.distDir);
     console.log('✓ Copied static files\n');
   }
-  
-  // Build URL map for title-based URLs
-  buildUrlMap();
   
   // Process content
   if (fs.existsSync(CONFIG.contentDir)) {
