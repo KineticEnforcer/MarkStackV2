@@ -10,7 +10,8 @@
     "serve": "npx serve dist",
     "editor": "node editor-server.js",
     "test": "node --test \"test/**/*.test.js\"",
-    "editor:create-admin": "node scripts/create-admin.js"
+    "editor:create-admin": "node scripts/create-admin.js",
+    "editor:reset-admin": "node scripts/reset-admin.js"
   },
   "keywords": [
     "markdown",
