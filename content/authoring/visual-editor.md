@@ -233,7 +233,7 @@ A Node.js HTTP server that provides:
 - File tree endpoint for navigation
 - Site build trigger endpoint
 
-The server runs on port 3001 by default and only accepts connections from localhost for security.
+The server runs on port 3001 by default and listens on `127.0.0.1` only. Change this with `MARKSTACK_EDITOR_HOST`, `MARKSTACK_EDITOR_PORT` and `MARKSTACK_EDITOR_ALLOWED_HOSTS`. The editor has no login yet, so do not expose it to a network.
 
 ### Editor Interface (editor.html)
 
