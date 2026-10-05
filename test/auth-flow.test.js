@@ -79,7 +79,7 @@ test('every API route answers 401 without a session', async () => {
   const routes = [
     ['GET', '/api/tree'], ['GET', '/api/file?path=it/page.md'], ['POST', '/api/file'], ['POST', '/api/create-folder'],
     ['POST', '/api/create-file'], ['POST', '/api/rename'], ['DELETE', '/api/delete?path=it/page.md'],
-    ['GET', '/api/me'], ['POST', '/api/logout']
+    ['GET', '/api/me'], ['GET', '/api/users'], ['POST', '/api/users'], ['POST', '/api/logout']
   ];
   for (const [m, u] of routes) {
     const r = await request(m, u, m === 'POST' ? { body: {} } : {});
@@ -207,6 +207,8 @@ test('an editor sees and reaches only the assigned section, enforced on the serv
   assert.ok(fs.existsSync(path.join(CONFIG.contentDir, 'marketing', 'page.md')));
   const delRoot = await request('DELETE', '/api/delete?path=it', { cookie: s.cookie, csrf: s.csrf });
   assert.equal(delRoot.status, 403);
+  assert.equal((await request('GET', '/api/users', { cookie: s.cookie })).status, 403);
+  assert.equal((await request('GET', '/admin/users', { cookie: s.cookie })).status, 403);
 });
 
 test('with the user file locked by another process, a password change fails closed and nothing changes', async () => {
@@ -225,12 +227,24 @@ test('with the user file locked by another process, a password change fails clos
   assert.equal((await login('lena', 'lena second password 2')).r.status, 401);
 });
 
-test('a password-change-required account is blocked until it changes; the change ends the old session', async () => {
-  await users.create({ name: 'tess', role: 'editor', password: 'temporary pass 123', sections: ['marketing'], mustChangePassword: true });
-  const t = await login('tess', 'temporary pass 123');
+test('admin manages users; reset gives a one-time password, ends sessions and forces a change', async () => {
+  const admin = await login('ada', ADMIN_PW);
+  const ed = await login('ian', EDITOR_PW);
+  const list = await request('GET', '/api/users', { cookie: admin.cookie });
+  assert.deepEqual(list.json.sections.sort(), ['it', 'marketing']);
+  assert.ok(!JSON.stringify(list.json).includes('scrypt'));
+
+  const reset = await request('POST', '/api/users/reset-password', { cookie: admin.cookie, csrf: admin.csrf, body: { name: 'ian' } });
+  assert.equal(reset.status, 200);
+  const temp = reset.json.temporaryPassword;
+  assert.ok(temp.length >= 20);
+  assert.equal((await request('GET', '/api/tree', { cookie: ed.cookie })).status, 401, 'old session ended');
+  assert.ok(!logs.join('\n').includes(temp), 'temporary password is never logged');
+
+  const t = await login('ian', temp);
   assert.equal(t.r.json.user.mustChangePassword, true);
   assert.equal((await request('GET', '/api/tree', { cookie: t.cookie })).status, 403, 'blocked until changed');
-  const changed = await request('POST', '/api/change-password', { cookie: t.cookie, csrf: t.csrf, body: { current: 'temporary pass 123', password: 'my own new password 1' } });
+  const changed = await request('POST', '/api/change-password', { cookie: t.cookie, csrf: t.csrf, body: { current: temp, password: 'my own new password 1' } });
   assert.equal(changed.status, 200);
   const cookie2 = changed.headers['set-cookie'][0].split(';')[0];
   assert.equal((await request('GET', '/api/tree', { cookie: cookie2 })).status, 200);
@@ -252,6 +266,23 @@ test('a password reset made by the server command ends open sessions and the new
   assert.equal((await login('rita', 'rita recovered password 9')).r.status, 200);
 });
 
+test('admin cannot disable self; disabling ends sessions; section change ends sessions', async () => {
+  const admin = await login('ada', ADMIN_PW);
+  const self = await request('POST', '/api/users/disable', { cookie: admin.cookie, csrf: admin.csrf, body: { name: 'ada', disabled: true } });
+  assert.equal(self.status, 400);
+  const created = await request('POST', '/api/users', { cookie: admin.cookie, csrf: admin.csrf, body: { name: 'mia', role: 'editor', password: 'mia long password 12', sections: ['marketing'] } });
+  assert.equal(created.status, 200);
+  const mia = await login('mia', 'mia long password 12');
+  assert.equal((await request('GET', '/api/file?path=marketing/page.md', { cookie: mia.cookie })).status, 200);
+  await request('POST', '/api/users/sections', { cookie: admin.cookie, csrf: admin.csrf, body: { name: 'mia', sections: [] } });
+  assert.equal((await request('GET', '/api/tree', { cookie: mia.cookie })).status, 401);
+  const mia2 = await login('mia', 'mia long password 12');
+  assert.deepEqual((await request('GET', '/api/tree', { cookie: mia2.cookie })).json, []);
+  await request('POST', '/api/users/disable', { cookie: admin.cookie, csrf: admin.csrf, body: { name: 'mia', disabled: true } });
+  assert.equal((await request('GET', '/api/tree', { cookie: mia2.cookie })).status, 401);
+  assert.equal((await login('mia', 'mia long password 12')).r.status, 401);
+});
+
 test('logout ends the session', async () => {
   const s = await login('ada', ADMIN_PW);
   assert.equal((await request('POST', '/api/logout', { cookie: s.cookie, csrf: s.csrf, body: {} })).status, 200);
@@ -260,6 +291,6 @@ test('logout ends the session', async () => {
 
 test('no password appears in the auth log', () => {
   const all = logs.join('\n');
-  for (const pw of [ADMIN_PW, EDITOR_PW]) assert.ok(!all.includes(pw));
+  for (const pw of [ADMIN_PW, EDITOR_PW, 'mia long password']) assert.ok(!all.includes(pw));
   assert.match(all, /\[auth\].*login-failed/);
 });
