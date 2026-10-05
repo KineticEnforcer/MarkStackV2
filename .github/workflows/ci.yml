@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  pull_request:
+    paths:
+      - 'build.js'
+      - 'editor-server.js'
+      - 'editor.html'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'siteconfig.json'
+      - 'test/**'
+      - 'content/**'
+      - 'template/**'
+      - 'templates/**'
+      - 'static/**'
+      - '.github/workflows/ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'build.js'
+      - 'editor-server.js'
+      - 'editor.html'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'siteconfig.json'
+      - 'test/**'
+      - 'content/**'
+      - 'template/**'
+      - 'templates/**'
+      - 'static/**'
+      - '.github/workflows/ci.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npm audit --audit-level=high

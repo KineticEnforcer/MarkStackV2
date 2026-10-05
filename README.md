@@ -22,7 +22,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen?style=flat-square" alt="Node.js Version">
+  <img src="https://img.shields.io/badge/node-%3E%3D24.0.0-brightgreen?style=flat-square" alt="Node.js Version">
   <img src="https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square" alt="License">
   <img src="https://img.shields.io/badge/build-~1.2s%20(50%20pages)-orange?style=flat-square" alt="Build Time">
   <img src="https://img.shields.io/badge/dependencies-5-lightgrey?style=flat-square" alt="Dependencies">
@@ -371,7 +371,7 @@ For automated deployments, see the [CI/CD Integration](content/build-deploy/ci-c
 
 ## Requirements
 
-- Node.js 18.0.0 or higher
+- Node.js 24 or higher (current LTS)
 - npm (included with Node.js)
 
 No additional build tools, compilers, or system dependencies are required.
@@ -434,6 +434,7 @@ The visual editor (`npm run editor`) has no login yet. It is for local use only:
 - Requests need a known `Host`, a matching `Origin` when one is sent, and `Content-Type: application/json` for writes. The content root cannot be deleted or renamed and paths cannot leave `content/` (symlinks included).
 - The live preview renders inside a sandboxed iframe (no scripts) with a restrictive Content-Security-Policy, so raw HTML or Mermaid blocks in a markdown file cannot run code in the editor page.
 - Run `npm test` to run the regression tests.
+- GitHub Actions runs the tests, the build and `npm audit --audit-level=high` on Node 24 for pull requests and pushes to main that touch code, content, templates, static files, tests, package files or the workflow (`.github/workflows/ci.yml`). Docs-only changes skip it.
 
 ## License
 

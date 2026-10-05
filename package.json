@@ -9,7 +9,7 @@
     "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
     "serve": "npx serve dist",
     "editor": "node editor-server.js",
-    "test": "node --test test/"
+    "test": "node --test \"test/**/*.test.js\""
   },
   "keywords": [
     "markdown",
@@ -20,14 +20,14 @@
   "author": "KineticEnforcer",
   "license": "GPL-3.0",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=24.0.0"
   },
   "dependencies": {
-    "chokidar": "^3.5.3",
+    "chokidar": "^5.0.0",
     "gray-matter": "^4.0.3",
-    "highlight.js": "^11.9.0",
-    "markdown-it": "^14.0.0",
-    "markdown-it-anchor": "^8.6.7",
+    "highlight.js": "^11.12.0",
+    "markdown-it": "^15.0.2",
+    "markdown-it-anchor": "^10.0.0",
     "markdown-it-footnote": "^4.0.0",
     "markdown-it-task-lists": "^2.1.1"
   }
