@@ -212,320 +212,194 @@
   }
 
   // ============================================
-  // Search Functionality
+  // Search (one window, Pages and Sections)
   // ============================================
   const searchInput = document.getElementById('search-input');
-  const searchResults = document.getElementById('search-results');
-  let searchIndex = null;
-  let searchTimeout = null;
+  const baseUrl = document.querySelector('.site-logo')
+    ? document.querySelector('.site-logo').getAttribute('href').replace(/\/$/, '')
+    : '';
+  let prepared = null;
+  let loading = null;
+  let palette = null;
+  let rows = [];
+  let selected = -1;
+  let lastFocus = null;
 
-  // Escape HTML
-  function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-  }
-
-  // Escape regex special characters
-  function escapeRegex(string) {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  }
-
-  // Load search index
-  async function loadSearchIndex() {
-    if (searchIndex) return searchIndex;
-    
-    try {
-      const baseUrl = document.body.dataset.baseurl || '';
-      const response = await fetch(baseUrl + '/search-index.json');
-      searchIndex = await response.json();
-      return searchIndex;
-    } catch (error) {
-      console.error('Failed to load search index:', error);
-      return [];
+  function loadIndex() {
+    if (prepared) return Promise.resolve(prepared);
+    if (!loading) {
+      loading = fetch(baseUrl + '/search-index.json')
+        .then(function(r) { return r.json(); })
+        .then(function(data) { prepared = SearchCore.prepare(data); return prepared; })
+        .catch(function(err) { loading = null; console.error('Failed to load search index:', err); return []; });
     }
+    return loading;
   }
 
-  // Simple search function
-  function performSearch(query, index) {
-    if (!query || query.length < 2) return [];
-    
-    const queryLower = query.toLowerCase();
-    const words = queryLower.split(/\s+/).filter(w => w.length > 1);
-    
-    const results = [];
-    
-    for (const item of index) {
-      const titleLower = item.title.toLowerCase();
-      const contentLower = (item.content || '').toLowerCase();
-      const descriptionLower = (item.description || '').toLowerCase();
-      
-      // Calculate relevance score
-      let score = 0;
-      let matchContext = '';
-      
-      for (const word of words) {
-        // Title matches are most important
-        if (titleLower.includes(word)) {
-          score += titleLower === word ? 100 : 50;
-        }
-        
-        // URL path matches
-        if (item.url.toLowerCase().includes(word)) {
-          score += 30;
-        }
-        
-        // Description matches
-        if (descriptionLower.includes(word)) {
-          score += 20;
-        }
-        
-        // Content matches - find context around match
-        const contentIndex = contentLower.indexOf(word);
-        if (contentIndex !== -1) {
-          score += 10;
-          // Count additional occurrences
-          const matches = (contentLower.match(new RegExp(escapeRegex(word), 'gi')) || []).length;
-          score += Math.min(matches, 10); // Bonus for multiple matches, capped at 10
-          
-          // Extract context around the match if we don't have one yet
-          if (!matchContext) {
-            const start = Math.max(0, contentIndex - 60);
-            const end = Math.min(item.content.length, contentIndex + word.length + 100);
-            let excerpt = item.content.substring(start, end);
-            
-            // Clean up excerpt
-            if (start > 0) excerpt = '...' + excerpt;
-            if (end < item.content.length) excerpt = excerpt + '...';
-            
-            matchContext = excerpt;
-          }
-        }
+  function el(tag, cls, text) {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text !== undefined) n.textContent = text;
+    return n;
+  }
+
+  /** Put text in a node, wrapping matched words in <mark> (no innerHTML). */
+  function fillHighlighted(node, text, query) {
+    const ranges = SearchCore.highlightRanges(text, query);
+    let pos = 0;
+    ranges.forEach(function(r) {
+      if (r[0] > pos) node.appendChild(document.createTextNode(text.slice(pos, r[0])));
+      node.appendChild(el('mark', null, text.slice(r[0], r[1])));
+      pos = r[1];
+    });
+    if (pos < text.length) node.appendChild(document.createTextNode(text.slice(pos)));
+  }
+
+  function buildPalette() {
+    const overlay = el('div', 'search-palette');
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'Search documentation');
+    const box = el('div', 'search-palette-box');
+    const input = el('input', 'search-palette-input');
+    input.type = 'text';
+    input.placeholder = 'Search documentation...';
+    input.autocomplete = 'off';
+    input.spellcheck = false;
+    input.setAttribute('role', 'combobox');
+    input.setAttribute('aria-controls', 'search-palette-list');
+    input.setAttribute('aria-expanded', 'true');
+    const list = el('div', 'search-palette-list');
+    list.id = 'search-palette-list';
+    list.setAttribute('role', 'listbox');
+    const foot = el('div', 'search-palette-foot');
+    foot.appendChild(el('span', null, '\u2191\u2193 move'));
+    foot.appendChild(el('span', null, 'Enter open'));
+    foot.appendChild(el('span', null, 'Esc close'));
+    const count = el('span', 'search-palette-count');
+    foot.appendChild(count);
+    box.appendChild(input);
+    box.appendChild(list);
+    box.appendChild(foot);
+    overlay.appendChild(box);
+    overlay.addEventListener('mousedown', function(e) { if (e.target === overlay) closePalette(); });
+    input.addEventListener('input', function() { runSearch(input.value); });
+    input.addEventListener('keydown', onPaletteKey);
+    return { overlay: overlay, input: input, list: list, count: count };
+  }
+
+  function select(i) {
+    if (!rows.length) { selected = -1; return; }
+    selected = (i + rows.length) % rows.length;
+    rows.forEach(function(r, idx) {
+      r.node.classList.toggle('selected', idx === selected);
+      r.node.setAttribute('aria-selected', idx === selected ? 'true' : 'false');
+    });
+    rows[selected].node.scrollIntoView({ block: 'nearest' });
+    palette.input.setAttribute('aria-activedescendant', rows[selected].node.id);
+  }
+
+  function addGroup(label, hits, query, showText) {
+    if (!hits.length) return;
+    palette.list.appendChild(el('div', 'search-palette-group', label));
+    hits.forEach(function(h) {
+      const e = h.entry;
+      const a = el('a', 'search-palette-row');
+      a.href = baseUrl + e.url;
+      a.id = 'search-row-' + rows.length;
+      a.setAttribute('role', 'option');
+      const title = el('div', 'search-palette-title');
+      fillHighlighted(title, e.title, query);
+      a.appendChild(title);
+      const trail = (e.path || []).join(' / ');
+      if (trail) a.appendChild(el('div', 'search-palette-path', trail));
+      const body = e.type === 'page' && !e.text ? (e.description || '') : e.text;
+      if (showText && body) {
+        const ex = el('div', 'search-palette-excerpt');
+        fillHighlighted(ex, SearchCore.excerpt(body, query), query);
+        a.appendChild(ex);
       }
-      
-      if (score > 0) {
-        results.push({ 
-          ...item, 
-          score,
-          excerpt: matchContext || item.description || (item.content ? item.content.substring(0, 150) + '...' : '')
-        });
-      }
-    }
-    
-    // Sort by score (highest first) and limit results
-    return results
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10);
+      const idx = rows.length;
+      a.addEventListener('mousemove', function() { if (selected !== idx) select(idx); });
+      palette.list.appendChild(a);
+      rows.push({ node: a, url: a.href });
+    });
   }
 
-  // Highlight matching text
-  function highlightMatch(text, query) {
-    if (!text) return '';
-    const words = query.toLowerCase().split(/\s+/).filter(w => w.length > 1);
-    let result = escapeHtml(text);
-    
-    for (const word of words) {
-      const regex = new RegExp(`(${escapeRegex(word)})`, 'gi');
-      result = result.replace(regex, '<mark>$1</mark>');
-    }
-    
-    return result;
-  }
-
-  // Hide search results
-  function hideResults() {
-    if (searchResults) {
-      searchResults.classList.remove('active');
-    }
-  }
-
-  // Render search results (dropdown)
-  function renderResults(results, query) {
-    if (!searchResults) return;
-    
-    if (results.length === 0) {
-      searchResults.innerHTML = '<div class="search-no-results">No results found for "' + escapeHtml(query) + '"</div>';
-      searchResults.classList.add('active');
+  function runSearch(query) {
+    const q = query.trim();
+    palette.list.textContent = '';
+    rows = [];
+    selected = -1;
+    palette.count.textContent = '';
+    if (q.length < 2) {
+      palette.list.appendChild(el('div', 'search-palette-empty', 'Type at least 2 characters. Use "quotes" for an exact phrase.'));
       return;
     }
-    
-    let resultsHtml = '';
-    for (let i = 0; i < results.length; i++) {
-      const item = results[i];
-      resultsHtml += '<a href="' + item.url + '" class="search-result-item">' +
-        '<div class="search-result-title">' + highlightMatch(item.title, query) + '</div>' +
-        '<div class="search-result-excerpt">' + highlightMatch(item.excerpt, query) + '</div>' +
-        '<div class="search-result-path">' + item.url + '</div>' +
-        '</a>';
-    }
-    
-    searchResults.innerHTML = resultsHtml + '<div class="search-hint">Press Enter for full results</div>';
-    searchResults.classList.add('active');
-  }
-
-  // Show full search results page (modal overlay)
-  function showFullSearchResults(query, results) {
-    // Remove existing modal if any
-    const existingModal = document.querySelector('.search-modal');
-    if (existingModal) existingModal.remove();
-
-    const modal = document.createElement('div');
-    modal.className = 'search-modal';
-    
-    let resultsHtml = '';
-    if (results.length === 0) {
-      resultsHtml = '<div class="search-modal-empty">' +
-        '<p>No results found for "<strong>' + escapeHtml(query) + '</strong>"</p>' +
-        '<p>Try different keywords or check your spelling.</p>' +
-        '</div>';
-    } else {
-      for (let i = 0; i < results.length; i++) {
-        const item = results[i];
-        resultsHtml += '<a href="' + item.url + '" class="search-modal-result">' +
-          '<div class="search-modal-result-header">' +
-          '<span class="search-modal-result-title">' + highlightMatch(item.title, query) + '</span>' +
-          '<span class="search-modal-result-path">' + item.url + '</span>' +
-          '</div>' +
-          '<div class="search-modal-result-excerpt">' + highlightMatch(item.excerpt, query) + '</div>' +
-          '</a>';
-      }
-    }
-
-    modal.innerHTML = '<div class="search-modal-backdrop"></div>' +
-      '<div class="search-modal-content">' +
-      '<div class="search-modal-header">' +
-      '<h2>Search Results</h2>' +
-      '<span class="search-modal-query">for "' + escapeHtml(query) + '"</span>' +
-      '<span class="search-modal-count">' + results.length + ' result' + (results.length !== 1 ? 's' : '') + ' found</span>' +
-      '<button class="search-modal-close" aria-label="Close">&times;</button>' +
-      '</div>' +
-      '<div class="search-modal-body">' + resultsHtml + '</div>' +
-      '</div>';
-
-    document.body.appendChild(modal);
-    
-    // Close handlers
-    modal.querySelector('.search-modal-close').addEventListener('click', function() { modal.remove(); });
-    modal.querySelector('.search-modal-backdrop').addEventListener('click', function() { modal.remove(); });
-    
-    function closeOnEscape(e) {
-      if (e.key === 'Escape') {
-        modal.remove();
-        document.removeEventListener('keydown', closeOnEscape);
-      }
-    }
-    document.addEventListener('keydown', closeOnEscape);
-
-    // Hide dropdown
-    hideResults();
-  }
-
-  // Search input handler
-  if (searchInput) {
-    searchInput.addEventListener('input', async function(e) {
-      const query = e.target.value.trim();
-      
-      // Clear previous timeout
-      if (searchTimeout) {
-        clearTimeout(searchTimeout);
-      }
-      
-      // Hide results if query is too short
-      if (query.length < 2) {
-        hideResults();
+    loadIndex().then(function(index) {
+      if (palette.input.value.trim() !== q) return; // a newer search is running
+      const res = SearchCore.search(index, q);
+      palette.list.textContent = '';
+      rows = [];
+      addGroup('Pages', res.pages, q, true);
+      addGroup('Sections', res.sections, q, true);
+      if (!rows.length) {
+        palette.list.appendChild(el('div', 'search-palette-empty', 'No results for "' + q + '". Try fewer or shorter words.'));
         return;
       }
-      
-      // Debounce search
-      searchTimeout = setTimeout(async function() {
-        const index = await loadSearchIndex();
-        const results = performSearch(query, index);
-        renderResults(results, query);
-      }, 150);
+      palette.count.textContent = rows.length + ' result' + (rows.length === 1 ? '' : 's');
+      select(0);
     });
-    
-    // Hide results when clicking outside
-    document.addEventListener('click', function(e) {
-      if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
-        hideResults();
-      }
-    });
-    
-    // Show results when focusing on input
-    searchInput.addEventListener('focus', async function() {
-      const query = searchInput.value.trim();
-      if (query.length >= 2) {
-        const index = await loadSearchIndex();
-        const results = performSearch(query, index);
-        renderResults(results, query);
-      }
-    });
-    
-    // Keyboard navigation
-    searchInput.addEventListener('keydown', async function(e) {
-      if (e.key === 'Escape') {
-        hideResults();
-        searchInput.blur();
-      }
-      
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        const query = searchInput.value.trim();
-        if (query.length >= 2) {
-          const index = await loadSearchIndex();
-          const results = performSearch(query, index);
-          showFullSearchResults(query, results);
-        }
-      }
-      
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        const firstResult = searchResults.querySelector('.search-result-item');
-        if (firstResult) {
-          firstResult.focus();
-        }
-      }
-    });
-    
-    // Navigate results with keyboard
-    if (searchResults) {
-      searchResults.addEventListener('keydown', function(e) {
-        const current = document.activeElement;
-        
-        if (e.key === 'ArrowDown') {
-          e.preventDefault();
-          const next = current.nextElementSibling;
-          if (next && next.classList.contains('search-result-item')) {
-            next.focus();
-          }
-        }
-        
-        if (e.key === 'ArrowUp') {
-          e.preventDefault();
-          const prev = current.previousElementSibling;
-          if (prev && prev.classList.contains('search-result-item')) {
-            prev.focus();
-          } else {
-            searchInput.focus();
-          }
-        }
-        
-        if (e.key === 'Escape') {
-          hideResults();
-          searchInput.focus();
-        }
-      });
-    }
   }
 
-  // Keyboard shortcut to focus search (Ctrl+K)
-  document.addEventListener('keydown', function(e) {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+  function onPaletteKey(e) {
+    if (e.key === 'Escape') { e.preventDefault(); closePalette(); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); select(selected + 1); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); select(selected - 1); }
+    else if (e.key === 'Enter') {
       e.preventDefault();
-      if (searchInput) {
-        searchInput.focus();
-        searchInput.select();
-      }
+      if (selected >= 0 && rows[selected]) window.location.href = rows[selected].url;
+    } else if (e.key === 'Tab') { e.preventDefault(); }
+  }
+
+  function openPalette(initial) {
+    if (palette) return;
+    lastFocus = document.activeElement;
+    palette = buildPalette();
+    document.body.appendChild(palette.overlay);
+    document.body.classList.add('search-open');
+    palette.input.value = initial || '';
+    palette.input.focus();
+    runSearch(palette.input.value);
+    loadIndex();
+  }
+
+  function closePalette() {
+    if (!palette) return;
+    palette.overlay.remove();
+    palette = null;
+    rows = [];
+    document.body.classList.remove('search-open');
+    if (searchInput) searchInput.blur();
+    if (lastFocus && lastFocus.focus && lastFocus !== searchInput) lastFocus.focus();
+  }
+
+  if (searchInput) {
+    // The header box opens the search window; typing happens inside the window.
+    searchInput.addEventListener('focus', function() { openPalette(searchInput.value); });
+    searchInput.addEventListener('click', function() { openPalette(searchInput.value); });
+  }
+
+  // Ctrl+K / Cmd+K opens search; "/" does too when not typing in a field
+  document.addEventListener('keydown', function(e) {
+    const t = e.target;
+    const typing = t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable);
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      if (palette) palette.input.select(); else openPalette('');
+    } else if (e.key === '/' && !typing && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      e.preventDefault();
+      openPalette('');
     }
   });
 

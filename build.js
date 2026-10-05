@@ -606,6 +606,61 @@ function generatePage(processed) {
 const searchIndex = [];
 
 /**
+ * Turn rendered HTML into plain text for the search index.
+ * @param {string} html - Rendered HTML (or markdown) fragment
+ * @returns {string} Plain text
+ */
+function toSearchText(html) {
+  return html
+    .replace(/<a class="heading-anchor"[^>]*>[^<]*<\/a>/g, '')  // Heading permalink marker
+    .replace(/<(pre|script|style|svg|table-copy)\b[\s\S]*?<\/\1>/g, ' ')  // Code blocks and diagrams are not prose
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Add a page and its headings (h2 to h4) to the search index.
+ * Each entry has a type, title, url, path (the folders above it) and text.
+ * @param {Object} processed - Result of processMarkdownFile
+ */
+function addToSearchIndex(processed) {
+  const trail = (processed.breadcrumbs || []).slice(1, -1).map(b => toSearchText(b.title));
+  const html = processed.content;
+  const headingRe = /<h([2-4])\s[^>]*?id="([^"]+)"[^>]*>([\s\S]*?)<\/h\1>/g;
+  const marks = [];
+  let m;
+  while ((m = headingRe.exec(html))) {
+    marks.push({ id: m[2], title: toSearchText(m[3]), start: m.index, end: headingRe.lastIndex });
+  }
+  const introEnd = marks.length ? marks[0].start : html.length;
+  searchIndex.push({
+    type: 'page',
+    title: processed.title,
+    url: processed.urlPath,
+    path: trail,
+    description: processed.description,
+    text: toSearchText(html.slice(0, introEnd))
+  });
+  marks.forEach((mark, i) => {
+    const stop = i + 1 < marks.length ? marks[i + 1].start : html.length;
+    searchIndex.push({
+      type: 'section',
+      title: mark.title,
+      url: processed.urlPath + '#' + mark.id,
+      path: trail.concat(processed.title),
+      text: toSearchText(html.slice(mark.end, stop))
+    });
+  });
+}
+
+/**
  * Process all markdown files in a directory recursively.
  * @param {string} dirPath - Directory path to process
  */
@@ -629,35 +684,8 @@ function processDirectory(dirPath) {
       ensureDir(path.dirname(outputPath));
       fs.writeFileSync(outputPath, html);
       
-      // Add to search index - strip HTML and markdown syntax for clean text
-      const plainContent = processed.content
-        .replace(/<[^>]*>/g, ' ')
-        .replace(/&quot;/g, '"')
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&#39;/g, "'")
-        .replace(/&nbsp;/g, ' ')
-        .replace(/#{1,6}\s*/g, '')  // Remove markdown headers
-        .replace(/\*\*([^*]+)\*\*/g, '$1')  // Remove bold
-        .replace(/\*([^*]+)\*/g, '$1')  // Remove italic
-        .replace(/__([^_]+)__/g, '$1')  // Remove bold underscore
-        .replace(/_([^_]+)_/g, '$1')  // Remove italic underscore
-        .replace(/`([^`]+)`/g, '$1')  // Remove inline code
-        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')  // Remove links, keep text
-        .replace(/!\[([^\]]*)\]\([^)]+\)/g, '')  // Remove images
-        .replace(/^[\s]*[-*+]\s+/gm, '')  // Remove list markers
-        .replace(/^[\s]*\d+\.\s+/gm, '')  // Remove numbered list markers
-        .replace(/^>/gm, '')  // Remove blockquote markers
-        .replace(/\s+/g, ' ')
-        .trim();
-      
-      searchIndex.push({
-        title: processed.title,
-        url: processed.urlPath,
-        description: processed.description,
-        content: plainContent
-      });
+      // Add to search index: one entry for the page and one per heading
+      addToSearchIndex(processed);
       
       console.log(`✓ Generated: ${processed.urlPath}`);
     }
