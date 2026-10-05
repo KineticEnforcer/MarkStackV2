@@ -153,6 +153,14 @@ YAMLException: can not read a block mapping entry
 3. Ensure no symbolic links create circular references
 4. Try building with fewer files to isolate the problem
 
+### Duplicate URL
+
+**Symptoms:** The build stops with `Duplicate URL /name/ is produced by both "a" and "b"`.
+
+**Cause:** URLs are made from page and category titles. Two pages, or two categories, with the same title in the same place map to the same URL, and one would overwrite the other.
+
+**Solution:** Change the `title` in one of the two files named in the message, then build again. The previous `dist/` is left in place when the build fails.
+
 ## Missing or Incorrect Pages
 
 ### Page does not appear in navigation

@@ -278,6 +278,8 @@ description: Description for search engines and social sharing.
 Content begins here...
 ```
 
+Page and category URLs come from the `title`, not the file or folder name. Two pages (or two categories) with the same title in the same place would produce the same URL, so the build stops with `Duplicate URL ... is produced by both ...` and names both content paths. Change one of the titles. A failed build leaves the previous `dist/` untouched.
+
 ### Alerts
 
 Use GitHub-style alert syntax for callouts:
