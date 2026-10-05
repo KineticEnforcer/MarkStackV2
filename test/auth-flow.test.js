@@ -264,6 +264,8 @@ test('a password reset made by the server command ends open sessions and the new
   assert.equal((await request('GET', '/api/tree', { cookie: before.cookie })).status, 401, 'the old session ended');
   assert.equal((await login('rita', 'rita admin password 1')).r.status, 401);
   assert.equal((await login('rita', 'rita recovered password 9')).r.status, 200);
+});
+
 test('admin cannot disable self; disabling ends sessions; section change ends sessions', async () => {
   const admin = await login('ada', ADMIN_PW);
   const self = await request('POST', '/api/users/disable', { cookie: admin.cookie, csrf: admin.csrf, body: { name: 'ada', disabled: true } });
