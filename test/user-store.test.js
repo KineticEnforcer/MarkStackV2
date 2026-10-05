@@ -68,3 +68,40 @@ test('password reset replaces the hash and can require a change at next sign-in'
     assert.equal((await store.authenticate('bob', 'a temporary password')).mustChangePassword, true);
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
+
+test('a running store sees changes made by another process and never writes stale data over them', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'markstack-sync-'));
+  const file = path.join(dir, 'users.json');
+  try {
+    const hashOpts = { N: 1 << 10 };
+    const server = new UserStore(file, { hashOpts });
+    await server.create({ name: 'root', role: 'admin', password: 'first admin password 1' });
+    await server.create({ name: 'ian', role: 'editor', password: 'ian editor password 1', sections: ['it'] });
+    // A second process (the recovery command) resets the admin password.
+    const cli = new UserStore(file, { hashOpts });
+    await cli.setPassword('root', 'recovered admin password 7');
+    assert.equal(await server.authenticate('root', 'first admin password 1'), null, 'old password stops working in the running store');
+    assert.ok(await server.authenticate('root', 'recovered admin password 7'), 'new password works without a restart');
+    // The running store now changes something else; the reset must survive.
+    server.setSections('ian', ['it', 'marketing']);
+    const fresh = new UserStore(file, { hashOpts });
+    assert.ok(await fresh.authenticate('root', 'recovered admin password 7'), 'stale data did not overwrite the reset');
+    assert.deepEqual(fresh.get('ian').sections, ['it', 'marketing']);
+    // A user added by the other process appears too.
+    await cli.create({ name: 'late', role: 'editor', password: 'late editor password 1', sections: [] });
+    assert.equal(server.get('late').role, 'editor');
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('password, section and disabled changes raise authVersion', async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'markstack-ver-'));
+  try {
+    const s = new UserStore(path.join(dir, 'u.json'), { hashOpts: { N: 1 << 10 } });
+    await s.create({ name: 'ian', role: 'editor', password: 'ian editor password 1', sections: [] });
+    const v0 = s.get('ian').authVersion;
+    await s.setPassword('ian', 'ian editor password 2'); const v1 = s.get('ian').authVersion;
+    s.setSections('ian', ['it']); const v2 = s.get('ian').authVersion;
+    s.setDisabled('ian', true); const v3 = s.get('ian').authVersion;
+    assert.ok(v0 < v1 && v1 < v2 && v2 < v3);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});

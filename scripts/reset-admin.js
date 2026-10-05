@@ -9,8 +9,9 @@
  * account if it was disabled and clears any pending password change. Needs shell
  * access to the server, which is the trust boundary: anyone who can run it can
  * already read the user file. The password is never a command line argument and
- * is never printed or logged. Restart the editor afterwards so sessions that were
- * open for that account end (sessions live in the editor's memory).
+ * is never printed or logged. A running editor reloads the user file on its next
+ * request, so the new password works and sessions open for the account end,
+ * without a restart.
  */
 const path = require('path');
 const { UserStore } = require('../lib/user-store');
@@ -36,7 +37,7 @@ async function main() {
   const password = await readPassword();
   await store.setPassword(name, password, { mustChangePassword: false });
   if (user.disabled) store.setDisabled(name, false);
-  console.log(`Password for administrator "${name}" was reset. Restart the editor to end any open sessions for this account.`);
+  console.log(`Password for administrator "${name}" was reset. Sessions open for this account end on the editor's next request.`);
 }
 
 main().catch(err => { console.error(err.message); process.exit(1); });

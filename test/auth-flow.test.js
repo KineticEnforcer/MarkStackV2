@@ -222,6 +222,20 @@ test('a password-change-required account is blocked until it changes; the change
   assert.ok(!logs.join('\n').includes('my own new password'));
 });
 
+test('a password reset made by the server command ends open sessions and the new password works without a restart', async () => {
+  await users.create({ name: 'rita', role: 'admin', password: 'rita admin password 1' });
+  const before = await login('rita', 'rita admin password 1');
+  assert.equal((await request('GET', '/api/tree', { cookie: before.cookie })).status, 200);
+  const script = path.join(__dirname, '..', 'scripts', 'reset-admin.js');
+  const r = require('child_process').spawnSync(process.execPath, [script, '--user', 'rita'], {
+    input: 'rita recovered password 9\n', encoding: 'utf-8', env: { ...process.env, MARKSTACK_USERS_FILE: path.join(tmp, 'users.json') }
+  });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal((await request('GET', '/api/tree', { cookie: before.cookie })).status, 401, 'the old session ended');
+  assert.equal((await login('rita', 'rita admin password 1')).r.status, 401);
+  assert.equal((await login('rita', 'rita recovered password 9')).r.status, 200);
+});
+
 test('logout ends the session', async () => {
   const s = await login('ada', ADMIN_PW);
   assert.equal((await request('POST', '/api/logout', { cookie: s.cookie, csrf: s.csrf, body: {} })).status, 200);

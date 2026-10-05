@@ -767,7 +767,9 @@ function resolveSession(req) {
   const sess = token ? AUTH.sessions.get(token) : null;
   if (!sess) return null;
   const user = AUTH.users.get(sess.user);
-  if (!user || user.disabled) { AUTH.sessions.destroy(token); return null; }
+  // A password, section or disabled change made by anyone (the admin screen or a
+  // command run on the server) bumps authVersion and ends older sessions.
+  if (!user || user.disabled || (sess.authVersion || 0) !== user.authVersion) { AUTH.sessions.destroy(token); return null; }
   req.sessionToken = token;
   req.session = sess;
   req.user = user;
@@ -818,7 +820,7 @@ async function handleLogin(req, res) {
     AUTH.byAccount.clear(acct);
     const seen = AUTH.known.get(user.name) || [];
     if (!seen.includes(addr)) { seen.push(addr); if (seen.length > 5) seen.shift(); AUTH.known.set(user.name, seen); }
-    const token = AUTH.sessions.create(user.name);
+    const token = AUTH.sessions.create(user.name, user.authVersion);
     authLog('login', user.name);
     sendJSONWithCookie(res, 200, me(user, AUTH.sessions.get(token)), sessionCookie(token, CONFIG.sessionMaxMinutes * 60));
   } catch (err) { sendFailure(res, err); }
@@ -838,7 +840,7 @@ async function handleChangePassword(req, res) {
     if (password === current) return sendError(res, 400, 'Choose a different password');
     await AUTH.users.setPassword(req.user.name, password, { mustChangePassword: false });
     AUTH.sessions.destroyUser(req.user.name);
-    const token = AUTH.sessions.create(req.user.name);
+    const token = AUTH.sessions.create(req.user.name, AUTH.users.get(req.user.name).authVersion);
     authLog('password-changed', req.user.name);
     sendJSONWithCookie(res, 200, { success: true, ...me(AUTH.users.get(req.user.name), AUTH.sessions.get(token)) }, sessionCookie(token, CONFIG.sessionMaxMinutes * 60));
   } catch (err) { sendBadInput(res, err); }
