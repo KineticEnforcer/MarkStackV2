@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Header links - MarkStack Editor</title>
+<script nonce="__CSP_NONCE__">
+try { document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'dark'); } catch (e) { document.documentElement.setAttribute('data-theme', 'dark'); }
+</script>
+<style>
+  :root { color-scheme: dark; --bg:#0f1218; --panel:#151922; --raised:#1b2030; --text:#e6e9f0; --muted:#8b93a7; --line:#262c3b; --accent:#7b9bff; --accent-soft:rgba(123,155,255,.14); --on-accent:#0f1218; --err:#ff8a80; --ok:#6fd08c; --hover:#1b2030; }
+  :root[data-theme="light"] { color-scheme: light; --bg:#ffffff; --panel:#f6f7f9; --raised:#eef0f4; --text:#1a1f2b; --muted:#667085; --line:#dfe3ea; --accent:#2f5bea; --accent-soft:rgba(47,91,234,.10); --on-accent:#ffffff; --err:#b3261e; --ok:#1b7f3b; --hover:#eef0f4; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:14px/1.5 "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif; }
+  a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:underline; }
+  :focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+  .brand { display:flex; align-items:center; gap:10px; font-weight:600; color:var(--text); }
+  .brand img { width:22px; height:22px; }
+  .brand span.sub { font-weight:400; color:var(--muted); }
+  label { display:block; margin:14px 0 6px; font-size:12px; font-weight:600; color:var(--muted); }
+  input[type=text], input[type=password], input:not([type]), select { width:100%; height:36px; padding:0 12px; font:inherit; color:var(--text); background:var(--bg); border:1px solid var(--line); border-radius:6px; }
+  input:focus, select:focus { outline:2px solid var(--accent); outline-offset:-1px; border-color:var(--accent); }
+  button { height:32px; padding:0 12px; font:inherit; color:var(--text); background:var(--panel); border:1px solid var(--line); border-radius:6px; cursor:pointer; }
+  button:hover { background:var(--hover); }
+  button.primary { color:var(--on-accent); background:var(--accent); border-color:var(--accent); font-weight:600; }
+  button:disabled { opacity:.6; cursor:default; }
+  .err { min-height:1.4em; margin-top:12px; color:var(--err); font-size:13px; }
+  [hidden] { display:none !important; }
+  header { display:flex; align-items:center; gap:16px; height:48px; padding:0 24px; border-bottom:1px solid var(--line); background:var(--panel); }
+  header .grow { flex:1; }
+  main { max-width:980px; margin:28px auto; padding:0 16px; }
+  .top { display:flex; align-items:flex-end; gap:16px; margin-bottom:16px; }
+  .top > div { flex:1; min-width:0; }
+  h1 { margin:0 0 2px; font-size:22px; line-height:1.3; }
+  p.lead { margin:0; color:var(--muted); }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+  table { width:100%; border-collapse:collapse; }
+  th, td { padding:11px 14px; text-align:left; border-bottom:1px solid var(--line); vertical-align:middle; }
+  tr:last-child td { border-bottom:0; }
+  th { font-size:11px; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); font-weight:600; background:var(--bg); }
+  th.r, td.actions { text-align:right; white-space:nowrap; }
+  td.u { font-weight:600; }
+  .pill { display:inline-block; margin-left:6px; padding:0 8px; border:1px solid var(--line); border-radius:10px; font-size:11px; font-weight:500; color:var(--muted); }
+  .pill.warn { color:var(--err); border-color:var(--err); }
+  .role { color:var(--muted); text-transform:capitalize; }
+  .chips { display:flex; flex-wrap:wrap; gap:4px; }
+  .chip { padding:1px 8px; font-size:12px; background:var(--accent-soft); color:var(--accent); border-radius:10px; max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .chip.more { background:var(--raised); color:var(--muted); }
+  .muted { color:var(--muted); font-size:13px; }
+  .actions button { margin-left:6px; min-width:84px; }
+  .actions button.danger:hover { color:var(--err); border-color:var(--err); }
+  .msg { min-height:1.4em; margin:12px 2px 0; font-size:13px; }
+  .msg.err { color:var(--err); } .msg.ok { color:var(--ok); }
+  code { padding:2px 6px; background:var(--bg); border:1px solid var(--line); border-radius:5px; user-select:all; font-family:"IBM Plex Mono", ui-monospace, monospace; }
+  .secs { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:2px 12px; max-height:260px; overflow:auto; }
+  .secs label { display:flex; gap:8px; align-items:center; margin:0; padding:5px 0; font-size:13px; font-weight:400; color:var(--text); }
+  dialog { width:min(440px, calc(100vw - 24px)); max-height:calc(100vh - 24px); padding:0; color:var(--text); background:var(--panel); border:1px solid var(--line); border-radius:10px; box-shadow:0 20px 50px rgba(0,0,0,.35); overflow:auto; }
+  dialog::backdrop { background:rgba(8,10,16,.55); }
+  .dlg-h { padding:16px 20px 0; font-size:16px; font-weight:600; }
+  .dlg-b { padding:4px 20px 8px; }
+  .dlg-f { display:flex; justify-content:flex-end; gap:8px; padding:12px 20px 16px; }
+  .dlg-b p { margin:10px 0 10px; }
+  td.ico { width:36px; padding-right:0; } td.ico img, td.ico svg { display:block; width:18px; height:18px; object-fit:contain; border-radius:3px; color:var(--muted); }
+  td.addr { color:var(--muted); max-width:340px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; }
+  td.u { max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  tr.off td.u, tr.off td.addr, tr.off td.ico { opacity:.55; }
+  .actions button { min-width:0; padding:0 10px; }
+  .actions button.sq { width:32px; padding:0; }
+  .chk { display:flex; gap:8px; align-items:center; margin:14px 0 0; font-size:13px; font-weight:400; color:var(--text); }
+  .empty { padding:28px 16px; text-align:center; color:var(--muted); }
+  ul.notes { margin:8px 2px 0; padding-left:18px; font-size:13px; color:var(--muted); } ul.notes li { margin:2px 0; }
+  @media (max-width:720px) {
+    header { padding:0 12px; } .brand span.sub { display:none; } header a { white-space:nowrap; }
+    main { margin:16px auto; }
+    .top { flex-wrap:wrap; }
+    table, tbody, tr, td { display:block; width:100%; }
+    thead { display:none; }
+    tr { display:grid; grid-template-columns:auto 1fr; gap:6px 10px; padding:12px 14px; border-bottom:1px solid var(--line); }
+    tr:last-child { border-bottom:0; }
+    td { padding:0; border:0; max-width:none; }
+    td.ico { grid-column:1; width:auto; } td.u { grid-column:2; } td.addr { grid-column:1 / -1; white-space:normal; word-break:break-all; }
+    td.actions { grid-column:1 / -1; text-align:left; display:flex; flex-wrap:wrap; gap:6px; }
+    .actions button { margin:0; flex:1 1 auto; height:36px; white-space:nowrap; } .actions button.sq { flex:0 0 40px; width:40px; }
+    dialog button, .top button { height:38px; }
+  }
+</style>
+</head>
+<body>
+<header><div class="brand"><img src="/svg/logo.svg" alt="" width="22" height="22"><span>MarkStack</span><span class="sub">Header links</span></div><span class="grow"></span><a href="/">Back to the editor</a></header>
+<main>
+  <div class="top">
+    <div><h1>Header links</h1><p class="lead">Links shown at the top right of the docs site. The site icon is fetched when you add a link or change its address. Changes reach the docs site after Publish Changes.</p></div>
+    <button class="primary" id="addOpen">Add link</button>
+  </div>
+  <div class="card">
+    <table><thead><tr><th></th><th>Title</th><th>Address</th><th class="r">Actions</th></tr></thead><tbody id="rows"></tbody></table>
+    <div class="empty" id="empty" hidden>No links yet. The header shows only the theme button.</div>
+  </div>
+  <div class="msg" id="listMsg" role="status"></div>
+  <ul class="notes" id="notes"></ul>
+</main>
+
+<dialog id="dlg" aria-labelledby="dlgTitle">
+  <form method="dialog" id="form" novalidate>
+    <div class="dlg-h" id="dlgTitle">Add a link</div>
+    <div class="dlg-b">
+      <label for="fTitle">Title (shown on the button)</label>
+      <input id="fTitle" type="text" maxlength="40" autocomplete="off">
+      <label for="fUrl">Address (https://...)</label>
+      <input id="fUrl" type="text" autocomplete="off" inputmode="url">
+      <label class="chk"><input type="checkbox" id="fShow" checked> Show in the header</label>
+      <label class="chk" id="fRefreshRow"><input type="checkbox" id="fRefresh"> Fetch the icon again</label>
+      <div class="msg" id="fMsg" role="status"></div>
+    </div>
+    <div class="dlg-f"><button type="button" id="fCancel">Cancel</button><button type="submit" class="primary" id="fSave">Save</button></div>
+  </form>
+</dialog>
+
+<script nonce="__CSP_NONCE__">
+(function () {
+  var csrf = null, links = [], max = 30, editing = null, busy = false;
+  function api(method, url, body) {
+    var h = {};
+    if (body !== undefined) h['Content-Type'] = 'application/json';
+    if (method !== 'GET') h['X-CSRF-Token'] = csrf;
+    return fetch(url, { method: method, headers: h, credentials: 'same-origin', body: body === undefined ? undefined : JSON.stringify(body) })
+      .then(function (r) {
+        if (r.status === 401) { location.href = '/login'; return Promise.reject(new Error('signed out')); }
+        return r.json().catch(function () { return {}; }).then(function (d) { if (!r.ok) throw new Error(d.error || 'Request failed'); return d; });
+      });
+  }
+  function el(tag, attrs, kids) {
+    var n = document.createElement(tag);
+    Object.keys(attrs || {}).forEach(function (k) { if (k === 'text') n.textContent = attrs[k]; else n.setAttribute(k, attrs[k]); });
+    (kids || []).forEach(function (c) { n.appendChild(c); });
+    return n;
+  }
+  function $(id) { return document.getElementById(id); }
+  function msg(id, text, ok) { var m = $(id); m.textContent = text || ''; m.className = 'msg ' + (text ? (ok ? 'ok' : 'err') : ''); }
+  function open(d) { if (d.showModal) d.showModal(); else d.setAttribute('open', ''); }
+  function close(d) { if (d.close) d.close(); else d.removeAttribute('open'); }
+  var GLOBE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
+  function iconCell(l) {
+    var td = el('td', { 'class': 'ico' });
+    if (l.favicon) td.appendChild(el('img', { src: '/api/links/icon/' + l.favicon, alt: '', width: '18', height: '18' }));
+    else td.innerHTML = GLOBE;
+    return td;
+  }
+  function plain(l, extra) { var o = { id: l.id, title: l.title, url: l.url, show: l.show }; if (extra) Object.keys(extra).forEach(function (k) { o[k] = extra[k]; }); return o; }
+  function send(list, okText) {
+    if (busy) return Promise.resolve();
+    busy = true; msg('listMsg', 'Saving...', true);
+    return api('POST', '/api/links', { links: list }).then(function (d) {
+      links = d.links; render();
+      msg('listMsg', okText || 'Saved. Publish Changes to update the docs site.', true);
+      var ul = $('notes'); ul.textContent = '';
+      (d.notes || []).forEach(function (n) { if (n.icon !== 'found') ul.appendChild(el('li', { text: n.title + ': ' + n.reason })); });
+      busy = false;
+    }).catch(function (e) { busy = false; msg('listMsg', 'Not saved: ' + e.message); throw e; });
+  }
+  function render() {
+    var rows = $('rows'); rows.textContent = '';
+    $('empty').hidden = links.length > 0;
+    $('addOpen').disabled = links.length >= max;
+    links.forEach(function (l, i) {
+      var tr = el('tr', { 'class': l.show ? '' : 'off' });
+      tr.appendChild(iconCell(l));
+      var t = el('td', { 'class': 'u', title: l.title, text: l.title });
+      if (!l.show) t.appendChild(el('span', { 'class': 'pill', text: 'hidden' }));
+      tr.appendChild(t);
+      tr.appendChild(el('td', { 'class': 'addr', title: l.url, text: l.url }));
+      var act = el('td', { 'class': 'actions' });
+      function btn(text, label, cls, fn) { var b = el('button', { type: 'button', 'class': cls || '', text: text, 'aria-label': label }); b.addEventListener('click', fn); act.appendChild(b); return b; }
+      var up = btn('\u2191', 'Move ' + l.title + ' up', 'sq', function () { var a = links.map(function (x) { return plain(x); }); a.splice(i - 1, 0, a.splice(i, 1)[0]); send(a, 'Order saved.').catch(function () {}); });
+      var dn = btn('\u2193', 'Move ' + l.title + ' down', 'sq', function () { var a = links.map(function (x) { return plain(x); }); a.splice(i + 1, 0, a.splice(i, 1)[0]); send(a, 'Order saved.').catch(function () {}); });
+      up.disabled = i === 0; dn.disabled = i === links.length - 1;
+      btn(l.show ? 'Hide' : 'Show', (l.show ? 'Hide ' : 'Show ') + l.title, '', function () { var a = links.map(function (x) { return plain(x); }); a[i].show = !l.show; send(a).catch(function () {}); });
+      btn('Edit', 'Edit ' + l.title, '', function () { editing = l; $('dlgTitle').textContent = 'Edit link'; $('fTitle').value = l.title; $('fUrl').value = l.url; $('fShow').checked = l.show; $('fRefresh').checked = false; $('fRefreshRow').hidden = false; msg('fMsg', ''); open($('dlg')); $('fTitle').focus(); });
+      btn('Remove', 'Remove ' + l.title, 'danger', function () {
+        if (!window.confirm('Remove "' + l.title + '" from the header?')) return;
+        send(links.filter(function (_, j) { return j !== i; }).map(function (x) { return plain(x); }), 'Link removed. Publish Changes to update the docs site.').catch(function () {});
+      });
+      tr.appendChild(act);
+      rows.appendChild(tr);
+    });
+  }
+  $('addOpen').addEventListener('click', function () {
+    editing = null; $('dlgTitle').textContent = 'Add a link'; $('fTitle').value = ''; $('fUrl').value = 'https://'; $('fShow').checked = true; $('fRefreshRow').hidden = true; msg('fMsg', ''); open($('dlg')); $('fTitle').focus();
+  });
+  $('fCancel').addEventListener('click', function () { close($('dlg')); });
+  $('form').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var title = $('fTitle').value.trim(), url = $('fUrl').value.trim();
+    if (!title) return msg('fMsg', 'Enter a title.');
+    if (!/^https?:\/\/[^\s/]+/i.test(url)) return msg('fMsg', 'Enter a full address that starts with http:// or https://');
+    var a = links.map(function (x) { return plain(x); });
+    if (editing) { var i = links.indexOf(editing); a[i].title = title; a[i].url = url; a[i].show = $('fShow').checked; if ($('fRefresh').checked) a[i].refresh = true; }
+    else a.push({ title: title, url: url, show: $('fShow').checked });
+    $('fSave').disabled = true; msg('fMsg', 'Saving and fetching the icon...', true);
+    send(a, editing ? 'Link saved. Publish Changes to update the docs site.' : 'Link added. Publish Changes to show it on the docs site.').then(function () { close($('dlg')); }).catch(function (e) { msg('fMsg', e.message); }).then(function () { $('fSave').disabled = false; });
+  });
+  api('GET', '/api/me').then(function (d) { csrf = d.csrf; return api('GET', '/api/links'); }).then(function (d) { links = d.links; max = d.max; render(); }).catch(function (e) { msg('listMsg', e.message); });
+})();
+</script>
+</body>
+</html>
