@@ -23,6 +23,28 @@ dist/
 
 Every page is a folder containing `index.html`. A page is linked as `/getting-started/installation` and a section as `/getting-started/`. Any server that serves a directory's `index.html` handles both, with no rewrite rules. Most servers redirect the form without the slash to the one with it.
 
+## The portable copy: dist on any web server
+
+`dist/` is the whole public site. It is plain HTML, CSS, JavaScript, images and one JSON file, so you can build once and run the folder anywhere. The server does not need Node.js, npm, the source repository or the editor.
+
+1. Build on any machine: `npm run build`.
+2. Copy the `dist` folder to the server. Any copy method works: `rsync`, `scp`, SFTP, a control panel upload, or a zip file you unpack there.
+
+```bash
+rsync -av --delete dist/ user@your-server:/srv/knowledge-base/dist/
+```
+
+3. Point a web server at that folder, as in the nginx and Caddy examples below, or any other server that serves `index.html` for a folder.
+4. Open the address and check the home page, a deep page, search and a made-up URL.
+
+Rules for a portable copy:
+
+- **Serve it over HTTP.** Open it through a web server, not by double-clicking `index.html`. Links start with `/` and point to folders, which a `file://` address cannot resolve. For a quick local look, run `npm run serve` on the build machine, or any static file server on the copied folder.
+- **Root or sub-folder is decided at build time.** The default build expects the site at the root of its host name. To serve it at a path such as `/docs/`, set `baseUrl` before building and copy that build. Moving a finished build into a sub-folder later breaks its links. See [Sub-folder hosting](#sub-folder-hosting).
+- **Set `siteUrl` before you build** for the address the copy will have, since it is written into each page.
+- **Updating is another build and copy.** Copy the new `dist` over the old one, or into a new folder, and switch the server to it. With `rsync --delete` removed pages disappear from the server too.
+- **No editor on the public server.** The editor is a separate Node.js program. You can run it on another machine and copy its `dist` output, or not run it at all and build from Markdown files. See [Team Server Setup](/build-and-deploy/team-server-setup/).
+
 ## Before you deploy
 
 1. Set `siteUrl` in `siteconfig.json` to the address the site will have. It is used for the page address in social previews. See [Site Config](/configuration/site-config/).

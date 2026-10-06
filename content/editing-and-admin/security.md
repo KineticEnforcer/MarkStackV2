@@ -16,7 +16,11 @@ By default the editor listens only on `127.0.0.1`. Set `MARKSTACK_EDITOR_HOST` t
 - Sign-in is required for every API call and every page except the login page.
 - Passwords are stored as salted scrypt hashes. Minimum 12 characters, maximum 256, and a list of very common passwords is refused.
 - `users.json` is created readable only by its owner.
-- Failed sign-ins are counted per account, per address and per account on unfamiliar addresses. Five failures within 15 minutes block that key for 15 minutes. The counters are kept in memory and reset when the editor restarts.
+- Failed sign-ins are limited in three ways, each over 15 minutes with a 15 minute block:
+  - 5 failures for the same account from the same address block that account at that address, so a guesser on one address cannot lock the real user out elsewhere.
+  - 30 failures from one address block that address, which stops one address from trying many accounts.
+  - 20 failures for one account from all addresses together pause that account for addresses it has not signed in from before. Addresses it has used stay allowed.
+  - The counters are kept in memory and reset when the editor restarts.
 - A password change, a section change or disabling an account ends that person's sessions.
 
 ## Sessions

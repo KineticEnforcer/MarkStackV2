@@ -48,6 +48,6 @@ mv dist.previous dist
 
 ## Limits
 
-- The switch is two renames, not one atomic step. A request that arrives in the few microseconds between them can get a 404.
+- The switch is two renames, one after the other. A request that arrives in the few microseconds between them can get a 404.
 - Publishing replaces the folder the editor knows as `dist/`. If your public site is deployed elsewhere, for example uploaded to a static host from your own machine, publishing only updates the local copy. See [Deployment Guide](/build-and-deploy/deployment-guide/).
 - A failure to write the backup is reported in the log, but the new site stays live.
