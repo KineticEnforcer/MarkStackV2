@@ -7,7 +7,7 @@ description: MarkStack turns a folder of Markdown files into a fast, searchable 
 
 MarkStack is a self-hosted knowledge base. You write pages in Markdown, MarkStack builds them into a plain static website, and readers get a clean documentation site with a sidebar, full-text search, a table of contents on every page and a light and a dark theme.
 
-V2 adds a complete **visual editor** to the generator. You can write, preview and publish from a browser, give each editor access to only the sections they own, and keep the public site as static files that any web server can host.
+V2 adds a **visual editor** to the generator. You can write, preview and publish from a browser, give each editor access to only the sections they own, and keep the public site as static files that any web server can host.
 
 This documentation site is built with MarkStack. Every page you read here is a Markdown file in the `content/` folder.
 
@@ -15,13 +15,13 @@ This documentation site is built with MarkStack. Every page you read here is a M
 
 - **A static site.** The output is a `dist/` folder of HTML, CSS and JavaScript. No database, no server code and no editor on the public side.
 - **Folders become navigation.** Create a folder, add Markdown files, and the sidebar, breadcrumbs and previous/next links appear on their own.
-- **Search that works offline from the page.** Pages and individual sections are indexed at build time. Open search with `Ctrl+K` or `/`. It ranks results, forgives small typos and understands "quoted phrases".
+- **Search with no search server.** Pages and individual sections are indexed at build time into one file the browser downloads on first use, then searches locally. Open search with `Ctrl+K` or `/`. It ranks results, forgives small typos and understands "quoted phrases".
 - **Rich Markdown.** Tables, task lists, footnotes, code with syntax highlighting and a copy button, GitHub-style alert boxes and Mermaid diagrams.
-- **A visual editor.** File tree, Markdown editor, live preview, and a Publish Changes button.
+- **A visual editor.** File tree, Markdown editor, live preview and a Publish Changes button. It is built for desktop screens.
 - **Accounts and roles.** Administrators manage everything. Editors only see the sections assigned to them.
 - **Header links.** A short list of links with icons in the top bar, managed from an admin page.
 - **Light and dark themes.** The reader's choice is remembered, and code blocks, diagrams and scrollbars follow it.
-- **Safe by default.** Raw HTML in Markdown is off, frontmatter is plain YAML only, the editor listens on the local machine only until you say otherwise, and a failed publish never replaces the live site.
+- **Safe by default.** Raw HTML in Markdown is off, frontmatter is plain YAML only, the editor listens on the local machine only until you say otherwise, and a publish that fails its checks or times out leaves the live site as it was.
 
 ## Where to start
 

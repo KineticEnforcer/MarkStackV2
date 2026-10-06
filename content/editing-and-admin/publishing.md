@@ -35,7 +35,7 @@ If any stage before the switch fails, the live site is not touched. The dialog n
 - The build taking longer than five minutes, which stops it.
 - The editor's user having no write permission on the folder that holds `dist/`.
 
-Saved files are never changed by a failed publish.
+Saved files are never changed by a failed publish. The switch itself is two folder renames, so a crash or power loss between them is outside this guarantee. The rollback steps below cover that case too.
 
 ## Backups and rollback
 

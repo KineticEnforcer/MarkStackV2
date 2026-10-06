@@ -5,7 +5,7 @@ description: How the MarkStack editor protects accounts and content, what it sen
 
 # Security
 
-The published site is a folder of static files, so it has no login, no database and nothing to attack on the server side. The editor is a Node.js server, and this page describes how it is protected. Treat it as an internal tool: run it where your team can reach it and the internet cannot, or behind HTTPS with a reverse proxy.
+The published site is a folder of static files, so MarkStack runs no code, login or database on the public host. Your web server, CDN, TLS and DNS setup, and the scripts the pages load in the reader's browser, still matter and are yours to secure. The editor is a Node.js server, and this page describes how it is protected. Treat it as an internal tool: run it where your team can reach it and the internet cannot, or behind HTTPS with a reverse proxy.
 
 ## Reachability
 

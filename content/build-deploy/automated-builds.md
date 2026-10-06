@@ -38,7 +38,7 @@ jobs:
       - run: npm audit --audit-level=high
 ```
 
-Check the current action versions on the Marketplace when you copy this. Any CI system works the same way: install Node.js 24, then run the same four commands.
+The action versions shown (checkout v7, setup-node v7, upload-artifact v7) were the latest releases in the official actions repositories on 6 October 2026. Check for newer releases when you copy this. Any CI system works the same way: install Node.js 24, then run the same four commands.
 
 ## Keep the output
 

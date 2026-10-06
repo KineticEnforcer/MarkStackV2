@@ -31,22 +31,22 @@
 
 ## Design Philosophy
 
-MarkStack is built on a simple premise: **Documentation should be accessible, robust, and permanent.** It is designed to serve all walks of life, from the student building a second brain, to the Dungeon Master organizing a campaign, to the Enterprise Architect enforcing ISO compliance.
+MarkStack is built on a simple premise: **Documentation should be accessible, robust, and permanent.** It is designed to serve all walks of life, from the student building a second brain, to the Dungeon Master organizing a campaign, to a team that wants its documentation reviewed like code.
 
 **Built for the "Potato" & the Cloud**
-I intentionally developed MarkStack on a single-core, 1GB RAM virtual machine. Why? Because if it runs there, it runs *anywhere*.
-* **For the Hobbyist:** Run it on a Raspberry Pi Zero 2 W, an old laptop, or a free cloud tier. It respects your hardware.
-* **For the Enterprise:** It scales effortlessly in high-availability clusters with zero resource bloat.
+I developed MarkStack on a single-core, 1GB RAM virtual machine, so it is built to stay light. The build is a single Node.js process and the output is plain static files.
+* **For the Hobbyist:** Run it on a small VPS, an old laptop or a free static host. The public site needs no server-side code.
+* **For Teams:** The output is a folder of static files, so you can serve it from any web server or CDN you already run. High availability and scaling depend on that hosting, not on MarkStack. The visual editor is a single Node.js process and is not clustered.
 
 **Radical Simplicity: Vanilla by Design**
 Modern web development has become over-complicated. MarkStack rejects this. MarkStack is built with **Vanilla JavaScript** and a single file build process. There is no complex architecture to learn, no "magic" black-box frameworks, and no fragility.
 * **Hackable:** Because the code is simple and transparent, you can read it, understand it, and modify it to fit your exact needs.
 * **Future-Proof:** With no heavy dependencies, your documentation site won't break just because an npm package updated 5 years from now.
 
-**Enterprise Grade: Compliance & Audit**
-In professional environments, documentation is a legal record. MarkStack solves "documentation rot" by treating your docs *as code*.
-* **The Audit Trail:** You get an immutable Git history for every comma changed. Strict Pull Request workflows mean nothing goes live without approval. This is perfect for ISO record-keeping.
-* **Accountability:** No more "mystery edits." You know exactly who wrote that API guide, who approved it, and when it went live.
+**Docs as Code: Review & History**
+Documentation goes stale when nobody owns it. MarkStack treats your docs *as code*, so they live in Git next to everything else.
+* **The Audit Trail:** Git records every change. If you protect your main branch and require pull request reviews, changes need approval before they reach it. MarkStack does not enforce this itself, your Git host does. History can be rewritten by anyone with enough rights, so it is a useful record, not a tamper-proof one.
+* **Accountability:** Commits show who changed a page and when. Pull requests show who approved it.
 
 **The "Headless" Brain: From D&D to Ph.D.**
 You don't need to be a systems engineer to have a powerful, globally accessible knowledge base. MarkStack turns GitHub (or any private Git repo) into your personal Content Management System.
