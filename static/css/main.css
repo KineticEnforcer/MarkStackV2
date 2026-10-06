@@ -1528,10 +1528,16 @@ html.sidebar-collapsed .site-footer, body.sidebar-collapsed .site-footer { margi
 .sidebar-toggle:focus-visible, .sidebar-item a:focus-visible { outline: 2px solid var(--color-accent); outline-offset: -2px; }
 
 /* Smooth open and close without measuring heights */
-.sidebar-children { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 200ms ease; }
+.sidebar-children { display: grid; grid-template-rows: 0fr; }
 .sidebar-children.expanded { display: grid; grid-template-rows: 1fr; }
 .sidebar-children-inner { overflow: hidden; min-height: 0; }
-.sidebar-children:not(.expanded) .sidebar-children-inner { visibility: hidden; transition: visibility 0s 200ms; }
+.sidebar-children:not(.expanded) .sidebar-children-inner { visibility: hidden; }
+/* Animate folders only once the saved state has been applied (class set after first paint),
+   so opening a page never replays the open animation */
+html.nav-anim .sidebar-children { transition: grid-template-rows 200ms ease; }
+html.nav-anim .sidebar-children:not(.expanded) .sidebar-children-inner { transition: visibility 0s 200ms; }
+/* The list stays hidden until its saved state is applied (the inline script in the page) */
+html:not(.nav-ready) .sidebar-nav { visibility: hidden; }
 
 /* Nested levels: one quiet guide line, no stacked boxes */
 .sidebar-level-1, .sidebar-level-2, .sidebar-level-3 {
@@ -1557,7 +1563,7 @@ html.sidebar-collapsed .site-footer, body.sidebar-collapsed .site-footer { margi
 .sidebar-item.sidebar-expanded > .sidebar-folder-header a { color: var(--color-text-primary); }
 .sidebar-item.sidebar-current.sidebar-expanded > .sidebar-folder-header a { color: var(--color-accent); }
 @media (prefers-reduced-motion: reduce) {
-  .sidebar-children, .sidebar-chevron, .sidebar-item a { transition: none; }
+  html.nav-anim .sidebar-children, .sidebar-chevron, .sidebar-item a { transition: none; }
 }
 
 /* The article column keeps one position on every page (it used to shrink to

@@ -30,3 +30,24 @@ test('doc pages have breadcrumb, rail and prev/next; the homepage and 404 have n
   assert.doesNotMatch(page, /breadcrumb-bar/);
   assert.doesNotMatch(page, /editor\.html|\/editor/);
 });
+
+test('the sidebar position is settled by the inline script before the article, and the app.js fallback only scrolls a row that is really out of view', () => {
+  execFileSync(process.execPath, [path.join(root, 'build.js')], { cwd: root, stdio: 'ignore' });
+  const html = fs.readFileSync(path.join(root, 'dist', 'getting-started', 'quickstart', 'index.html'), 'utf-8');
+  const script = html.indexOf('sidebar-scroll:');
+  const into = html.indexOf('cb.top < sb.top || cb.bottom > sb.bottom');
+  const article = html.indexOf('<main class="content">');
+  assert.ok(script > 0 && into > script && into < article, 'restore and scroll-into-view run before the article');
+  const app = fs.readFileSync(path.join(root, 'static', 'js', 'app.js'), 'utf-8');
+  assert.match(app, /r\.top < box\.top \|\| r\.bottom > box\.bottom/);
+  assert.doesNotMatch(app, /box\.top \+ 40|box\.bottom - 16/);
+  // the marker has a start point even on a page with no current row
+  assert.match(app, /translateY\(' \+ \(box\.top - 14\)/);
+  // folders animate only after the saved state is applied, and the list stays hidden until then
+  assert.match(html, /nav-ready/);
+  assert.match(html, /nav-anim/);
+  const css = fs.readFileSync(path.join(root, 'static', 'css', 'main.css'), 'utf-8');
+  assert.match(css, /html\.nav-anim \.sidebar-children \{ transition: grid-template-rows/);
+  assert.match(css, /html:not\(\.nav-ready\) \.sidebar-nav \{ visibility: hidden; \}/);
+  assert.doesNotMatch(css, /\n\.sidebar-children \{[^}]*transition/);
+});
