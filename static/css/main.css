@@ -1636,3 +1636,41 @@ html:not(.nav-ready) .sidebar-nav { visibility: hidden; }
 
 /* Long page titles wrap onto a second line instead of being cut off */
 .sidebar-item a { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; line-height: 1.35; }
+
+/* ===== Navigation header, collapse control and scrollbar =====
+   The hide button lives in a fixed header strip at the top of the navigation,
+   so list items scroll underneath the strip, never behind the button. When the
+   navigation is hidden, the same button becomes a slim tab on the left edge. */
+.sidebar { --sidebar-head-h: 40px; padding-top: 0; scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: var(--color-border) transparent; }
+.sidebar:hover { scrollbar-color: var(--color-text-tertiary) transparent; }
+.sidebar::-webkit-scrollbar { width: 10px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 5px; border: 3px solid transparent; background-clip: content-box; }
+.sidebar:hover::-webkit-scrollbar-thumb { background: var(--color-text-tertiary); background-clip: content-box; }
+.sidebar-head {
+  position: sticky; top: 0; z-index: 2; height: var(--sidebar-head-h);
+  margin: 0 calc(-1 * var(--space-sm)); padding: 0 var(--space-md);
+  display: flex; align-items: center;
+  background-color: var(--color-bg-secondary);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+.sidebar-head-label { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--color-text-tertiary); }
+.sidebar-nav { padding-top: var(--space-sm); }
+.sidebar-collapse-toggle {
+  top: calc(var(--header-height) + var(--breadcrumb-height) + 6px);
+  left: calc(var(--sidebar-width) - 44px);
+  width: 28px; height: 28px; background: transparent; border-color: transparent;
+}
+.sidebar-collapse-toggle:hover { background-color: var(--color-bg-hover); border-color: var(--color-border); }
+html.sidebar-collapsed .sidebar-collapse-toggle,
+body.sidebar-collapsed .sidebar-collapse-toggle {
+  left: 0; top: calc(var(--header-height) + var(--breadcrumb-height) + 6px);
+  width: 22px; height: 40px; border: 1px solid var(--color-border); border-left: 0;
+  border-radius: 0 6px 6px 0; background-color: var(--color-bg-secondary);
+}
+.sidebar-collapse-toggle:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+@media (max-width: 1024px) {
+  .sidebar-head { display: none; }
+  .sidebar { padding-top: var(--space-md); }
+  .sidebar-nav { padding-top: 40px; }
+}

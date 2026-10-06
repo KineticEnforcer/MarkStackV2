@@ -92,11 +92,18 @@
     const savedState = getSavedSidebarState();
     // Default is expanded, only collapse if user explicitly collapsed
     setSidebarCollapsed(savedState === 'collapsed');
+    function syncToggleLabel() {
+      const c = body.classList.contains('sidebar-collapsed');
+      const label = c ? 'Show navigation' : 'Hide navigation';
+      sidebarToggle.title = label; sidebarToggle.setAttribute('aria-label', label); sidebarToggle.setAttribute('aria-expanded', c ? 'false' : 'true');
+    }
+    syncToggleLabel();
     
     // Toggle sidebar on button click
     sidebarToggle.addEventListener('click', function() {
       const isCurrentlyCollapsed = body.classList.contains('sidebar-collapsed');
       setSidebarCollapsed(!isCurrentlyCollapsed);
+      syncToggleLabel();
       saveSidebarState(!isCurrentlyCollapsed);
     });
   }
