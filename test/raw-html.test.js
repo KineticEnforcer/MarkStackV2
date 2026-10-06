@@ -13,6 +13,7 @@ const root = path.join(__dirname, '..');
 function build(files, siteConfigPatch) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'markstack-html-'));
   fs.copyFileSync(path.join(root, 'build.js'), path.join(dir, 'build.js'));
+  fs.cpSync(path.join(root, 'lib'), path.join(dir, 'lib'), { recursive: true });
   for (const name of ['static', 'templates', 'template']) {
     const src = path.join(root, name);
     if (fs.existsSync(src)) fs.cpSync(src, path.join(dir, name), { recursive: true });

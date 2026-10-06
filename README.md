@@ -368,7 +368,7 @@ For automated deployments, see the [CI/CD Integration](content/build-deploy/ci-c
 | Component | Implementation |
 |-----------|----------------|
 | Markdown Processing | [markdown-it](https://github.com/markdown-it/markdown-it) with anchor, footnote, and task list plugins |
-| Frontmatter Parsing | [gray-matter](https://github.com/jonschlinkert/gray-matter) |
+| Frontmatter Parsing | [gray-matter](https://github.com/jonschlinkert/gray-matter) for splitting, [js-yaml](https://github.com/nodeca/js-yaml) for YAML (YAML only, see `lib/frontmatter.js`) |
 | Syntax Highlighting | [highlight.js](https://highlightjs.org/) supporting 190+ languages |
 | Diagram Rendering | [Mermaid](https://mermaid.js.org/) for flowcharts and diagrams |
 | File Watching | [chokidar](https://github.com/paulmillr/chokidar) for development mode |
