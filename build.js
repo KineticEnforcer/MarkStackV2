@@ -720,7 +720,7 @@ function generatePage(processed) {
     // Quiet meta row right under the page title
     body = body.replace('</h1>', () => '</h1>' + renderPageMeta(processed));
   }
-  const toc = isPage ? renderToc(extractHeadings(processed.content)) : '';
+  const toc = processed.urlPath !== '/404/' ? renderToc(extractHeadings(processed.content)) : '';
   const prevNext = isPage ? renderPrevNext(processed) : '';
   const crumbs = isPage ? `<nav class="page-breadcrumb" aria-label="Breadcrumb">${renderBreadcrumbs(processed.breadcrumbs)}</nav>` : '';
 
@@ -907,7 +907,7 @@ function generate404() {
     content,
     urlPath: '/404/',
     breadcrumbs: [{ title: 'Home', url: '/' }, { title: '404', url: '/404/' }],
-    sidebar: []
+    sidebar: buildFullNavTree(CONFIG.contentDir, '/404/')
   };
   
   const html = generatePage(processed);

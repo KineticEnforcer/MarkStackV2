@@ -1427,7 +1427,12 @@ pre.hljs[data-language]::before {
 }
 .content-grid > .article { grid-column: 1; min-width: 0; }
 .content-grid > .toc-rail { grid-column: 2; }
-.is-homepage .content-grid { grid-template-columns: minmax(0, 1fr); max-width: 980px; }
+/* Homepage: the site title is an ordinary page header, no banner */
+.homepage-hero { text-align: left; padding: 0 0 var(--space-md); margin-bottom: var(--space-lg); border-bottom: 1px solid var(--color-border); }
+.homepage-hero h1 { font-size: var(--font-size-3xl); line-height: 1.2; margin-bottom: var(--space-xs); }
+.homepage-hero p { font-size: var(--font-size-base); max-width: var(--measure); margin: 0; }
+.error-page { padding: var(--space-xl) 0; }
+.error-page h1 { font-size: 3rem; }
 
 .page-breadcrumb { display: flex; flex-wrap: wrap; align-items: center; margin-bottom: var(--space-md); font-size: var(--font-size-xs); color: var(--color-text-tertiary); }
 .page-breadcrumb a { color: var(--color-text-secondary); }
