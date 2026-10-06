@@ -25,12 +25,12 @@
   --font-size-3xl: 2.125rem;
   
   /* Layout */
-  --sidebar-width: 264px;
+  --sidebar-width: 300px;
   --header-height: 48px;
   --breadcrumb-height: 0px;
   --content-max-width: 900px;
   --rail-width: 200px;
-  --measure: 72ch;
+  --measure: 110ch;
   --border-radius: 6px;
   --border-radius-lg: 10px;
   
@@ -1259,10 +1259,6 @@ html.mobile-menu-open .mobile-overlay {
     height: 36px;
   }
 
-  /* Add top padding to code blocks for language label and copy button */
-  .code-block-wrapper pre.hljs code {
-    padding-top: calc(var(--space-md) + 28px);
-  }
 }
 
 /* ============================================
@@ -1298,59 +1294,42 @@ html.mobile-menu-open .mobile-overlay {
   margin-bottom: 0;
 }
 
-/* Language label for code blocks */
-pre.hljs[data-language]::before {
-  content: attr(data-language);
-  position: absolute;
-  top: var(--space-sm);
-  right: calc(var(--space-sm) + 88px);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 28px;
-  padding: 0 10px;
-  background-color: transparent;
-  border: 1px solid var(--color-accent);
-  border-radius: 999px;
-  color: var(--color-accent);
-  font-size: var(--font-size-xs);
-  font-family: var(--font-mono);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+/* Code block: a header row (language left, copy right) above the code.
+   The code keeps its highlight.js colors; the frame follows the theme. */
+.code-block-wrapper {
+  border: 1px solid var(--color-code-border);
+  border-radius: 8px;
+  background-color: var(--color-code-bg);
+  overflow: hidden;
 }
-
+.code-header {
+  display: flex; align-items: center; justify-content: space-between;
+  min-height: 34px; padding: 0 6px 0 var(--space-md);
+  background-color: var(--color-bg-tertiary);
+  border-bottom: 1px solid var(--color-code-border);
+}
+.code-lang {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-tertiary);
+}
 .copy-code-btn {
-  position: absolute;
-  /* Align with the language pill and sit to its right edge */
-  top: var(--space-sm);
-  right: var(--space-sm);
-  width: 82px; /* fixed width so text changes (Copy/Copied!) do not shift layout */
-  height: 28px;
-  padding: 0 10px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background-color: var(--color-bg-hover);
-  border: 1px solid var(--color-border);
-  border-radius: 4px;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-xs);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  text-align: center;
+  display: inline-flex; align-items: center; gap: 6px;
+  min-width: 78px; height: 24px; padding: 0 8px; justify-content: center;
+  background: transparent; border: 1px solid transparent; border-radius: 6px;
+  color: var(--color-text-secondary); font: inherit; font-size: 12px; cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
 }
-
-.copy-code-btn:hover {
-  background-color: var(--color-bg-active);
-  color: var(--color-text-primary);
+.copy-code-btn svg { width: 13px; height: 13px; flex: none; }
+.copy-code-btn:hover { background-color: var(--color-bg-hover); color: var(--color-text-primary); border-color: var(--color-border); }
+.copy-code-btn:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+.copy-code-btn.copied { color: var(--color-accent); border-color: var(--color-accent); background: var(--color-accent-subtle); }
+.article .code-block-wrapper pre.hljs { margin: 0; border: 0; border-radius: 0; background: transparent; }
+.article .code-block-wrapper pre.hljs code {
+  padding: var(--space-md); font-size: 13px; line-height: 1.65; tab-size: 2;
+  background: transparent; border: 0; border-radius: 0;
 }
-
-.copy-code-btn.copied {
-  background-color: var(--color-accent);
-  border-color: var(--color-accent);
-  color: white;
-}
+.article .code-block-wrapper pre { scrollbar-width: thin; scrollbar-color: var(--color-border) transparent; }
+.article pre.hljs { margin-bottom: var(--space-md); }
 
 /* ============================================
    Task List Checkboxes
@@ -1437,12 +1416,12 @@ pre.hljs[data-language]::before {
 .sidebar-level-1, .sidebar-level-2, .sidebar-level-3 { margin-left: 0.6rem; padding-left: 0.5rem; }
 
 /* Content: article column and right rail */
-.content { padding: var(--space-xl) var(--space-xl) var(--space-2xl); overflow-x: visible; }
+.content { padding: var(--space-xl) var(--space-lg) var(--space-2xl); overflow-x: visible; }
 .content-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) var(--rail-width);
-  column-gap: 48px;
-  max-width: 1180px;
+  column-gap: 32px;
+  max-width: 1900px;
   margin: 0 auto;
 }
 .content-grid > .article { grid-column: 1; min-width: 0; }
@@ -1674,3 +1653,6 @@ body.sidebar-collapsed .sidebar-collapse-toggle {
   .sidebar { padding-top: var(--space-md); }
   .sidebar-nav { padding-top: 40px; }
 }
+
+/* Very long words (no spaces) in headings wrap instead of widening the page or the rail */
+.article h1, .article h2, .article h3, .article h4, .article h5, .article h6, .toc-item a { overflow-wrap: anywhere; }

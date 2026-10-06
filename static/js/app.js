@@ -554,19 +554,33 @@
   // Copy Code Blocks
   // ============================================
   document.querySelectorAll('pre.hljs').forEach(function(block) {
-    // Create copy button
+    // Header row: language on the left, copy button on the right
+    const ICON_COPY = '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M5.75 1A1.75 1.75 0 0 0 4 2.75V3H3.75A1.75 1.75 0 0 0 2 4.75v8.5C2 14.216 2.784 15 3.75 15h6.5A1.75 1.75 0 0 0 12 13.25V13h.25A1.75 1.75 0 0 0 14 11.25v-8.5A1.75 1.75 0 0 0 12.25 1h-6.5ZM5.5 2.75a.25.25 0 0 1 .25-.25h6.5a.25.25 0 0 1 .25.25v8.5a.25.25 0 0 1-.25.25H12V4.75A1.75 1.75 0 0 0 10.25 3H5.5v-.25ZM3.75 4.5h6.5a.25.25 0 0 1 .25.25v8.5a.25.25 0 0 1-.25.25h-6.5a.25.25 0 0 1-.25-.25v-8.5a.25.25 0 0 1 .25-.25Z"/></svg>';
+    const ICON_OK = '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/></svg>';
+    function setLabel(btn, state) {
+      const text = state === 'ok' ? 'Copied' : state === 'fail' ? 'Failed' : 'Copy';
+      btn.innerHTML = (state === 'ok' ? ICON_OK : ICON_COPY) + '<span>' + text + '</span>';
+    }
     const button = document.createElement('button');
+    button.type = 'button';
     button.className = 'copy-code-btn';
-    button.textContent = 'Copy';
+    setLabel(button, 'idle');
     button.setAttribute('aria-label', 'Copy code to clipboard');
-    
+    const header = document.createElement('div');
+    header.className = 'code-header';
+    const lang = document.createElement('span');
+    lang.className = 'code-lang';
+    lang.textContent = block.getAttribute('data-language') || 'text';
+    header.appendChild(lang);
+    header.appendChild(button);
+
     // Wrap pre in container
     const wrapper = document.createElement('div');
     wrapper.className = 'code-block-wrapper';
     block.parentNode.insertBefore(wrapper, block);
+    wrapper.appendChild(header);
     wrapper.appendChild(block);
-    wrapper.appendChild(button);
-    
+
     // Copy on click
     button.addEventListener('click', async function() {
       const code = block.querySelector('code');
@@ -574,19 +588,19 @@
       
       try {
         await navigator.clipboard.writeText(text);
-        button.textContent = 'Copied!';
+        setLabel(button, 'ok');
         button.classList.add('copied');
         
         setTimeout(function() {
-          button.textContent = 'Copy';
+          setLabel(button, 'idle');
           button.classList.remove('copied');
         }, 2000);
       } catch (err) {
         console.error('Failed to copy:', err);
-        button.textContent = 'Failed';
+        setLabel(button, 'fail');
         
         setTimeout(function() {
-          button.textContent = 'Copy';
+          setLabel(button, 'idle');
         }, 2000);
       }
     });
