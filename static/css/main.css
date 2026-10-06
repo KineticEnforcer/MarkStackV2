@@ -1264,22 +1264,21 @@ html.mobile-menu-open .mobile-overlay {
 /* ============================================
    Scrollbar
    ============================================ */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: var(--color-bg-secondary);
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-tertiary);
+/* Scrollbars follow the theme: thin, a quiet thumb, no track. color-scheme also
+   makes the browser's own controls match the theme. */
+[data-theme="dark"] { color-scheme: dark; --scrollbar-thumb: #3a4558; --scrollbar-thumb-hover: #566277; }
+[data-theme="light"] { color-scheme: light; --scrollbar-thumb: #b9c0cd; --scrollbar-thumb-hover: #8f99ab; }
+/* Chrome, Edge, Safari: a slim thumb with no arrow buttons and no track.
+   Setting the standard scrollbar-width/scrollbar-color there would switch these rules off. */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 5px; border: 2px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover, .sidebar:hover::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb-hover); background-clip: content-box; }
+/* Firefox */
+@supports not selector(::-webkit-scrollbar) {
+  * { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) transparent; }
+  .sidebar:hover, .article pre:hover, .toc-rail:hover, .file-tree-content:hover { scrollbar-color: var(--scrollbar-thumb-hover) transparent; }
 }
 
 /* ============================================
@@ -1328,7 +1327,6 @@ html.mobile-menu-open .mobile-overlay {
   padding: var(--space-md); font-size: 13px; line-height: 1.65; tab-size: 2;
   background: transparent; border: 0; border-radius: 0;
 }
-.article .code-block-wrapper pre { scrollbar-width: thin; scrollbar-color: var(--color-border) transparent; }
 .article pre.hljs { margin-bottom: var(--space-md); }
 
 /* ============================================
@@ -1504,7 +1502,7 @@ a.pn-card:hover { border-color: var(--color-accent); text-decoration: none; }
    One continuous list. Folders open and close in place with a short height
    animation, the chevron turns instead of swapping, the current page has a
    clear marker, and the list keeps its scroll position between pages. */
-.sidebar { scrollbar-gutter: stable; overscroll-behavior: contain; scrollbar-width: thin; }
+.sidebar { scrollbar-gutter: stable; overscroll-behavior: contain; }
 .sidebar-nav { padding-top: 36px; }
 .sidebar-item { margin-bottom: 1px; }
 .sidebar-item a {
@@ -1620,12 +1618,7 @@ html:not(.nav-ready) .sidebar-nav { visibility: hidden; }
    The hide button lives in a fixed header strip at the top of the navigation,
    so list items scroll underneath the strip, never behind the button. When the
    navigation is hidden, the same button becomes a slim tab on the left edge. */
-.sidebar { --sidebar-head-h: 40px; padding-top: 0; scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: var(--color-border) transparent; }
-.sidebar:hover { scrollbar-color: var(--color-text-tertiary) transparent; }
-.sidebar::-webkit-scrollbar { width: 10px; }
-.sidebar::-webkit-scrollbar-track { background: transparent; }
-.sidebar::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 5px; border: 3px solid transparent; background-clip: content-box; }
-.sidebar:hover::-webkit-scrollbar-thumb { background: var(--color-text-tertiary); background-clip: content-box; }
+.sidebar { --sidebar-head-h: 40px; padding-top: 0; scrollbar-gutter: stable; }
 .sidebar-head {
   position: sticky; top: 0; z-index: 2; height: var(--sidebar-head-h);
   margin: 0 calc(-1 * var(--space-sm)); padding: 0 var(--space-md);
