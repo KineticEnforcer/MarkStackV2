@@ -206,10 +206,10 @@ These variables control major layout proportions:
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `--sidebar-width` | `280px` | Sidebar navigation width |
+| `--sidebar-width` | `300px` | Sidebar navigation width |
 | `--header-height` | `60px` | Top header height |
-| `--measure` | `88ch` | Maximum line length of paragraphs and lists (code blocks and tables use the whole article column) |
-| `--rail-width` | `220px` | Width of the "On this page" column |
+| `--measure` | `110ch` | Maximum line length of paragraphs and lists (code blocks and tables use the whole article column) |
+| `--rail-width` | `200px` | Width of the "On this page" column |
 
 Example of a wider reading area:
 

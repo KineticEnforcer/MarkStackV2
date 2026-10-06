@@ -25,12 +25,12 @@
   --font-size-3xl: 2.125rem;
   
   /* Layout */
-  --sidebar-width: 264px;
+  --sidebar-width: 300px;
   --header-height: 48px;
   --breadcrumb-height: 0px;
   --content-max-width: 900px;
-  --rail-width: 220px;
-  --measure: 88ch;
+  --rail-width: 200px;
+  --measure: 110ch;
   --border-radius: 6px;
   --border-radius-lg: 10px;
   
@@ -1416,12 +1416,12 @@ html.mobile-menu-open .mobile-overlay {
 .sidebar-level-1, .sidebar-level-2, .sidebar-level-3 { margin-left: 0.6rem; padding-left: 0.5rem; }
 
 /* Content: article column and right rail */
-.content { padding: var(--space-xl) var(--space-xl) var(--space-2xl); overflow-x: visible; }
+.content { padding: var(--space-xl) var(--space-lg) var(--space-2xl); overflow-x: visible; }
 .content-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) var(--rail-width);
-  column-gap: 40px;
-  max-width: 1560px;
+  column-gap: 32px;
+  max-width: 1900px;
   margin: 0 auto;
 }
 .content-grid > .article { grid-column: 1; min-width: 0; }
