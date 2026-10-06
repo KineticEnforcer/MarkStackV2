@@ -1653,3 +1653,6 @@ body.sidebar-collapsed .sidebar-collapse-toggle {
   .sidebar { padding-top: var(--space-md); }
   .sidebar-nav { padding-top: 40px; }
 }
+
+/* Very long words (no spaces) in headings wrap instead of widening the page or the rail */
+.article h1, .article h2, .article h3, .article h4, .article h5, .article h6, .toc-item a { overflow-wrap: anywhere; }
