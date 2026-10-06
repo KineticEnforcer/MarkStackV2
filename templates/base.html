@@ -30,7 +30,7 @@
   <meta property="og:url" content="{{url}}">
   <meta property="og:type" content="website">
   <title>{{title}} | {{siteTitle}}</title>
-  <link rel="stylesheet" href="{{baseUrl}}/css/main.css?v=11">
+  <link rel="stylesheet" href="{{baseUrl}}/css/main.css?v=12">
   <link rel="stylesheet" href="{{baseUrl}}/css/hljs-theme.css?v=7">
   <link rel="icon" href="{{baseUrl}}/svg/logo.svg" type="image/svg+xml">
 </head>
@@ -128,8 +128,14 @@
           var logo = document.querySelector('.site-logo');
           var scope = (logo ? logo.getAttribute('href') : '/').replace(/\/$/, '');
           var open = [];
-          try { open = JSON.parse(localStorage.getItem('sidebar-open:' + scope) || '[]'); } catch (e) {}
+          var raw = null;
+          try { raw = localStorage.getItem('sidebar-open:' + scope); } catch (e) {}
+          try { open = raw === null ? [] : JSON.parse(raw); } catch (e) {}
           if (!Array.isArray(open)) open = [];
+          // First visit: every top-level group starts open, like a table of contents
+          if (raw === null) {
+            nav.querySelectorAll('.sidebar-level-0 > .sidebar-folder').forEach(function(li) { open.push(li.getAttribute('data-path')); });
+          }
           nav.querySelectorAll('.sidebar-item.sidebar-folder').forEach(function(li) {
             if (open.indexOf(li.getAttribute('data-path')) !== -1) {
               li.dataset.state = 'expanded';
@@ -167,7 +173,7 @@
   </footer>
 
   <script src="{{baseUrl}}/js/search-core.js?v=1"></script>
-  <script src="{{baseUrl}}/js/app.js?v=12"></script>
+  <script src="{{baseUrl}}/js/app.js?v=13"></script>
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
     mermaid.initialize({ 

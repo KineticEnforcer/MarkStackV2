@@ -225,7 +225,14 @@
     }
 
     // Folders on the way to the current page count as opened by the reader
+    let firstVisit = false;
+    try { firstVisit = localStorage.getItem(openKey) === null; } catch (e) {}
     const opened = new Set(readOpen());
+    if (firstVisit) {
+      sidebarNav.querySelectorAll('.sidebar-level-0 > .sidebar-folder').forEach(function(li) {
+        opened.add(li.getAttribute('data-path'));
+      });
+    }
     sidebarNav.querySelectorAll('.sidebar-item.sidebar-folder.sidebar-expanded').forEach(function(li) {
       opened.add(li.getAttribute('data-path'));
     });
@@ -243,6 +250,59 @@
       const list = new Set(readOpen());
       if (open) list.add(item.getAttribute('data-path')); else list.delete(item.getAttribute('data-path'));
       writeOpen(Array.from(list));
+    });
+
+    // One marker rides the rail beside the list and glides to the current page,
+    // starting from where it was on the previous page.
+    const indicator = document.createElement('span');
+    indicator.className = 'sidebar-indicator';
+    indicator.setAttribute('aria-hidden', 'true');
+    sidebarNav.appendChild(indicator);
+    const indKey = 'sidebar-ind:' + navScope;
+    function currentRow() {
+      return sidebarNav.querySelector('.sidebar-current > a, .sidebar-current > .sidebar-folder-header a');
+    }
+    function targetBox() {
+      const row = currentRow();
+      if (!row) return null;
+      // hidden inside a closed folder: no marker rather than a wrong one
+      if (row.closest('.sidebar-children:not(.expanded)')) return null;
+      const n = sidebarNav.getBoundingClientRect();
+      const r = row.getBoundingClientRect();
+      return { top: r.top - n.top + 3, height: Math.max(r.height - 6, 8) };
+    }
+    function placeIndicator() {
+      const box = targetBox();
+      if (!box) { indicator.style.opacity = '0'; return; }
+      indicator.style.opacity = '1';
+      indicator.style.transform = 'translateY(' + box.top + 'px)';
+      indicator.style.height = box.height + 'px';
+    }
+    function followFor(ms) {
+      const end = performance.now() + ms;
+      (function step() { placeIndicator(); if (performance.now() < end) requestAnimationFrame(step); })();
+    }
+    (function startIndicator() {
+      const box = targetBox();
+      if (!box) { placeIndicator(); return; }
+      let from = null;
+      try { from = JSON.parse(sessionStorage.getItem(indKey) || 'null'); } catch (e) {}
+      indicator.style.transition = 'none';
+      if (from && typeof from.top === 'number' && typeof from.height === 'number') {
+        indicator.style.opacity = '1';
+        indicator.style.transform = 'translateY(' + from.top + 'px)';
+        indicator.style.height = from.height + 'px';
+      } else {
+        placeIndicator();
+      }
+      void indicator.offsetHeight;
+      indicator.style.transition = '';
+      placeIndicator();
+      try { sessionStorage.setItem(indKey, JSON.stringify(box)); } catch (e) {}
+    })();
+    window.addEventListener('resize', placeIndicator);
+    sidebarNav.addEventListener('click', function(e) {
+      if (e.target.closest('.sidebar-toggle')) followFor(260);
     });
 
     // Remember where the list was scrolled, so the next page opens in the same place

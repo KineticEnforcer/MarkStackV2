@@ -1564,3 +1564,51 @@ html.sidebar-collapsed .site-footer, body.sidebar-collapsed .site-footer { margi
    its content and re-centre, which made pages shift sideways when navigating). */
 .content-grid > .article { width: 100%; max-width: none; margin: 0; }
 .error-page p { margin-left: auto; margin-right: auto; }
+
+/* ===== V2 navigation, structure =====
+   Top-level folders are group labels over their pages. One rail runs down the
+   whole list and a single marker glides along it to the current page. */
+.sidebar-nav { position: relative; padding: 38px 0 0 0; }
+.sidebar-nav::before {
+  content: ""; position: absolute; left: 7px; top: 44px; bottom: 8px; width: 1px;
+  background: var(--color-border);
+}
+.sidebar-indicator {
+  position: absolute; left: 6px; top: 0; width: 3px; border-radius: 3px;
+  background: var(--color-accent); opacity: 0; pointer-events: none; z-index: 1;
+  transition: transform 260ms cubic-bezier(.3,.7,.2,1), height 260ms cubic-bezier(.3,.7,.2,1), opacity 150ms ease;
+}
+/* everything sits to the right of the rail, no per-level guide lines or boxes */
+.sidebar-level-0 { padding: 0 0 0 20px; }
+.sidebar-level-1, .sidebar-level-2, .sidebar-level-3 { margin-left: 0; padding-left: 0; border-left: 0; }
+.sidebar-level-2, .sidebar-level-3 { padding-left: 12px; }
+.sidebar-item { margin-bottom: 0; }
+
+/* group labels */
+.sidebar-level-0 > .sidebar-folder { margin-top: 18px; }
+.sidebar-level-0 > .sidebar-folder:first-child { margin-top: 0; }
+.sidebar-level-0 > .sidebar-folder > .sidebar-folder-header { flex-direction: row-reverse; padding-right: 4px; border-radius: 6px; }
+.sidebar-level-0 > .sidebar-folder > .sidebar-folder-header a {
+  padding: 4px 8px 4px 0; font-size: 11px; font-weight: 600; letter-spacing: .07em; text-transform: uppercase;
+  color: var(--color-text-tertiary); background: none;
+}
+.sidebar-level-0 > .sidebar-folder > .sidebar-folder-header a:hover { color: var(--color-text-primary); background: none; }
+.sidebar-level-0 > .sidebar-folder.sidebar-expanded > .sidebar-folder-header a { color: var(--color-text-secondary); }
+.sidebar-level-0 > .sidebar-folder > .sidebar-folder-header .sidebar-toggle { width: 20px; height: 20px; }
+.sidebar-level-0 > .sidebar-folder > .sidebar-folder-header .sidebar-chevron { width: 12px; height: 12px; transform: rotate(90deg); opacity: .7; }
+.sidebar-level-0 > .sidebar-folder.sidebar-expanded > .sidebar-folder-header .sidebar-chevron { transform: rotate(-90deg); }
+
+/* page rows: plain text, a faint wash for hover */
+.sidebar-file > a, .sidebar-level-1 .sidebar-folder > .sidebar-folder-header a {
+  padding: 5px 10px 5px 8px; font-size: 13px; font-weight: 400; color: var(--color-text-secondary);
+}
+.sidebar-level-1 .sidebar-folder > .sidebar-folder-header a { font-weight: 500; color: var(--color-text-primary); }
+.sidebar-item.sidebar-current > a,
+.sidebar-item.sidebar-current > .sidebar-folder-header a {
+  background-color: var(--color-accent-subtle); color: var(--color-accent); font-weight: 600; box-shadow: none; border-radius: 0 6px 6px 0;
+}
+.sidebar-item.sidebar-current > a::before,
+.sidebar-item.sidebar-current > .sidebar-folder-header a::before { content: none; }
+.sidebar-level-0 > .sidebar-folder.sidebar-current > .sidebar-folder-header a { background: var(--color-accent-subtle); color: var(--color-accent); }
+.sidebar-level-0 > .sidebar-file > a { padding-left: 8px; }
+@media (prefers-reduced-motion: reduce) { .sidebar-indicator { transition: none; } }
