@@ -183,32 +183,62 @@
   const chevronDown = '<svg class="sidebar-chevron" viewBox="0 0 16 16" width="16" height="16" fill="currentColor"><path d="M12.78 5.22a.749.749 0 0 1 0 1.06l-4.25 4.25a.749.749 0 0 1-1.06 0L3.22 6.28a.749.749 0 1 1 1.06-1.06L8 8.939l3.72-3.719a.749.749 0 0 1 1.06 0Z"/></svg>';
   
   if (sidebarNav) {
-    // Handle toggle button clicks for folder expand/collapse
+    const sidebarEl = document.querySelector('.sidebar');
+
+    function readOpen() {
+      try { return JSON.parse(localStorage.getItem('sidebar-open') || '[]'); } catch (e) { return []; }
+    }
+    function writeOpen(list) {
+      try { localStorage.setItem('sidebar-open', JSON.stringify(list)); } catch (e) {}
+    }
+    function setOpen(item, open) {
+      const children = item.querySelector(':scope > .sidebar-children');
+      const toggle = item.querySelector(':scope > .sidebar-folder-header .sidebar-toggle');
+      if (!children) return;
+      children.classList.toggle('expanded', open);
+      item.classList.toggle('sidebar-expanded', open);
+      item.dataset.state = open ? 'expanded' : 'collapsed';
+      if (toggle) toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+
+    // Folders on the way to the current page count as opened by the reader
+    const opened = new Set(readOpen());
+    sidebarNav.querySelectorAll('.sidebar-item.sidebar-folder.sidebar-expanded').forEach(function(li) {
+      opened.add(li.getAttribute('data-path'));
+    });
+    writeOpen(Array.from(opened));
+
+    // Expand or collapse a folder in place (animated, remembered across pages)
     sidebarNav.addEventListener('click', function(e) {
       const toggle = e.target.closest('.sidebar-toggle');
       if (!toggle) return;
-      
       e.preventDefault();
       e.stopPropagation();
-      
-      const sidebarItem = toggle.closest('.sidebar-item');
-      const children = sidebarItem.querySelector('.sidebar-children');
-      const isExpanded = sidebarItem.dataset.state === 'expanded';
-      
-      if (children) {
-        if (isExpanded) {
-          children.classList.remove('expanded');
-          sidebarItem.dataset.state = 'collapsed';
-          sidebarItem.classList.remove('sidebar-expanded');
-          toggle.innerHTML = chevronRight;
-        } else {
-          children.classList.add('expanded');
-          sidebarItem.dataset.state = 'expanded';
-          sidebarItem.classList.add('sidebar-expanded');
-          toggle.innerHTML = chevronDown;
-        }
-      }
+      const item = toggle.closest('.sidebar-item');
+      const open = item.dataset.state !== 'expanded';
+      setOpen(item, open);
+      const list = new Set(readOpen());
+      if (open) list.add(item.getAttribute('data-path')); else list.delete(item.getAttribute('data-path'));
+      writeOpen(Array.from(list));
     });
+
+    // Remember where the list was scrolled, so the next page opens in the same place
+    function saveScroll() {
+      try { sessionStorage.setItem('sidebar-scroll', String(sidebarEl.scrollTop)); } catch (e) {}
+    }
+    sidebarEl.addEventListener('scroll', saveScroll, { passive: true });
+    sidebarNav.addEventListener('click', saveScroll);
+    window.addEventListener('pagehide', saveScroll);
+
+    // Bring the current page into view only if it is outside the visible list
+    const current = sidebarNav.querySelector('.sidebar-current > a, .sidebar-current > .sidebar-folder-header a');
+    if (current && sidebarEl.scrollHeight > sidebarEl.clientHeight) {
+      const box = sidebarEl.getBoundingClientRect();
+      const r = current.getBoundingClientRect();
+      if (r.top < box.top + 40 || r.bottom > box.bottom - 16) {
+        sidebarEl.scrollTop += r.top - box.top - box.height / 3;
+      }
+    }
   }
 
   // ============================================
@@ -473,20 +503,28 @@
 // "On this page" rail: mark the heading currently in view
 (function() {
   const links = Array.from(document.querySelectorAll('.toc-list a'));
-  if (!links.length || !('IntersectionObserver' in window)) return;
+  if (!links.length) return;
   const byId = new Map();
   links.forEach(a => byId.set(decodeURIComponent(a.getAttribute('href').slice(1)), a));
   const headings = Array.from(byId.keys()).map(id => document.getElementById(id)).filter(Boolean);
-  const visible = new Set();
+  if (!headings.length) return;
+  let queued = false;
   function update() {
-    const current = headings.find(h => visible.has(h)) ||
-      headings.filter(h => h.getBoundingClientRect().top < 120).pop() || headings[0];
-    links.forEach(a => a.classList.toggle('active', byId.get(current && current.id) === a));
+    queued = false;
+    // The current section is the last heading that has reached the top of the viewport
+    const line = 96;
+    let current = headings[0];
+    for (const h of headings) {
+      if (h.getBoundingClientRect().top <= line) current = h; else break;
+    }
+    const atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+    if (atBottom) current = headings[headings.length - 1];
+    links.forEach(a => a.classList.toggle('active', byId.get(current.id) === a));
   }
-  const io = new IntersectionObserver(entries => {
-    entries.forEach(e => e.isIntersecting ? visible.add(e.target) : visible.delete(e.target));
-    update();
-  }, { rootMargin: '-60px 0px -70% 0px' });
-  headings.forEach(h => io.observe(h));
+  function queue() {
+    if (!queued) { queued = true; requestAnimationFrame(update); }
+  }
+  window.addEventListener('scroll', queue, { passive: true });
+  window.addEventListener('resize', queue);
   update();
 })();

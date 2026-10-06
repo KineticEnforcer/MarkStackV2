@@ -28,7 +28,7 @@
   <meta property="og:url" content="{{url}}">
   <meta property="og:type" content="website">
   <title>{{title}} | {{siteTitle}}</title>
-  <link rel="stylesheet" href="{{baseUrl}}/css/main.css?v=8">
+  <link rel="stylesheet" href="{{baseUrl}}/css/main.css?v=10">
   <link rel="stylesheet" href="{{baseUrl}}/css/hljs-theme.css?v=7">
   <link rel="icon" href="{{baseUrl}}/svg/logo.svg" type="image/svg+xml">
 </head>
@@ -115,6 +115,28 @@
         {{sidebar}}
       </nav>
     </aside>
+    <script>
+      // Restore the navigation exactly as it was left, before the first paint:
+      // folders the reader opened stay open and the list keeps its scroll position.
+      (function() {
+        try {
+          var nav = document.querySelector('.sidebar-nav');
+          var open = JSON.parse(localStorage.getItem('sidebar-open') || '[]');
+          nav.querySelectorAll('.sidebar-item.sidebar-folder').forEach(function(li) {
+            if (open.indexOf(li.getAttribute('data-path')) !== -1) {
+              li.dataset.state = 'expanded';
+              li.classList.add('sidebar-expanded');
+              var c = li.querySelector(':scope > .sidebar-children');
+              if (c) c.classList.add('expanded');
+              var b = li.querySelector(':scope > .sidebar-folder-header .sidebar-toggle');
+              if (b) b.setAttribute('aria-expanded', 'true');
+            }
+          });
+          var y = sessionStorage.getItem('sidebar-scroll');
+          if (y !== null) document.querySelector('.sidebar').scrollTop = parseInt(y, 10) || 0;
+        } catch (e) {}
+      })();
+    </script>
     
     <main class="content">
       <div class="content-grid">
@@ -136,7 +158,7 @@
   </footer>
 
   <script src="{{baseUrl}}/js/search-core.js?v=1"></script>
-  <script src="{{baseUrl}}/js/app.js?v=9"></script>
+  <script src="{{baseUrl}}/js/app.js?v=10"></script>
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
     mermaid.initialize({ 

@@ -556,22 +556,22 @@ function renderSidebar(sidebar, level = 0) {
     const hasChildren = item.children && item.children.length > 0;
     
     if (item.type === 'folder') {
-      const chevron = hasChildren ? (item.expanded ? chevronDown : chevronRight) : '';
+      const chevron = hasChildren ? chevronRight : '';
       const expandedClass = item.expanded ? 'expanded' : 'collapsed';
       const url = CONFIG.baseUrl + item.url;
       
-      html += `<li class="${classes.join(' ')}" data-state="${expandedClass}">`;
+      html += `<li class="${classes.join(' ')}" data-state="${expandedClass}" data-path="${escapeText(item.url)}">`;
       html += `<div class="sidebar-folder-header">`;
       if (hasChildren) {
-        html += `<button class="sidebar-toggle" aria-label="Toggle folder">${chevron}</button>`;
+        html += `<button class="sidebar-toggle" type="button" aria-label="Toggle ${escapeText(item.title)}" aria-expanded="${item.expanded ? 'true' : 'false'}">${chevron}</button>`;
       }
       html += `<a href="${url}">${sidebarIcons.folder}${item.title}</a>`;
       html += `</div>`;
       
       if (hasChildren) {
-        html += `<div class="sidebar-children ${expandedClass}">`;
+        html += `<div class="sidebar-children ${expandedClass}"><div class="sidebar-children-inner">`;
         html += renderSidebar(item.children, level + 1);
-        html += '</div>';
+        html += '</div></div>';
       }
       html += '</li>\n';
     } else {
