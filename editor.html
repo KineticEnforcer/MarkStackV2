@@ -29,28 +29,53 @@
         document.addEventListener('DOMContentLoaded', () => {
           const slot = document.querySelector('.editor-actions');
           if (!slot) return;
-          const wrap = document.createElement('div');
-          wrap.className = 'user-menu';
-          const who = document.createElement('span');
-          who.className = 'user-menu-name';
-          who.textContent = d.user.name;
-          const role = document.createElement('span');
-          role.className = 'user-menu-role';
-          role.textContent = d.user.role;
-          wrap.appendChild(who);
-          wrap.appendChild(role);
+          const mk = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; };
+          const wrap = mk('div', 'user-menu');
+          const btn = mk('button', 'user-btn');
+          btn.type = 'button';
+          btn.setAttribute('aria-haspopup', 'menu');
+          btn.setAttribute('aria-expanded', 'false');
+          btn.setAttribute('aria-label', 'Account menu for ' + d.user.name);
+          btn.appendChild(mk('span', 'user-avatar', (d.user.name || '?').charAt(0).toUpperCase()));
+          btn.appendChild(mk('span', 'user-menu-name', d.user.name));
+          btn.insertAdjacentHTML('beforeend', '<svg class="user-caret" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.5 5 6.5 8 3.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+          const panel = mk('div', 'user-panel');
+          panel.setAttribute('role', 'menu');
+          panel.hidden = true;
+          const head = mk('div', 'user-panel-head');
+          head.appendChild(mk('div', 'user-panel-name', d.user.name));
+          head.appendChild(mk('div', 'user-panel-role', d.user.role === 'admin' ? 'Administrator' : 'Editor'));
+          panel.appendChild(head);
           if (d.user.role === 'admin') {
-            const a = document.createElement('a'); a.href = '/admin/users'; a.textContent = 'Users'; a.className = 'user-menu-link';
-            wrap.appendChild(a);
+            const a = mk('a', 'user-item', 'Users and sections'); a.href = '/admin/users'; a.setAttribute('role', 'menuitem');
+            panel.appendChild(a);
           }
-          const out = document.createElement('a'); out.href = '#'; out.textContent = 'Sign out'; out.className = 'user-menu-link';
-          out.addEventListener('click', async e => {
-            e.preventDefault();
+          const out = mk('button', 'user-item', 'Sign out'); out.type = 'button'; out.setAttribute('role', 'menuitem');
+          out.addEventListener('click', async () => {
             try { Object.keys(sessionStorage).filter(k => k.indexOf('editor-tree-open:') === 0).forEach(k => sessionStorage.removeItem(k)); } catch (err) {}
-            await nativeFetch('/api/logout', { method: 'POST', headers: { 'X-CSRF-Token': csrf, 'Content-Type': 'application/json' }, body: '{}', credentials: 'same-origin' });
+            try { await nativeFetch('/api/logout', { method: 'POST', headers: { 'X-CSRF-Token': csrf, 'Content-Type': 'application/json' }, body: '{}', credentials: 'same-origin' }); } catch (err) {}
             location.href = '/login';
           });
-          wrap.appendChild(out);
+          panel.appendChild(out);
+          const setOpen = (open, refocus) => {
+            panel.hidden = !open;
+            btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+            if (open) { const f = panel.querySelector('[role=menuitem]'); if (f) f.focus(); }
+            else if (refocus) btn.focus();
+          };
+          btn.addEventListener('click', () => setOpen(panel.hidden));
+          document.addEventListener('click', e => { if (!panel.hidden && !wrap.contains(e.target)) setOpen(false); });
+          wrap.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && !panel.hidden) { e.preventDefault(); setOpen(false, true); }
+            if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && !panel.hidden) {
+              e.preventDefault();
+              const items = Array.from(panel.querySelectorAll('[role=menuitem]'));
+              const i = items.indexOf(document.activeElement);
+              items[(i + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length].focus();
+            }
+          });
+          wrap.appendChild(btn);
+          wrap.appendChild(panel);
           slot.insertBefore(wrap, slot.firstChild);
         });
       });
@@ -68,7 +93,7 @@
       };
     })();
   </script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
   <title>MarkStack Editor</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1081,11 +1106,19 @@
     .editor-menu-btn { display: none; width: 32px; height: 32px; align-items: center; justify-content: center; background: none; border: 1px solid var(--color-border); border-radius: 6px; color: var(--color-text-secondary); cursor: pointer; padding: 0; }
     .editor-toolbar { height: 40px; }
 
-    .user-menu { display: flex; align-items: center; gap: var(--space-sm); margin-right: var(--space-sm); font-size: var(--font-size-xs); color: var(--color-text-secondary); }
-    .user-menu-name { color: var(--color-text-primary); font-weight: 500; }
-    .user-menu-role { padding: 1px 7px; border: 1px solid var(--color-border); border-radius: 10px; color: var(--color-text-tertiary); text-transform: capitalize; }
-    .user-menu-link { color: var(--color-text-secondary); text-decoration: none; }
-    .user-menu-link:hover { color: var(--color-accent); text-decoration: none; }
+    .user-menu { position: relative; margin-right: var(--space-sm); font-size: var(--font-size-xs); }
+    .user-btn { display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 8px 0 4px; font: inherit; color: var(--color-text-primary); background: transparent; border: 1px solid transparent; border-radius: 16px; cursor: pointer; }
+    .user-btn:hover, .user-btn[aria-expanded="true"] { background: var(--color-bg-hover, rgba(127,127,127,.12)); border-color: var(--color-border); }
+    .user-avatar { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; background: var(--color-accent); color: var(--color-bg-primary, #fff); font-size: 12px; font-weight: 700; }
+    .user-menu-name { font-weight: 500; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .user-caret { color: var(--color-text-tertiary); }
+    .user-panel { position: absolute; right: 0; top: calc(100% + 6px); z-index: 60; min-width: 200px; padding: 4px; background: var(--color-bg-secondary); border: 1px solid var(--color-border); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,.3); }
+    .user-panel[hidden] { display: none; }
+    .user-panel-head { padding: 8px 10px 8px; border-bottom: 1px solid var(--color-border); margin-bottom: 4px; }
+    .user-panel-name { font-weight: 600; color: var(--color-text-primary); font-size: 13px; overflow-wrap: anywhere; }
+    .user-panel-role { color: var(--color-text-tertiary); }
+    .user-item { display: block; width: 100%; padding: 8px 10px; font: inherit; font-size: 13px; text-align: left; color: var(--color-text-primary); background: transparent; border: 0; border-radius: 6px; cursor: pointer; text-decoration: none; }
+    .user-item:hover, .user-item:focus-visible { background: var(--color-bg-hover, rgba(127,127,127,.14)); text-decoration: none; outline: none; }
 
     /* File navigation: group labels, one rail, one marker */
     .file-tree-panel { width: 264px; position: relative; }
@@ -1137,6 +1170,7 @@
        file tree is a drawer
        ============================================ */
     @media (max-width: 800px) {
+      html, body { height: var(--vvh, 100%); }
       .editor-header { padding: 0 var(--space-sm); }
       .editor-menu-btn { display: flex; }
       .editor-logo { min-width: 0; }
@@ -1144,11 +1178,12 @@
       .editor-btn { padding: 0 10px; }
       #refresh-tree { font-size: 0; gap: 0; width: 32px; padding: 0; }
       #refresh-tree svg { width: 16px; height: 16px; }
-      .user-menu-name, .user-menu-role { display: none; }
-      .user-menu-link { white-space: nowrap; }
+      .user-menu-name, .user-caret { display: none; }
+      .user-btn { padding: 0 4px; }
+      .user-btn:hover, .user-btn[aria-expanded="true"] { border-color: transparent; }
       .editor-logo span { display: none; }
       .line-numbers { display: none; }
-      .user-menu { margin-right: 0; gap: 10px; }
+      .user-menu { margin-right: 0; }
 
       .file-tree-panel { position: fixed; z-index: 40; top: 48px; bottom: 0; left: 0; width: min(300px, 86vw); transform: translateX(-102%); transition: transform 220ms ease; box-shadow: none; }
       body.tree-drawer-open .file-tree-panel { transform: none; box-shadow: 0 0 0 100vmax rgba(0,0,0,.4); }
@@ -2334,9 +2369,12 @@
        */
       function showContextMenu(x, y, item) {
         contextTarget = item;
-        contextMenu.style.left = x + 'px';
-        contextMenu.style.top = y + 'px';
         contextMenu.classList.add('visible');
+        // Keep the menu inside the viewport (position: fixed uses client coordinates)
+        const w = contextMenu.offsetWidth, h = contextMenu.offsetHeight;
+        const vx = x - window.scrollX, vy = y - window.scrollY;
+        contextMenu.style.left = Math.max(8, Math.min(vx, window.innerWidth - w - 8)) + 'px';
+        contextMenu.style.top = Math.max(8, Math.min(vy, window.innerHeight - h - 8)) + 'px';
       }
       
       /**
@@ -2362,8 +2400,9 @@
       contextMenu.addEventListener('click', function(e) {
         const action = e.target.closest('.context-menu-item')?.dataset.action;
         if (!action || !contextTarget) return;
-        
-        const parentPath = contextTarget.type === 'folder' ? contextTarget.path : contextTarget.path.split('/').slice(0, -1).join('/');
+        // The document click handler clears contextTarget before the modal callbacks run
+        const target = contextTarget;
+        const parentPath = target.type === 'folder' ? target.path : target.path.split('/').slice(0, -1).join('/');
         
         switch (action) {
           case 'new-file':
@@ -2377,19 +2416,19 @@
             });
             break;
           case 'rename':
-            const currentName = contextTarget.path.split('/').pop();
+            const currentName = target.path.split('/').pop();
             showModal('Rename', 'Enter new name:', currentName, 'Spaces will be replaced with dashes.', function(newName) {
-              renameItem(contextTarget.path, newName, contextTarget.type === 'folder');
+              renameItem(target.path, newName, target.type === 'folder');
             });
             break;
           case 'delete':
             showConfirmModal(
               'Delete Item',
-              'Are you sure you want to delete "' + contextTarget.path + '"?',
+              'Are you sure you want to delete "' + target.path + '"?',
               'Delete'
             ).then(confirmed => {
               if (confirmed) {
-                deleteItem(contextTarget.path);
+                deleteItem(target.path);
               }
             });
             break;
@@ -2660,5 +2699,19 @@
       
     })();
   </script>
+<script nonce="__CSP_NONCE__">
+  (function () {
+    var vv = window.visualViewport;
+    if (!vv) return;
+    function fit() {
+      if (window.innerWidth > 800) { document.documentElement.style.removeProperty('--vvh'); return; }
+      document.documentElement.style.setProperty('--vvh', Math.round(vv.height) + 'px');
+      if (vv.offsetTop) window.scrollTo(0, 0);
+    }
+    vv.addEventListener('resize', fit);
+    window.addEventListener('orientationchange', fit);
+    fit();
+  })();
+</script>
 </body>
 </html>
