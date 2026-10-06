@@ -1612,3 +1612,6 @@ html.sidebar-collapsed .site-footer, body.sidebar-collapsed .site-footer { margi
 .sidebar-level-0 > .sidebar-folder.sidebar-current > .sidebar-folder-header a { background: var(--color-accent-subtle); color: var(--color-accent); }
 .sidebar-level-0 > .sidebar-file > a { padding-left: 8px; }
 @media (prefers-reduced-motion: reduce) { .sidebar-indicator { transition: none; } }
+
+/* Long page titles wrap onto a second line instead of being cut off */
+.sidebar-item a { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; line-height: 1.35; }
