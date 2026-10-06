@@ -18,7 +18,7 @@ npm run editor
 
 The first command asks for the password at a hidden prompt. The second starts a local server on `http://localhost:3001`, where you sign in. The editor runs entirely locally—no content is sent to external servers.
 
-Administrators open **Users** (bottom right of the editor, or `/admin/users`) to add people, assign editors to sections (top-level content folders), disable accounts and reset editor passwords. Editors see and change only their assigned sections.
+Administrators open **Users and sections** from the account menu at the top right of the editor (or go to `/admin/users`) to add people, assign editors to sections (top-level content folders), disable accounts and reset editor passwords. Editors see and change only their assigned sections.
 
 > [!TIP]
 > Use the visual editor for focused writing sessions where you want immediate feedback. For quick edits or working with Git workflows, editing markdown files directly works just as well.
@@ -31,12 +31,12 @@ The editor provides a complete authoring environment with four main areas:
 
 The left panel displays all files and folders in your `content/` directory:
 
-- **Folders** show with folder icons and can be expanded or collapsed
-- **Files** show with file icons and their names
+- **Top-level folders** are group labels, one per section. Nested folders open and close with a chevron
+- **Files** show their names; a rail marks the file you have open
 - **Current file** is highlighted in the tree
 - **Unsaved changes** are indicated with an asterisk (*) next to the file name
 
-Right-click any item to access actions like rename, delete, or create new files and folders.
+Right-click an item, or use its "..." button, to rename or delete it or to create new files and folders. On a narrow screen the file tree is a drawer opened from the menu button, and the editor and the preview switch with an Edit/Preview toggle.
 
 ### Editor Panel
 
