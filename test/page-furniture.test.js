@@ -51,3 +51,20 @@ test('the sidebar position is settled by the inline script before the article, a
   assert.match(css, /html:not\(\.nav-ready\) \.sidebar-nav \{ visibility: hidden; \}/);
   assert.doesNotMatch(css, /\n\.sidebar-children \{[^}]*transition/);
 });
+
+test('web fonts never block the first paint, and the page has its own background and colour scheme before the stylesheets', () => {
+  execFileSync(process.execPath, [path.join(root, 'build.js')], { cwd: root, stdio: 'ignore' });
+  const html = fs.readFileSync(path.join(root, 'dist', 'getting-started', 'quickstart', 'index.html'), 'utf-8');
+  const outsideNoscript = html.replace(/<noscript>[\s\S]*?<\/noscript>/g, '');
+  // no render-blocking fonts link and no inline event handler: the stylesheet is added by the head script
+  assert.doesNotMatch(outsideNoscript, /<link[^>]+fonts\.googleapis\.com\/css2/);
+  assert.doesNotMatch(html, /\sonload=/);
+  assert.match(html, /fl\.href = 'https:\/\/fonts\.googleapis\.com[^']+'/);
+  assert.match(html, /<noscript><link[^>]+fonts\.googleapis\.com[^>]+rel="stylesheet"/);
+  const main = html.indexOf('/css/main.css');
+  for (const marker of ["cs.name = 'color-scheme'", 'fl.href =', ':where(html[data-theme="dark"])', ':where(html[data-theme="light"])']) {
+    assert.ok(html.indexOf(marker) > 0 && html.indexOf(marker) < main, marker + ' comes before main.css');
+  }
+  const css = fs.readFileSync(path.join(root, 'static', 'css', 'main.css'), 'utf-8');
+  assert.match(css, /html \{\n  background-color: var\(--color-bg-primary\);/);
+});

@@ -113,7 +113,7 @@ npm run build
 
 ### User Experience
 
-- **Dark and light themes** with automatic preference persistence
+- **Dark and light themes** with automatic preference persistence; the page sets its background and colour scheme before the stylesheets load, and web fonts load without blocking the first paint
 - **IBM Plex typography** for professional, readable text
 - **Responsive layout** that adapts to desktop, tablet, and mobile screens
 - **Collapsible sidebar** with hierarchical navigation; open folders and scroll position are restored before the page paints, and a sliding marker follows the current page
