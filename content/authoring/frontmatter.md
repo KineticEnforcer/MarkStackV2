@@ -26,6 +26,8 @@ The rest of your content goes here...
 
 The triple dashes (`---`) mark where the frontmatter begins and ends. Everything between them is YAML, a simple format for key-value pairs. Everything after the closing dashes is your markdown content.
 
+Frontmatter must be YAML. Other languages, such as `---js` or `---json`, are refused and the build stops with an error, because frontmatter written in a programming language could run code on the machine that builds the site.
+
 ## Available Fields
 
 MarkStack currently supports two frontmatter fields:

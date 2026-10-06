@@ -115,7 +115,8 @@ MarkStack uses minimal dependencies:
 | `markdown-it-anchor` | Heading anchor links |
 | `markdown-it-footnote` | Footnote syntax |
 | `markdown-it-task-lists` | Checkbox task lists |
-| `gray-matter` | YAML frontmatter parsing |
+| `gray-matter` | Splits frontmatter from the page body |
+| `js-yaml` | Reads the YAML frontmatter (the only frontmatter language allowed) |
 | `highlight.js` | Syntax highlighting |
 | `chokidar` | File watching (dev mode only) |
 

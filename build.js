@@ -19,7 +19,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const matter = require('gray-matter');
+const matter = require('./lib/frontmatter');
 const hljs = require('highlight.js');
 
 // =============================================================================
