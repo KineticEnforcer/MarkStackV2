@@ -46,7 +46,7 @@
   <meta property="og:url" content="{{url}}">
   <meta property="og:type" content="website">
   <title>{{title}} | {{siteTitle}}</title>
-  <link rel="stylesheet" href="{{baseUrl}}/css/main.css?v=16">
+  <link rel="stylesheet" href="{{baseUrl}}/css/main.css?v=17">
   <link rel="stylesheet" href="{{baseUrl}}/css/hljs-theme.css?v=7">
   <link rel="icon" href="{{baseUrl}}/svg/logo.svg" type="image/svg+xml">
 </head>
@@ -114,7 +114,7 @@
     </svg>
   </button>
 
-  <button class="sidebar-collapse-toggle" id="sidebar-toggle" title="Toggle sidebar">
+  <button class="sidebar-collapse-toggle" id="sidebar-toggle" title="Hide navigation" aria-label="Hide navigation" aria-expanded="true">
     <svg class="sidebar-toggle-icon collapse-icon" viewBox="0 0 16 16" width="16" height="16" fill="currentColor">
       <path d="M7.78 12.53a.75.75 0 0 1-1.06 0L2.47 8.28a.75.75 0 0 1 0-1.06l4.25-4.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042L4.81 7h7.44a.75.75 0 0 1 0 1.5H4.81l2.97 2.97a.75.75 0 0 1 0 1.06Z"/>
     </svg>
@@ -127,6 +127,7 @@
 
   <div class="main-layout{{pageClass}}">
     <aside class="sidebar">
+      <div class="sidebar-head"><span class="sidebar-head-label">Navigation</span></div>
       <nav class="sidebar-nav">
         {{sidebar}}
       </nav>
@@ -190,7 +191,7 @@
   </div>
 
   <script src="{{baseUrl}}/js/search-core.js?v=1"></script>
-  <script src="{{baseUrl}}/js/app.js?v=15"></script>
+  <script src="{{baseUrl}}/js/app.js?v=16"></script>
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
     mermaid.initialize({ 
