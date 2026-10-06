@@ -107,7 +107,7 @@ npm run build
 - **Standard Markdown** with YAML frontmatter, compatible with GitHub rendering
 - **GitHub-style alerts** for NOTE, TIP, IMPORTANT, WARNING, and CAUTION callouts
 - **Task lists and footnotes** for checklists and academic-style references
-- **Syntax highlighting** for 190+ programming languages via highlight.js
+- **Syntax highlighting** for 190+ programming languages via highlight.js in themed code blocks with a language header and a Copy button
 - **Mermaid diagrams** for flowcharts, sequence diagrams, and other visualizations
 - **Visual editor** with live preview, a Hide button in the Markdown pane header (and Show editor in the Preview header), scroll sync, file management and a mobile layout (file drawer, Edit/Preview switch)
 - **Publish Changes** (administrators): Save writes the Markdown file only; Publish Changes rebuilds the whole site beside the live one, checks it, and switches it in only if the build succeeded, with live progress and a copyable error report if it fails

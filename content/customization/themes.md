@@ -208,7 +208,8 @@ These variables control major layout proportions:
 |----------|---------|---------|
 | `--sidebar-width` | `280px` | Sidebar navigation width |
 | `--header-height` | `60px` | Top header height |
-| `--content-max-width` | `900px` | Maximum article width |
+| `--measure` | `88ch` | Maximum line length of paragraphs and lists (code blocks and tables use the whole article column) |
+| `--rail-width` | `220px` | Width of the "On this page" column |
 
 Example of a wider reading area:
 

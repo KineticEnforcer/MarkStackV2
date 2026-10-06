@@ -352,7 +352,7 @@ It preserves whitespace and formatting.
 
 ### Copy Button
 
-Every code block automatically includes a Copy button in the top-right corner. Readers can click this button to copy the code to their clipboard without manually selecting it.
+Every code block has a header row above the code. The language name is on the left (blocks without a language show "text") and a Copy button is on the right. Readers can click it to copy the code to their clipboard without manually selecting it. The button briefly shows "Copied" when it works.
 
 ## Task Lists
 
