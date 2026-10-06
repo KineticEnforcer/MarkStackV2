@@ -1563,3 +1563,4 @@ html.sidebar-collapsed .site-footer, body.sidebar-collapsed .site-footer { margi
 /* The article column keeps one position on every page (it used to shrink to
    its content and re-centre, which made pages shift sideways when navigating). */
 .content-grid > .article { width: 100%; max-width: none; margin: 0; }
+.error-page p { margin-left: auto; margin-right: auto; }
