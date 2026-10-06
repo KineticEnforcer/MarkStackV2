@@ -961,6 +961,29 @@
     }
     
     /* Modal Dialog */
+    .publish-btn { position: relative; white-space: nowrap; }
+    @media (max-width: 640px) { .publish-btn .publish-label { display: none; } }
+    .publish-btn[hidden], .publish-dot[hidden] { display: none; }
+    .publish-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-accent, #4c8dff); margin-left: 2px; }
+    .publish-dialog [hidden] { display: none !important; }
+    .publish-dialog { max-width: 560px; width: calc(100vw - 32px); }
+    .publish-warn { color: var(--color-text-secondary); font-size: 13px; margin: 8px 0 0; }
+    .publish-bar { height: 8px; border-radius: 4px; background: var(--color-bg-tertiary, rgba(128,128,128,.25)); overflow: hidden; margin: 6px 0 8px; }
+    .publish-bar-fill { height: 100%; width: 0; background: var(--color-accent, #4c8dff); transition: width .25s ease; }
+    .publish-bar.failed .publish-bar-fill { background: #d9534f; }
+    .publish-detail { font-size: 13px; color: var(--color-text-secondary); margin: 0 0 8px; }
+    .publish-steps { list-style: none; margin: 0; padding: 0; font-size: 13px; }
+    .publish-steps li { padding: 3px 0 3px 22px; position: relative; color: var(--color-text-tertiary); }
+    .publish-steps li::before { content: '\25CB'; position: absolute; left: 2px; }
+    .publish-steps li.running { color: var(--color-text-primary); font-weight: 600; }
+    .publish-steps li.running::before { content: '\25D4'; }
+    .publish-steps li.done { color: var(--color-text-secondary); }
+    .publish-steps li.done::before { content: '\2713'; }
+    .publish-steps li.failed { color: #d9534f; font-weight: 600; }
+    .publish-steps li.failed::before { content: '\2715'; }
+    .publish-result-title { font-weight: 600; margin: 0 0 4px; }
+    .publish-live { font-size: 13px; margin: 0 0 8px; }
+    .publish-pre { max-height: 200px; overflow: auto; font-size: 12px; white-space: pre-wrap; word-break: break-word; background: var(--color-bg-secondary, rgba(128,128,128,.12)); padding: 8px; border-radius: 6px; margin: 6px 0; }
     .modal-overlay {
       position: fixed;
       top: 0;
@@ -1236,6 +1259,11 @@
         </svg>
         Save
       </button>
+      <button class="editor-btn publish-btn" id="publish-btn" title="Rebuild the site and update the live docs" aria-label="Publish Changes" hidden>
+        <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 1.5l3.5 3.5-.9.9L8.6 3.9V10H7.4V3.9L5.4 5.9l-.9-.9L8 1.5zM2 11.5h1.2v2.3h9.6v-2.3H14v3.5H2v-3.5z"/></svg>
+        <span class="publish-label">Publish Changes</span>
+        <span class="publish-dot" id="publish-dot" hidden title="Saved changes are not published yet"></span>
+      </button>
       <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme">
         <svg class="icon-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="5"></circle>
@@ -1398,6 +1426,32 @@
   </div>
 
   <!-- Confirmation Modal Dialog -->
+  <div class="modal-overlay" id="publish-modal-overlay">
+    <div class="modal-dialog publish-dialog" role="dialog" aria-modal="true" aria-labelledby="publish-title">
+      <div class="modal-header"><h3 class="modal-title" id="publish-title">Publish changes</h3></div>
+      <div class="modal-body">
+        <p id="publish-intro" class="confirm-modal-message"></p>
+        <p id="publish-warn" class="publish-warn" hidden></p>
+        <div id="publish-progress" hidden>
+          <div class="publish-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="publish-bar"><div class="publish-bar-fill" id="publish-bar-fill"></div></div>
+          <p class="publish-detail" id="publish-detail"></p>
+          <ol class="publish-steps" id="publish-steps"></ol>
+        </div>
+        <div id="publish-result" hidden>
+          <p id="publish-result-title" class="publish-result-title"></p>
+          <p id="publish-live" class="publish-live"></p>
+          <pre id="publish-error" class="publish-pre" hidden></pre>
+          <details id="publish-log-wrap" hidden><summary>Build log</summary><pre id="publish-log" class="publish-pre"></pre></details>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="editor-btn" id="publish-copy" hidden>Copy diagnostics</button>
+        <button class="editor-btn" id="publish-cancel">Cancel</button>
+        <button class="editor-btn primary" id="publish-confirm">Publish Changes</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="confirm-modal-overlay">
     <div class="modal-dialog">
       <div class="modal-header">
@@ -2354,6 +2408,128 @@
       
       // Toolbar button handlers
       saveBtn.addEventListener('click', saveFile);
+
+      // =========================================================================
+      // Publish Changes (administrators): rebuild the site and switch it in
+      // =========================================================================
+      (function () {
+        var btn = document.getElementById('publish-btn');
+        var dot = document.getElementById('publish-dot');
+        var ov = document.getElementById('publish-modal-overlay');
+        var intro = document.getElementById('publish-intro');
+        var warn = document.getElementById('publish-warn');
+        var prog = document.getElementById('publish-progress');
+        var bar = document.getElementById('publish-bar');
+        var fill = document.getElementById('publish-bar-fill');
+        var detail = document.getElementById('publish-detail');
+        var steps = document.getElementById('publish-steps');
+        var result = document.getElementById('publish-result');
+        var rTitle = document.getElementById('publish-result-title');
+        var rLive = document.getElementById('publish-live');
+        var rErr = document.getElementById('publish-error');
+        var logWrap = document.getElementById('publish-log-wrap');
+        var logEl = document.getElementById('publish-log');
+        var copyBtn = document.getElementById('publish-copy');
+        var cancelBtn = document.getElementById('publish-cancel');
+        var okBtn = document.getElementById('publish-confirm');
+        var timer = null, diag = '', lastState = 'idle';
+        if (!btn) return;
+
+        function api(method, url) {
+          var h = { 'Content-Type': 'application/json' };
+          var m = document.cookie.match(/(?:^|; )ms_csrf=([^;]*)/);
+          if (typeof csrfToken !== 'undefined' && csrfToken) h['X-CSRF-Token'] = csrfToken;
+          else if (m) h['X-CSRF-Token'] = decodeURIComponent(m[1]);
+          return fetch(url, { method: method, headers: h, credentials: 'same-origin', body: method === 'POST' ? '{}' : undefined })
+            .then(function (r) { return r.json().catch(function () { return {}; }).then(function (b) { return { status: r.status, body: b }; }); });
+        }
+        function show(el, on) { el.hidden = !on; }
+        function openModal() { ov.classList.add('visible'); }
+        function closeModal() { ov.classList.remove('visible'); if (timer) { clearTimeout(timer); timer = null; } }
+
+        function render(st) {
+          show(dot, !!st.unpublished && st.state !== 'running');
+          if (st.state === 'idle' || !st.stages) return;
+          show(prog, true); show(intro, false);
+          steps.textContent = '';
+          var done = 0, current = null;
+          st.stages.forEach(function (s) {
+            var li = document.createElement('li');
+            li.className = s.state;
+            li.textContent = s.label + (s.key === 'build' && st.pages && st.pages.total && s.state !== 'pending' ? ' (' + st.pages.done + ' of ' + st.pages.total + ' pages)' : '');
+            steps.appendChild(li);
+            if (s.state === 'done') done++;
+            if (s.state === 'running' || s.state === 'failed') current = s;
+          });
+          var frac = 0;
+          if (current && current.key === 'build' && st.pages && st.pages.total) frac = Math.min(1, st.pages.done / st.pages.total);
+          var pct = Math.round(((done + frac) / st.stages.length) * 100);
+          if (st.state === 'done') pct = 100;
+          fill.style.width = pct + '%';
+          bar.setAttribute('aria-valuenow', String(pct));
+          bar.classList.toggle('failed', st.state === 'failed');
+          detail.textContent = st.state === 'running' && current ? current.label + '...' : '';
+          if (st.state === 'done' || st.state === 'failed') {
+            show(result, true);
+            rTitle.textContent = st.state === 'done' ? 'Published. ' + st.pages.done + ' pages are live.' : 'Publish failed at: ' + (st.failedStage || 'unknown step');
+            rLive.textContent = st.live || '';
+            show(rErr, st.state === 'failed'); rErr.textContent = st.error || '';
+            show(logWrap, st.state === 'failed' && st.log && st.log.length > 0); logEl.textContent = (st.log || []).join('\n');
+            diag = st.diagnostics || '';
+            show(copyBtn, st.state === 'failed' && !!diag);
+            okBtn.hidden = true; cancelBtn.textContent = 'Close';
+          }
+        }
+
+        function poll() {
+          api('GET', '/api/publish/status').then(function (r) {
+            if (r.status !== 200) return;
+            render(r.body); lastState = r.body.state;
+            if (r.body.state === 'running') timer = setTimeout(poll, 400);
+            else timer = null;
+          }).catch(function () { timer = setTimeout(poll, 1500); });
+        }
+
+        function resetView(st) {
+          show(prog, false); show(result, false); show(warn, false); show(intro, true);
+          copyBtn.hidden = true; okBtn.hidden = false; okBtn.disabled = false; cancelBtn.textContent = 'Cancel';
+          intro.textContent = 'This rebuilds the whole site from every saved file, including pages saved by other editors, and replaces the live docs. The current live version is kept as a backup. If the build fails, the live site stays as it is.';
+          var lines = [];
+          if (st && st.unpublished === false) lines.push('There are no saved changes newer than the published site.');
+          if (typeof hasUnsavedChanges !== 'undefined' && hasUnsavedChanges) lines.push('The file open in the editor has unsaved edits. Save it first, or those edits will not be published.');
+          if (lines.length) { warn.textContent = lines.join(' '); show(warn, true); }
+        }
+
+        btn.addEventListener('click', function () {
+          api('GET', '/api/publish/status').then(function (r) {
+            if (r.status !== 200) return;
+            if (r.body.state === 'running') { resetView(r.body); okBtn.hidden = true; openModal(); render(r.body); poll(); return; }
+            resetView(r.body); openModal(); okBtn.focus();
+          });
+        });
+        cancelBtn.addEventListener('click', closeModal);
+        ov.addEventListener('click', function (e) { if (e.target === ov && lastState !== 'running') closeModal(); });
+        okBtn.addEventListener('click', function () {
+          okBtn.disabled = true;
+          api('POST', '/api/publish').then(function (r) {
+            if (r.status === 200 || r.status === 409) { show(warn, false); okBtn.hidden = true; poll(); }
+            else { warn.textContent = 'Could not start the publish: ' + ((r.body && r.body.error) || 'HTTP ' + r.status); show(warn, true); okBtn.disabled = false; }
+          });
+        });
+        copyBtn.addEventListener('click', function () {
+          var done = function () { copyBtn.textContent = 'Copied'; setTimeout(function () { copyBtn.textContent = 'Copy diagnostics'; }, 2000); };
+          if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(diag).then(done, function () { fallbackCopy(); });
+          else fallbackCopy();
+          function fallbackCopy() { var t = document.createElement('textarea'); t.value = diag; document.body.appendChild(t); t.select(); try { document.execCommand('copy'); done(); } catch (e) { /* ignore */ } document.body.removeChild(t); }
+        });
+
+        // Only administrators get the button; the status call tells us who we are.
+        api('GET', '/api/publish/status').then(function (r) {
+          if (r.status !== 200) return;
+          btn.hidden = false; show(dot, !!r.body.unpublished);
+          if (r.body.state === 'running') { resetView(r.body); okBtn.hidden = true; openModal(); render(r.body); poll(); }
+        }).catch(function () {});
+      })();
       refreshBtn.addEventListener('click', loadFileTree);
       
       // =========================================================================

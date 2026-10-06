@@ -110,6 +110,7 @@ npm run build
 - **Syntax highlighting** for 190+ programming languages via highlight.js
 - **Mermaid diagrams** for flowcharts, sequence diagrams, and other visualizations
 - **Visual editor** with live preview, scroll sync, file management and a mobile layout (file drawer, Edit/Preview switch)
+- **Publish Changes** (administrators): Save writes the Markdown file only; Publish Changes rebuilds the whole site beside the live one, checks it, and switches it in only if the build succeeded, with live progress and a copyable error report if it fails
 
 ### User Experience
 
@@ -403,7 +404,7 @@ This release introduces the Visual Editor and significantly improves code qualit
   - Real-time preview styled exactly like the built site
   - Scroll synchronization between editor and preview panels (the preview follows instantly, with no smooth-scroll lag)
   - File management: create, rename, delete files and folders
-  - Keyboard shortcuts: Ctrl+S (save), Ctrl+B (build)
+  - Keyboard shortcut: Ctrl+S (save)
   - Confirmation modals for unsaved changes and destructive actions
 
 #### Improvements
