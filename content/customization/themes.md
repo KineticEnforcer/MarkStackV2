@@ -210,6 +210,7 @@ These variables control major layout proportions:
 | `--header-height` | `60px` | Top header height |
 | `--measure` | `110ch` | Maximum line length of paragraphs and lists (code blocks and tables use the whole article column) |
 | `--rail-width` | `200px` | Width of the "On this page" column |
+| `--scrollbar-thumb` | per theme | Color of the scrollbar thumb (hover color: `--scrollbar-thumb-hover`) |
 
 Example of a wider reading area:
 
