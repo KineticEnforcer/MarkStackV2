@@ -116,7 +116,7 @@ npm run build
 - **Dark and light themes** with automatic preference persistence
 - **IBM Plex typography** for professional, readable text
 - **Responsive layout** that adapts to desktop, tablet, and mobile screens
-- **Collapsible sidebar** with hierarchical navigation
+- **Collapsible sidebar** with hierarchical navigation; open folders and scroll position are restored before the page paints, and a sliding marker follows the current page
 - **"On this page" rail**, breadcrumb, reading time and previous/next links on every documentation page
 
 ### Performance

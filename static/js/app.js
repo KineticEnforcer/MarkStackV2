@@ -293,7 +293,11 @@
         indicator.style.transform = 'translateY(' + from.top + 'px)';
         indicator.style.height = from.height + 'px';
       } else {
-        placeIndicator();
+        // First page with a marker (for example the first click from the home page):
+        // slide in from just above the row instead of appearing in place
+        indicator.style.opacity = '0';
+        indicator.style.transform = 'translateY(' + (box.top - 14) + 'px)';
+        indicator.style.height = box.height + 'px';
       }
       void indicator.offsetHeight;
       indicator.style.transition = '';
@@ -313,12 +317,13 @@
     sidebarNav.addEventListener('click', saveScroll);
     window.addEventListener('pagehide', saveScroll);
 
-    // Bring the current page into view only if it is outside the visible list
+    // Bring the current page into view only if it is really outside the visible list;
+    // a position restored before first paint is left alone
     const current = sidebarNav.querySelector('.sidebar-current > a, .sidebar-current > .sidebar-folder-header a');
     if (current && sidebarEl.scrollHeight > sidebarEl.clientHeight) {
       const box = sidebarEl.getBoundingClientRect();
       const r = current.getBoundingClientRect();
-      if (r.top < box.top + 40 || r.bottom > box.bottom - 16) {
+      if (r.top < box.top || r.bottom > box.bottom) {
         sidebarEl.scrollTop += r.top - box.top - box.height / 3;
       }
     }
