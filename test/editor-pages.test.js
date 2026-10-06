@@ -35,3 +35,8 @@ test('editor tree state is pruned to the server tree and cleared on sign out', (
   assert.ok(html.includes('editor-tree-open:'));
   assert.ok(/removeItem\(k\)/.test(html), 'sign out clears stored tree state');
 });
+
+test('preview frame turns off smooth scrolling so synced scrolling does not lag or echo back', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'editor.html'), 'utf-8');
+  assert.ok(/<style>html\{scroll-behavior:auto;\}/.test(html), 'srcdoc style must reset scroll-behavior');
+});

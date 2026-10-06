@@ -401,7 +401,7 @@ This release introduces the Visual Editor and significantly improves code qualit
   - Browser-based markdown editor with live preview
   - File tree panel for navigating and managing content
   - Real-time preview styled exactly like the built site
-  - Scroll synchronization between editor and preview panels
+  - Scroll synchronization between editor and preview panels (the preview follows instantly, with no smooth-scroll lag)
   - File management: create, rename, delete files and folders
   - Keyboard shortcuts: Ctrl+S (save), Ctrl+B (build)
   - Confirmation modals for unsaved changes and destructive actions
