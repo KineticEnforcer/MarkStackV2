@@ -618,6 +618,93 @@ function processMarkdownFile(filePath) {
   };
 }
 
+// =============================================================================
+// Page furniture: "On this page" rail, reading time, previous/next links
+// =============================================================================
+
+/** Escape text for HTML output. */
+function escapeText(text) {
+  return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/**
+ * List the h2 headings of rendered HTML for the right-hand rail.
+ * @param {string} html - Rendered article HTML
+ * @returns {Array<{level: number, id: string, text: string}>}
+ */
+function extractHeadings(html) {
+  const headings = [];
+  const re = /<h([2]) id="([^"]+)"[^>]*>([\s\S]*?)<\/h\1>/g;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    const text = m[3]
+      .replace(/<a class="heading-anchor"[^>]*>[^<]*<\/a>/g, '')
+      .replace(/<[^>]*>/g, '')
+      .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+      .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&')
+      .trim();
+    if (text) headings.push({ level: Number(m[1]), id: m[2], text });
+  }
+  return headings;
+}
+
+/** Render the "On this page" rail, or an empty string when a page has fewer than two headings. */
+function renderToc(headings) {
+  if (headings.length < 2) return '';
+  const items = headings.map(h =>
+    `<li class="toc-item toc-level-${h.level}"><a href="#${escapeText(h.id)}">${escapeText(h.text)}</a></li>`
+  ).join('');
+  return `<aside class="toc-rail" aria-label="On this page"><div class="toc-title">On this page</div><ul class="toc-list">${items}</ul></aside>`;
+}
+
+/** Estimated reading time in whole minutes (at least 1). */
+function readingMinutes(html) {
+  const words = html
+    .replace(/<(pre|script|style|svg)\b[\s\S]*?<\/\1>/g, ' ')
+    .replace(/<[^>]*>/g, ' ')
+    .split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.round(words / 200));
+}
+
+/**
+ * Quiet row under the page title: optional updated date from the page's own
+ * frontmatter (updated, then date), and reading time.
+ */
+function renderPageMeta(processed) {
+  const parts = [];
+  const raw = processed.frontmatter && (processed.frontmatter.updated || processed.frontmatter.date);
+  if (raw) {
+    const d = new Date(raw);
+    if (!isNaN(d.getTime())) {
+      parts.push('Updated ' + d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }));
+    }
+  }
+  parts.push(`Reading time ${readingMinutes(processed.content)} min`);
+  return `<div class="page-meta">${parts.map(p => `<span>${escapeText(p)}</span>`).join('')}</div>`;
+}
+
+/** Flatten the sidebar tree in display order into a list of pages. */
+function flattenNav(items, out = []) {
+  for (const item of items || []) {
+    out.push({ title: item.title, url: item.url });
+    if (item.children) flattenNav(item.children, out);
+  }
+  return out;
+}
+
+/** Previous and next cards, following sidebar order. */
+function renderPrevNext(processed) {
+  const pages = flattenNav(processed.sidebar);
+  const i = pages.findIndex(p => p.url === processed.urlPath);
+  if (i === -1) return '';
+  const card = (page, cls, label) => page
+    ? `<a class="pn-card ${cls}" href="${CONFIG.baseUrl + page.url}"><span class="pn-label">${label}</span><span class="pn-title">${escapeText(page.title)}</span></a>`
+    : `<span class="pn-card pn-empty"></span>`;
+  const prev = pages[i - 1], next = pages[i + 1];
+  if (!prev && !next) return '';
+  return `<nav class="prev-next" aria-label="Previous and next pages">${card(prev, 'pn-prev', 'Previous')}${card(next, 'pn-next', 'Next')}</nav>`;
+}
+
 /**
  * Generate HTML page from processed content.
  * @param {Object} processed - Processed page data from processMarkdownFile
@@ -627,17 +714,29 @@ function generatePage(processed) {
   const template = readTemplate('base');
   const pageClass = processed.isHomepage ? ' is-homepage' : '';
   
+  const isPage = !processed.isHomepage && processed.urlPath !== '/404/';
+  let body = processed.content;
+  if (isPage) {
+    // Quiet meta row right under the page title
+    body = body.replace('</h1>', () => '</h1>' + renderPageMeta(processed));
+  }
+  const toc = isPage ? renderToc(extractHeadings(processed.content)) : '';
+  const prevNext = isPage ? renderPrevNext(processed) : '';
+  const crumbs = isPage ? `<nav class="page-breadcrumb" aria-label="Breadcrumb">${renderBreadcrumbs(processed.breadcrumbs)}</nav>` : '';
+
   let html = template
     .replace(/\{\{siteTitle\}\}/g, CONFIG.headerTitle)
     .replace(/\{\{title\}\}/g, processed.title)
     .replace(/\{\{description\}\}/g, processed.description)
     .replace(/\{\{url\}\}/g, CONFIG.siteUrl + processed.urlPath)
     .replace(/\{\{baseUrl\}\}/g, CONFIG.baseUrl)
-    .replace(/\{\{breadcrumbs\}\}/g, renderBreadcrumbs(processed.breadcrumbs))
+    .replace(/\{\{breadcrumbs\}\}/g, () => crumbs)
+    .replace(/\{\{toc\}\}/g, () => toc)
+    .replace(/\{\{prevNext\}\}/g, () => prevNext)
     .replace(/\{\{sidebar\}\}/g, renderSidebar(processed.sidebar))
     .replace(/\{\{pageClass\}\}/g, pageClass)
     .replace(/\{\{copyrightText\}\}/g, CONFIG.copyrightText)
-    .replace(/\{\{content\}\}/g, processed.content);
+    .replace(/\{\{content\}\}/g, () => body);
   
   return html;
 }

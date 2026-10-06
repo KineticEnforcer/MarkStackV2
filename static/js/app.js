@@ -468,3 +468,25 @@
   });
 
 })();
+
+
+// "On this page" rail: mark the heading currently in view
+(function() {
+  const links = Array.from(document.querySelectorAll('.toc-list a'));
+  if (!links.length || !('IntersectionObserver' in window)) return;
+  const byId = new Map();
+  links.forEach(a => byId.set(decodeURIComponent(a.getAttribute('href').slice(1)), a));
+  const headings = Array.from(byId.keys()).map(id => document.getElementById(id)).filter(Boolean);
+  const visible = new Set();
+  function update() {
+    const current = headings.find(h => visible.has(h)) ||
+      headings.filter(h => h.getBoundingClientRect().top < 120).pop() || headings[0];
+    links.forEach(a => a.classList.toggle('active', byId.get(current && current.id) === a));
+  }
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => e.isIntersecting ? visible.add(e.target) : visible.delete(e.target));
+    update();
+  }, { rootMargin: '-60px 0px -70% 0px' });
+  headings.forEach(h => io.observe(h));
+  update();
+})();
