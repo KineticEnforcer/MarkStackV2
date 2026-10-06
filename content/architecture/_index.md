@@ -1,162 +1,54 @@
 ---
 title: Architecture
-description: Understand how MarkStack works internally, from the build pipeline to navigation generation, URL routing, and client-side search.
+description: How MarkStack works inside, from Markdown files to a static site, the search index and the editor.
 ---
 
 # Architecture
 
-This section explains how MarkStack works under the hood. Understanding the architecture helps you extend the system, debug issues, and make informed decisions about customization.
-
-## Design Philosophy
-
-MarkStack follows several design principles:
-
-- **Single-file build script**: All build logic lives in `build.js` (approximately 800 lines). No framework overhead, no complex module structure.
-- **Zero runtime dependencies**: The generated site is pure HTML, CSS, and JavaScript. No server-side processing required.
-- **Conventional structure**: Directories map to URLs, filenames map to page titles. No configuration required for basic usage.
-- **Progressive enhancement**: The site works without JavaScript, but interactive features (search, theme toggle) require it.
-
-## System Overview
-
-MarkStack consists of three main components:
-
-### 1. Build Script (build.js)
-
-A Node.js script that transforms markdown content into a static website. It runs at build time, not runtime.
-
-### 2. HTML Template (templates/base.html)
-
-A single template file with placeholders that the build script populates for each page.
-
-### 3. Client-Side JavaScript (static/js/app.js)
-
-Handles interactive features in the browser: theme toggle, sidebar navigation, search, code copy buttons.
-
-## High-Level Build Flow
+MarkStack is small on purpose. It is a Node.js build script, one HTML template, one stylesheet, a few browser scripts and an optional editor server. You can read all of it in an afternoon.
 
 ```mermaid
 flowchart LR
-    subgraph Input
-        A[content/*.md]
-        B[static/*]
-        C[templates/*]
-    end
-    
-    A --> D[build.js]
-    B --> D
-    C --> D
-    
-    D --> E[dist/]
-    
-    subgraph Output
-        E --> F[index.html]
-        E --> G[search-index.json]
-        E --> H[css/]
-        E --> I[js/]
-        E --> J["[page-slug]/index.html"]
-    end
+  C[content/*.md] --> B[build.js]
+  S[static/] --> B
+  T[templates/base.html] --> B
+  K[siteconfig.json] --> B
+  D[data folder: header links] --> B
+  B --> O[dist/]
+  O --> H[Any static host]
+  E[Editor server] -->|reads and writes| C
+  E -->|Publish Changes runs| B
 ```
 
-1. Build script reads all markdown files from `content/`
-2. Parses frontmatter and converts markdown to HTML
-3. Generates navigation structure (sidebar, breadcrumbs)
-4. Applies HTML template with placeholders
-5. Outputs static files to `dist/`
-6. Creates search index for client-side search
-7. Copies static assets unchanged
-
-## What This Section Covers
-
-### Build Pipeline
-
-The [Build Pipeline](/architecture/build-pipeline/) page explains:
-
-- How files are discovered and processed
-- Markdown rendering with plugins
-- Template system and placeholder replacement
-- Output file structure
-
-### Navigation and Routing
-
-The [Navigation and Routing](/architecture/navigation-routing/) page covers:
-
-- URL generation from titles
-- Sidebar tree construction
-- Breadcrumb generation
-- Clean URL handling
-
-### Search Indexing
-
-The [Search Indexing](/architecture/search-indexing/) page details:
-
-- Search index generation
-- Client-side search algorithm
-- Search result ranking
-- Index optimization
-
-## File Responsibilities
-
-| File | Responsibility |
+| Page | What it covers |
 |------|----------------|
-| `build.js` | Complete static site generation |
-| `templates/base.html` | Page structure and placeholders |
-| `static/js/app.js` | Interactive browser features |
-| `static/css/main.css` | All styling and theming |
-| `static/css/hljs-theme.css` | Code syntax highlighting |
-| `siteconfig.json` | Site-wide configuration values |
+| [Build Pipeline](/architecture/build-pipeline/) | What the build does, in order |
+| [Navigation and Routing](/architecture/navigation-and-routing/) | How URLs, the sidebar, breadcrumbs and previous and next links are produced |
+| [Search and Indexing](/architecture/search-and-indexing/) | How search works in the browser without a server |
 
-## Dependencies
+## Design choices
 
-MarkStack uses minimal dependencies:
+- **Files are the database.** Your content is plain Markdown in folders. There is nothing to migrate and nothing locked in.
+- **Output is static.** The built site is HTML, CSS, JavaScript and one JSON file. Any host can serve it, and there is no server to patch.
+- **Everything is built ahead of time.** Navigation, breadcrumbs, the table of contents and the search index are produced at build time. Readers' browsers only run the search and the theme switch.
+- **A small dependency list.** The build uses `markdown-it` and a few plugins, `gray-matter` and `js-yaml` for frontmatter, `highlight.js` for code, and `chokidar` for watch mode.
+- **The editor is separate.** Building never needs it, and it never serves your readers.
 
-| Package | Purpose |
-|---------|---------|
-| `markdown-it` | Markdown parsing |
-| `markdown-it-anchor` | Heading anchor links |
-| `markdown-it-footnote` | Footnote syntax |
-| `markdown-it-task-lists` | Checkbox task lists |
-| `gray-matter` | Splits frontmatter from the page body |
-| `js-yaml` | Reads the YAML frontmatter (the only frontmatter language allowed) |
-| `highlight.js` | Syntax highlighting |
-| `chokidar` | File watching (dev mode only) |
+## The pieces
 
-No build tools like webpack, rollup, or bundlers. No CSS preprocessors. No framework dependencies.
+| File or folder | Role |
+|----------------|------|
+| `build.js` | The whole site generator |
+| `editor-server.js`, `editor.html`, `login.html`, `admin-*.html` | The editor server and its pages |
+| `lib/` | Editor parts: accounts, sessions, section access, publishing, header links |
+| `templates/base.html` | The page template |
+| `static/` | CSS, JavaScript, logo and images copied into the site |
+| `content/` | Your pages |
+| `siteconfig.json` | Site settings |
+| `test/` | Automated tests |
 
-## Extension Points
+## Limits worth knowing
 
-When you need to extend MarkStack:
-
-- **New markdown features**: Add markdown-it plugins in `build.js`
-- **New template placeholders**: Modify `generatePage()` in `build.js`
-- **New client features**: Add code to `static/js/app.js`
-- **New styles**: Add CSS to `static/css/main.css`
-- **New alert types**: Extend `alertIcons` object in `build.js`
-
-## Performance Characteristics
-
-MarkStack builds are fast because:
-
-- All processing happens in memory
-- No external API calls during build
-- No complex AST transformations
-- Simple string-based template system
-- Direct file I/O without caching layers
-
-Typical build times:
-
-- 10 pages: ~50ms
-- 50 pages: ~100ms
-- 200 pages: ~300ms
-
-## When to Read This Section
-
-Read the architecture documentation if you:
-
-- Want to understand how MarkStack works
-- Need to add custom features
-- Are debugging build issues
-- Plan to contribute to the project
-- Want to fork and modify the system
-
-> [!NOTE]
-> You do not need to understand the architecture to use MarkStack for documentation. This section is for those who want deeper knowledge or need to extend the system.
+- Every build renders every page. This takes well under a second for a few dozen pages, and grows with the page count.
+- Navigation order is alphabetical by title, with folders first. There is no manual ordering setting.
+- Search is client side. The index file is downloaded the first time someone searches, so very large sites send a larger file. See [Search and Indexing](/architecture/search-and-indexing/).

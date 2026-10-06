@@ -1,413 +1,138 @@
 ---
 title: Frequently Asked Questions
-description: Answers to common questions about MarkStack features, capabilities, limitations, and best practices.
+description: Short answers about what MarkStack is, what it does well, and what it does not do.
 ---
 
 # Frequently Asked Questions
 
-This page answers common questions about MarkStack. Questions are grouped by topic.
-
-## General Questions
+## General
 
 ### What is MarkStack?
 
-MarkStack is a static site generator designed for documentation and knowledge bases. It takes markdown files organized in folders and produces a complete static website with navigation, search, and a professional design.
+A static site generator for knowledge bases and documentation. You write Markdown files in folders. MarkStack builds them into a fast site with a sidebar, search, a table of contents, dark and light themes, and previous and next links. It also includes an optional browser editor with accounts, so people who do not use Git can contribute.
 
-### Is MarkStack free?
+### What makes it different?
 
-Yes, MarkStack is open source and free to use under the GPL-3.0 license. You can use it for personal projects, commercial documentation, internal wikis, and any other purpose.
+- **The folder tree is the site.** There is no navigation file to maintain.
+- **Search with no service.** Typo tolerant, phrase search, and results that link straight to a heading, all running in the browser.
+- **An editor included.** A live preview using the real stylesheet, accounts for administrators and editors, editors limited to the sections you give them, and a Publish Changes button that builds, checks and switches the site, keeping the previous version.
+- **A small codebase.** One build script, one template, one stylesheet. You can read it, and change it.
+- **Static output.** Host it anywhere, with nothing running on the server for readers.
 
-### What makes MarkStack different from other static site generators?
+It is not trying to cover everything. See the limits below.
 
-MarkStack focuses on simplicity and speed:
+### What does it cost?
 
-- **Single-file build script**: No complex toolchain or build pipeline
-- **Minimal dependencies**: Only essential packages, no framework overhead
-- **Fast builds**: Typically under 200ms for most sites
-- **Convention over configuration**: Works out of the box with sensible defaults
-- **Modern features**: Dark/light themes, search, GitHub-style alerts
+MarkStack is released under the GPL-3.0 license. See the `LICENSE` file for the terms.
 
-### Who should use MarkStack?
+### What are the requirements?
 
-MarkStack is ideal for:
+Node.js 24 or newer, and a computer to build on. Readers need only a browser.
 
-- Technical documentation
-- Knowledge bases and wikis
-- Project documentation
-- Personal notes and references
-- Any content organized hierarchically
+### Who is it for?
 
-### What are the system requirements?
+Teams that want documentation, a handbook or a knowledge base that they own, in plain files, with a calm reading experience and without running a CMS.
 
-- Node.js 24.0.0 or higher
-- Any operating system (Windows, macOS, Linux)
-- Approximately 50MB disk space for dependencies
+## Writing
 
-## Content Questions
+### What Markdown is supported?
 
-### What markdown features are supported?
+Headings, emphasis, lists, task lists, tables, footnotes, links, images, code with highlighting, alerts such as `[!NOTE]`, and Mermaid diagrams. See [Markdown Features](/authoring-content/markdown-features/).
 
-MarkStack supports CommonMark markdown plus these extensions:
+### Can I use HTML in Markdown?
 
-- Syntax-highlighted code blocks (190+ languages)
-- GitHub-style task lists
-- Tables
-- Footnotes
-- Auto-linked URLs
-- Heading anchor links
-- GitHub-style alerts (NOTE, TIP, WARNING, etc.)
+Not by default. An administrator of the server can turn it on with `allowRawHtml`. Only do so when all authors are trusted. See [Site Config](/configuration/site-config/).
 
-See the [Markdown Features](/authoring/markdown-features/) page for complete documentation.
+### How do I add a page or a section?
 
-### Can I use HTML in my markdown?
+Create a `.md` file with a `title`, or use the editor's New File and New Folder buttons. A section is a folder with an `_index.md`. See [Content Model](/authoring-content/content-model/).
 
-Not by default. Raw HTML in a markdown file is shown as plain text, so nobody who can edit content can add scripts or embeds to the public site. The site owner can allow it by setting `"allowRawHtml": true` in `siteconfig.json` on the server. Only do that when everyone who can edit content is fully trusted. Use markdown when possible:
+### Can sections be nested?
 
-```markdown
-This is **markdown** formatting.
-```
+Yes, to any depth.
 
-### How do I create a new page?
+### How do I control the order in the sidebar?
 
-Create a new `.md` file in the `content/` directory:
-
-```markdown
----
-title: My New Page
-description: A description for search and previews
----
-
-# My New Page
-
-Content goes here.
-```
-
-Run `npm run build` to generate the page.
-
-### How do I create a new category?
-
-Create a new folder in `content/` with an `_index.md` file:
-
-```
-content/
-  my-category/
-    _index.md       # Category page
-    first-page.md   # Page in category
-    second-page.md
-```
-
-The `_index.md` file defines the category title and description.
-
-### Can I nest categories?
-
-Yes, you can nest folders as deep as needed:
-
-```
-content/
-  platform/
-    aws/
-      ec2/
-        instances.md
-        volumes.md
-```
-
-This creates the URL `/platform/aws/ec2/instances/`.
-
-### How do I control page order in the sidebar?
-
-Pages are sorted alphabetically by title. To control order, prefix your titles:
-
-```yaml
----
-title: 01 Introduction
----
-```
-
-Or use numbered filenames:
-
-```
-01-introduction.md
-02-getting-started.md
-03-configuration.md
-```
-
-Note that numbered filenames affect the URL unless you set a different title in frontmatter.
+The sidebar is sorted by title, folders first. There is no order setting. Pick titles that sort as you want.
 
 ### How do I add images?
 
-Place images in `static/images/` and reference them with absolute paths:
-
-```markdown
-![Alt text](/images/screenshot.png)
-```
-
-Or use external URLs:
-
-```markdown
-![Alt text](https://example.com/image.png)
-```
+Put them in `static/` and link them with `/images/name.png`. See [Media and Links](/authoring-content/media-and-links/).
 
 ### Can I embed videos?
 
-Videos and iframes need raw HTML, which is off by default (see "Can I use HTML in my markdown?"). With `"allowRawHtml": true` in `siteconfig.json` you can embed them:
+Not as embedded players, since raw HTML is off by default. Link to the video instead.
 
-```html
-<video controls width="100%">
-  <source src="/videos/demo.mp4" type="video/mp4">
-</video>
-```
+## Setup and hosting
 
-```html
-<iframe width="560" height="315" src="https://www.youtube.com/embed/VIDEO_ID" frameborder="0" allowfullscreen></iframe>
-```
+### Where is the configuration?
 
-Without it, link to the video instead.
+In `siteconfig.json`. See [Site Config](/configuration/site-config/).
 
-## Configuration Questions
+### Where can I host the site?
 
-### Where is the configuration file?
+Anywhere that serves static files: a static hosting service, a web server such as nginx or Caddy, or object storage with a CDN. See [Deployment Guide](/build-and-deploy/deployment-guide/).
 
-Site configuration is in `siteconfig.json` at the project root:
+### Do I have to run the editor?
 
-```json
-{
-  "siteTitle": "My Knowledge Base",
-  "siteUrl": "https://docs.example.com",
-  "defaultDescription": "Documentation for my project"
-}
-```
+No. It is optional, and the site does not depend on it.
 
-See [Site Configuration](/configuration/siteconfig/) for all options.
+### Is the editor safe to expose?
 
-### How do I change the site title?
+It is built with sign-in, CSRF protection, rate limiting, section access and secure cookies. Even so, run it behind HTTPS and prefer keeping it off the public internet. See [Security](/editing-and-admin/security/).
 
-Edit `siteconfig.json`:
+### How do I run builds in CI?
 
-```json
-{
-  "siteTitle": "Your Site Name"
-}
-```
+See [Automated Builds](/build-and-deploy/automated-builds/).
 
-Rebuild to apply changes.
+## Customizing
 
-### How do I change the logo?
+### How do I change colors, fonts or the logo?
 
-Replace `static/svg/logo.svg` with your own SVG file. Keep it at 32x32 pixels for best results.
+Edit `static/css/main.css` and `static/svg/logo.svg`. See [Themes and Styling](/customization/themes-and-styling/).
 
-### How do I add custom CSS?
+### Can I use a different layout?
 
-Create `static/css/custom.css` with your styles, then add this to `templates/base.html`:
+You can edit the single template. You cannot use several templates for different pages. See [Templates](/customization/templates/).
 
-```html
-<link rel="stylesheet" href="/css/custom.css">
-```
+### Is there a plugin system?
 
-Or add styles directly to `static/css/main.css`.
+No.
 
-### How do I add analytics?
-
-Add your analytics script to `templates/base.html` before the closing `</head>` tag:
-
-```html
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-XXXXXXXXXX');
-</script>
-```
-
-## Building and Deployment
-
-### How do I build the site?
-
-```bash
-npm run build
-```
-
-The generated site is in the `dist/` folder.
-
-### How do I preview locally?
-
-```bash
-npm run build
-npx serve dist
-```
-
-Open `http://localhost:3000` in your browser.
-
-### How do I enable live reload during development?
-
-```bash
-npm run watch
-```
-
-This rebuilds automatically when files change. Run `npx serve dist` in another terminal to view.
-
-Note: You still need to manually refresh the browser. Full live reload requires additional setup.
-
-### Where can I deploy MarkStack sites?
-
-Anywhere that serves static files:
-
-- **Recommended**: Netlify, Vercel, Cloudflare Pages, GitHub Pages
-- **Self-hosted**: nginx, Apache, Caddy, any web server
-- **Cloud storage**: AWS S3, Google Cloud Storage, Azure Blob Storage
-
-See [Deployment](/build-deploy/deployment/) for detailed instructions.
-
-### Does MarkStack support CI/CD?
-
-Yes. Add a build step to your CI pipeline:
-
-```yaml
-- run: npm ci
-- run: npm run build
-```
-
-See [CI/CD Integration](/build-deploy/ci-cd/) for GitHub Actions, GitLab CI, and other platforms.
-
-## Customization Questions
-
-### How do I change colors?
-
-Edit CSS custom properties in `static/css/main.css`:
-
-```css
-[data-theme="dark"] {
-  --color-accent: #ff5500;  /* Change accent color */
-}
-```
-
-See [Themes and Styling](/customization/themes/) for all customization options.
-
-### How do I change fonts?
-
-1. Update the font link in `templates/base.html`
-2. Update font variables in `static/css/main.css`:
-
-```css
-:root {
-  --font-sans: 'Your Font', sans-serif;
-}
-```
-
-### Can I use a different template?
-
-MarkStack uses a single template at `templates/base.html`. You can modify this template to change the page structure.
-
-### Can I add new markdown extensions?
-
-Yes, by modifying `build.js`. Add markdown-it plugins:
-
-```javascript
-const myPlugin = require('markdown-it-myplugin');
-md.use(myPlugin);
-```
-
-### How do I add a new alert type?
-
-1. Add the icon to `alertIcons` in `build.js`
-2. Add CSS for `.alert-yourtype` in `main.css`
-
-See the existing alert implementations as examples.
-
-## Search Questions
+## Search
 
 ### How does search work?
 
-MarkStack generates a JSON index at build time. When users search, JavaScript loads this index and performs client-side text matching. No server required.
+The build writes an index, and the browser matches against it. See [Search and Indexing](/architecture/search-and-indexing/).
 
-### Can I exclude pages from search?
+### Can I exclude a page from search?
 
-Not in the default build, but you can add this feature by modifying `build.js` to check for a frontmatter flag:
+Not at the moment.
 
-```yaml
----
-title: Hidden Page
-searchable: false
----
-```
-
-### Why are my search results not accurate?
-
-The search uses substring matching. It finds pages containing the search terms, but does not have fuzzy matching or typo correction. Try:
-
-- Using more specific terms
-- Checking spelling
-- Using terms that appear exactly in your content
-
-### How large can the search index get?
-
-The index grows with content. Typical sizes:
-
-- 50 pages: ~100 KB
-- 200 pages: ~400 KB
-- 500 pages: ~1 MB
-
-Enable gzip compression on your server to reduce transfer size.
-
-## Performance Questions
+## Performance
 
 ### How fast are builds?
 
-MarkStack builds are fast:
+Building this documentation, a few dozen pages, takes roughly half a second on an ordinary computer. Every build renders every page, so time grows with page count.
 
-- 10 pages: ~50ms
-- 50 pages: ~100ms
-- 200 pages: ~300ms
-- 500 pages: ~600ms
+### Can it handle a large site?
 
-### Can MarkStack handle large sites?
+It suits hundreds of pages well. Beyond that the search index file and the build time grow in step with your content.
 
-Yes, but consider:
+## Limits
 
-- Build time increases linearly with page count
-- Search index size grows with content
-- For 500+ pages, builds are still under 1 second
+### Multiple languages?
 
-### How do I optimize page load speed?
+There is no built-in support for translations.
 
-1. Enable gzip/brotli compression on your server
-2. Use a CDN for global distribution
-3. Optimize images before adding them
-4. Enable HTTP/2 on your server
+### Dynamic features such as comments or accounts for readers?
 
-## Limitations
+No. The public site is static. Use an external service if you need comments.
 
-### Does MarkStack support multiple languages (i18n)?
+### A blog?
 
-Not natively. For multilingual sites, you would need to:
+It is made for documentation. There is no feed, tags or date ordering, and the sidebar is sorted by title.
 
-- Create separate content folders (`content/en/`, `content/es/`)
-- Modify the build script to handle multiple roots
-- Or use separate builds for each language
+### Version history for pages?
 
-### Can I have dynamic content?
-
-No. MarkStack generates static HTML. For dynamic features, you would need to add client-side JavaScript or use a different tool.
-
-### Does MarkStack have a plugin system?
-
-Not formally. However, you can extend functionality by:
-
-- Adding markdown-it plugins
-- Modifying `build.js`
-- Adding custom JavaScript in `static/js/`
-
-### Can I use MarkStack for a blog?
-
-MarkStack is designed for documentation, not blogging. It lacks:
-
-- Date-based archives
-- RSS feeds
-- Author pages
-- Tags/categories for posts
-
-For blogs, consider Hugo, Jekyll, or 11ty.
-
-### Does MarkStack support comments?
-
-Not natively. You can integrate third-party comment systems (Disqus, Giscus, etc.) by adding their scripts to the template.
+The editor has none. Keep `content/` in Git.

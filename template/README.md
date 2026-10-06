@@ -27,8 +27,8 @@ Every markdown file should have frontmatter at the top:
 
 ```yaml
 ---
-title: Page Title           # Optional - derived from filename if omitted
-description: SEO description # Used in meta tags and category listings
+title: Page Title           # Decides the page URL. Falls back to the file name
+description: Short summary  # Used in meta tags and link previews
 ---
 ```
 
@@ -37,3 +37,4 @@ description: SEO description # Used in meta tags and category listings
 - **`_index.md`** - Required for category/folder pages
 - **`article-name.md`** - Regular article pages
 - Filenames become fallback titles if `title` frontmatter is omitted
+- Page URLs come from titles, not file names. Quote a title that contains a colon and a space

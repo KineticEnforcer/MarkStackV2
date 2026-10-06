@@ -28,7 +28,8 @@ Before contributing, familiarize yourself with the project:
 1. Read the [README.md](README.md) to understand what MarkStack does
 2. Review the [project structure](content/getting-started/project-structure.md)
 3. Explore the [architecture documentation](content/architecture/) to understand how the build system works
-4. Run the project locally to see it in action
+4. Read the [Editing and Admin](content/editing-and-admin/) pages if you work on the editor
+5. Run the project locally to see it in action
 
 ---
 
@@ -57,17 +58,20 @@ There are several ways to contribute to MarkStack:
 ### Local Setup
 
 ```bash
-# Fork the repository on GitHub, then clone your fork
-git clone https://github.com/YOUR_USERNAME/markstack.git
+# Fork the repository, then clone your fork
+git clone <your-fork-url> markstack
 cd markstack
 
 # Install dependencies
 npm ci
 
+# Run the tests
+npm test
+
 # Build the site
 npm run build
 
-# Start the development server
+# Preview the site
 npm run serve
 ```
 
@@ -110,7 +114,7 @@ Use descriptive branch names:
 ### Submitting a Pull Request
 
 1. **Update documentation** if your changes affect user-facing features
-2. **Test the build** by running `npm run build` and verifying no errors occur
+2. **Run `npm test` and `npm run build`** and check that both finish without errors
 3. **Write a clear PR description** explaining what changes you made and why
 4. **Reference related issues** using `Fixes #123` or `Closes #123`
 5. **Keep PRs focused** on a single change or closely related changes
@@ -167,7 +171,8 @@ function slugify(title) {
 
 ### Markdown Content
 
-- Include frontmatter with `title` and `description`
+- Include frontmatter with `title` and `description`, and quote a title that contains a colon and a space
+- Remember that the title decides the URL
 - Use appropriate heading hierarchy (h1 for page title, h2 for sections)
 - Keep lines reasonably short for readability in source
 - Use GitHub-style alerts sparingly and appropriately
