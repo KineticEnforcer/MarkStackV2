@@ -20,6 +20,7 @@
 const fs = require('fs');
 const path = require('path');
 const matter = require('./lib/frontmatter');
+const linksStore = require('./lib/links-store');
 const hljs = require('highlight.js');
 
 // =============================================================================
@@ -160,6 +161,18 @@ function folderFromArgs(flag) {
   if (!v || v.startsWith('--')) { console.error(flag + ' needs a folder'); process.exit(2); }
   return path.resolve(v);
 }
+/**
+ * Where runtime data lives (header links and their icons): "--data <dir>", else
+ * MARKSTACK_DATA_DIR, else the folder of MARKSTACK_USERS_FILE, else .markstack
+ * in the project. It is outside the repository on a server so updates keep it.
+ */
+function dataDirFromArgs() {
+  const f = folderFromArgs('--data');
+  if (f) return f;
+  if (process.env.MARKSTACK_DATA_DIR) return path.resolve(process.env.MARKSTACK_DATA_DIR);
+  if (process.env.MARKSTACK_USERS_FILE) return path.dirname(path.resolve(process.env.MARKSTACK_USERS_FILE));
+  return path.join(__dirname, '.markstack');
+}
 function outputDirFromArgs() { return folderFromArgs('--out'); }
 
 /** Progress events for the editor ("@@MS {json}" lines) when MARKSTACK_BUILD_EVENTS=1. */
@@ -184,6 +197,7 @@ const CONFIG = {
   staticDir: path.join(__dirname, 'static'),
   templatesDir: path.join(__dirname, 'templates'),
   distDir: outputDirFromArgs() || path.join(__dirname, 'dist'),
+  dataDir: dataDirFromArgs(),
   siteTitle: siteConfig.siteTitle || 'Knowledge Base',
   headerTitle: siteConfig.headerTitle || siteConfig.siteTitle || 'Knowledge Base',
   siteSubtitle: siteConfig.siteSubtitle || '',
@@ -653,6 +667,34 @@ function processMarkdownFile(filePath) {
 // Page furniture: "On this page" rail, reading time, previous/next links
 // =============================================================================
 
+let HEADER_LINKS_HTML = '';
+const GLOBE_ICON = '<svg class="header-link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
+
+/**
+ * Header links the administrator chose (shown ones only). Icons that exist in
+ * the data folder are copied into dist/favicons; a missing icon falls back to a
+ * plain globe. Everything is escaped and the address is checked again here.
+ */
+function renderHeaderLinks(distDir) {
+  const shown = linksStore.readLinks(CONFIG.dataDir).filter(l => l.show);
+  let out = '';
+  for (const l of shown) {
+    const url = linksStore.cleanUrl(l.url);
+    if (!url) continue;
+    let icon = GLOBE_ICON;
+    if (l.favicon && linksStore.FAVICON_RE.test(l.favicon)) {
+      const src = path.join(CONFIG.dataDir, 'favicons', l.favicon);
+      if (fs.existsSync(src)) {
+        fs.mkdirSync(path.join(distDir, 'favicons'), { recursive: true });
+        fs.copyFileSync(src, path.join(distDir, 'favicons', l.favicon));
+        icon = '<img class="header-link-icon" src="' + CONFIG.baseUrl + '/favicons/' + l.favicon + '" alt="" width="16" height="16" loading="lazy">';
+      }
+    }
+    out += '<a class="header-link" href="' + escapeText(url) + '" target="_blank" rel="noopener noreferrer" title="' + escapeText(l.title) + '">' + icon + '<span class="header-link-label">' + escapeText(l.title) + '</span></a>\n        ';
+  }
+  return out ? '<nav class="header-links" aria-label="Links">' + out.trimEnd() + '</nav>' : '';
+}
+
 /** Escape text for HTML output. */
 function escapeText(text) {
   return String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -767,6 +809,7 @@ function generatePage(processed) {
     .replace(/\{\{sidebar\}\}/g, renderSidebar(processed.sidebar))
     .replace(/\{\{pageClass\}\}/g, pageClass)
     .replace(/\{\{copyrightText\}\}/g, CONFIG.copyrightText)
+    .replace(/\{\{headerLinks\}\}/g, () => HEADER_LINKS_HTML)
     .replace(/\{\{content\}\}/g, () => body);
   
   return html;
@@ -993,6 +1036,9 @@ function build() {
     copyDir(CONFIG.staticDir, CONFIG.distDir);
     console.log('✓ Copied static files\n');
   }
+  
+  HEADER_LINKS_HTML = renderHeaderLinks(CONFIG.distDir);
+  console.log('✓ Header links: ' + (HEADER_LINKS_HTML.match(/class="header-link"/g) || []).length + ' shown (data: ' + CONFIG.dataDir + ')\n');
   
   // Process content
   buildEvent({ t: 'total', n: fs.existsSync(CONFIG.contentDir) ? countMarkdownFiles(CONFIG.contentDir) : 0 });

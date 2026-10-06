@@ -41,7 +41,8 @@ Here is the complete list of placeholders you can use in the template:
 | `{{sidebar}}` | Generated navigation | Sidebar HTML tree |
 | `{{breadcrumbs}}` | Generated navigation | Breadcrumb HTML |
 | `{{pageClass}}` | Build script | Additional page classes (e.g., homepage) |
-| `{{copyrightText}}` | siteconfig.json | Footer copyright text |
+| `{{headerLinks}}` | links.json (data directory) | Header link buttons |
+| `{{copyrightText}}` | siteconfig.json | Copyright text (unused by the default template, which has no footer) |
 
 ### Where Placeholders Are Used
 
@@ -61,8 +62,8 @@ Looking at the default template:
 {{sidebar}}
 {{content}}
 
-<!-- In the footer -->
-<p class="copyright">{{copyrightText}}</p>
+<!-- In the header -->
+{{headerLinks}}
 ```
 
 ## Template Structure
@@ -177,18 +178,11 @@ Contains the sidebar and content area:
 </div>
 ```
 
-### Footer Section
+### Header links
 
-Contains site footer and copyright:
+The default template has no footer. Links the administrator manages in the editor (menu, Header links) are rendered into `{{headerLinks}}` in the header. Links that do not fit move into a "More" menu.
 
-```html
-<footer class="site-footer">
-  <div class="footer-container">
-    <p>Built with MarkStack</p>
-    <p class="copyright">{{copyrightText}}</p>
-  </div>
-</footer>
-```
+**Where the build finds the links:** `build.js` reads `links.json` and the `favicons/` folder from the data directory. It looks, in order, at `--data <dir>`, the `MARKSTACK_DATA_DIR` environment variable, the folder containing the users file, then the default `.markstack`. The build prints `Header links: N shown (data: <dir>)`. If you run `npm run build` by hand on a server, set `MARKSTACK_DATA_DIR` to the editor's data directory, otherwise the header links are silently left out. Publishing from the editor passes the right directory automatically.
 
 ### Scripts
 

@@ -420,27 +420,93 @@ body.search-open {
   gap: var(--space-sm);
 }
 
-.github-link {
-  display: flex;
+.header-link {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  max-width: 180px;
   background-color: transparent;
   border: 1px solid var(--color-border);
   border-radius: var(--border-radius);
   color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
   transition: all var(--transition-fast);
 }
 
-.github-link:hover {
+.header-link:hover {
   background-color: var(--color-bg-hover);
   color: var(--color-text-primary);
 }
 
-.github-icon {
-  width: 22px;
-  height: 22px;
+.header-link-icon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  object-fit: contain;
+  border-radius: 3px;
+}
+
+img.header-link-icon {
+  background-color: #fff;
+  padding: 1px;
+  box-sizing: border-box;
+}
+
+.header-link-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Header links: the row never wraps or grows; app.js moves what does not fit into the More menu */
+.header-links {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 0;
+  overflow: hidden;
+}
+.header-link[hidden] { display: none; }
+.header-links-more { position: relative; }
+.header-links-more[hidden], .header-links-menu[hidden] { display: none; }
+.header-links-more-btn { padding: 0; width: 32px; justify-content: center; cursor: pointer; }
+.header-links-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 300;
+  width: max-content;
+  min-width: 200px;
+  max-width: min(320px, calc(100vw - 24px));
+  max-height: min(60vh, 420px);
+  overflow-y: auto;
+  padding: 4px;
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+.header-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  text-decoration: none;
+}
+.header-menu-item:hover { background-color: var(--color-bg-hover); color: var(--color-text-primary); text-decoration: none; }
+.header-menu-item img.header-link-icon { width: 16px; height: 16px; flex: none; }
+.header-menu-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (max-width: 760px) {
+  .header-link { padding: 0; width: 32px; justify-content: center; }
+  .header-link-label { display: none; }
 }
 
 .theme-toggle {
@@ -512,11 +578,6 @@ body.sidebar-collapsed .sidebar-collapse-toggle .expand-icon {
 html.sidebar-collapsed .sidebar-collapse-toggle .collapse-icon,
 body.sidebar-collapsed .sidebar-collapse-toggle .collapse-icon {
   display: none;
-}
-
-html.sidebar-collapsed .site-footer,
-body.sidebar-collapsed .site-footer {
-  left: 0;
 }
 
 /* Sidebar */
@@ -691,7 +752,6 @@ body.sidebar-collapsed .site-footer {
 /* Content */
 .content {
   padding: var(--space-xl) 5%;
-  padding-bottom: 60px; /* Space for fixed footer */
   overflow-x: hidden;
 }
 
@@ -1018,36 +1078,6 @@ body.sidebar-collapsed .site-footer {
 }
 
 /* ============================================
-   Footer
-   ============================================ */
-.site-footer {
-  position: fixed;
-  bottom: 0;
-  left: var(--sidebar-width);
-  right: 0;
-  z-index: 97;
-  padding: 4px 0;
-  background-color: var(--color-bg-secondary);
-  border-top: 1px solid var(--color-border);
-  line-height: 1.3;
-  transition: left var(--transition-normal);
-}
-
-.footer-container {
-  text-align: center;
-}
-
-.site-footer p {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-tertiary);
-  margin: 0;
-}
-
-.site-footer .copyright {
-  font-weight: 600;
-}
-
-/* ============================================
    Responsive
    ============================================ */
 
@@ -1182,16 +1212,6 @@ html.mobile-menu-open .mobile-overlay {
     display: none;
   }
   
-  /* Footer - fixed at bottom, full width, never pushed */
-  .site-footer {
-    position: fixed;
-    left: 0 !important;
-    right: 0;
-    bottom: 0;
-    z-index: 150;
-  }
-  
-  /* Add bottom padding to content so footer doesn't cover it */
   .main-layout {
     padding-bottom: 50px;
   }
@@ -1234,7 +1254,6 @@ html.mobile-menu-open .mobile-overlay {
     gap: var(--space-xs);
   }
   
-  .github-link,
   .theme-toggle {
     width: 36px;
     height: 36px;
@@ -1400,7 +1419,7 @@ pre.hljs[data-language]::before {
 .logo-icon { width: 24px; height: 24px; }
 .header-search { max-width: 460px; }
 #search-input { height: 32px; font-size: var(--font-size-sm); }
-.github-link, .theme-toggle { width: 32px; height: 32px; }
+.theme-toggle { width: 32px; height: 32px; }
 
 /* Navigation */
 .sidebar { padding: var(--space-sm) var(--space-sm) var(--space-xl); }
@@ -1483,11 +1502,7 @@ a.pn-card:hover { border-color: var(--color-accent); text-decoration: none; }
 .pn-title { color: var(--color-accent); font-weight: 500; font-size: var(--font-size-sm); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pn-empty { border: 0; background: none; }
 
-/* Footer sits at the end of the content, not fixed over it */
-.site-footer { position: static; margin-left: var(--sidebar-width); padding: var(--space-md) var(--space-xl); border-top: 1px solid var(--color-border-subtle); background: none; transition: margin-left var(--transition-normal); }
-.site-footer p { font-size: var(--font-size-xs); }
-html.sidebar-collapsed .site-footer, body.sidebar-collapsed .site-footer { margin-left: 0; }
-.main-layout { min-height: calc(100vh - var(--header-height) - 56px); }
+.main-layout { min-height: calc(100vh - var(--header-height)); }
 
 @media (max-width: 1180px) {
   .content-grid { grid-template-columns: minmax(0, 1fr); }
@@ -1495,7 +1510,6 @@ html.sidebar-collapsed .site-footer, body.sidebar-collapsed .site-footer { margi
 }
 @media (max-width: 1024px) {
   .mobile-menu-toggle { top: 8px; left: 12px; width: 32px; height: 32px; }
-  .site-footer { margin-left: 0; position: static !important; }
   .main-layout { padding-bottom: 0; }
   .content { padding: var(--space-lg); }
 }

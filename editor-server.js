@@ -26,6 +26,8 @@ const { SessionStore } = require('./lib/sessions');
 const { FailureLimiter } = require('./lib/rate-limit');
 const { authorize, filterTree, isValidSectionName } = require('./lib/section-access');
 const { hashPassword, checkPasswordPolicy } = require('./lib/passwords');
+const linksStore = require('./lib/links-store');
+const favicon = require('./lib/favicon');
 
 // =============================================================================
 // Configuration
@@ -896,6 +898,7 @@ function getPublisher() {
       root: __dirname, contentDir: CONFIG.contentDir, staticDir: CONFIG.staticDir,
       templatesDir: path.join(__dirname, 'templates'), distDir: CONFIG.distDir,
       buildScript: path.join(__dirname, 'build.js'), siteConfig: path.join(__dirname, 'siteconfig.json'),
+      dataDir: path.dirname(CONFIG.usersFile),
       stateFile: path.join(path.dirname(CONFIG.usersFile), 'publish-state.json')
     });
   }
@@ -916,6 +919,74 @@ function handlePublishAPI(req, res, pathname) {
     }
     return true;
   }
+  return false;
+}
+
+
+// =============================================================================
+// Header links (administrator only)
+// =============================================================================
+
+/** Folder for runtime data (links.json, favicons). On a server it sits beside users.json, outside the repository. */
+function dataDir() { return CONFIG.dataDir || path.dirname(CONFIG.usersFile); }
+
+const MAX_ICON_FETCHES = 5;
+
+/**
+ * Save the whole list. The icon is fetched only for a new link, a changed
+ * address, or an explicit refresh, a few per save. A failed fetch never blocks
+ * saving the link: it shows the generic icon and the response says why.
+ */
+async function saveLinks(rawList) {
+  const v = linksStore.validateList(rawList);
+  if (v.error) { const e = new Error(v.error); e.status = 400; throw e; }
+  const dir = dataDir();
+  const old = new Map(linksStore.readLinks(dir).map(l => [l.id, l]));
+  const refresh = new Set((Array.isArray(rawList) ? rawList : []).map((r, i) => (r && r.refresh === true ? i : -1)).filter(i => i >= 0));
+  const fetcher = CONFIG.faviconFetcher || favicon.fetchFavicon;
+  const notes = [];
+  let fetches = 0;
+  for (let i = 0; i < v.links.length; i++) {
+    const l = v.links[i];
+    const prev = old.get(l.id);
+    const changed = !prev || prev.url !== l.url;
+    if (!changed && !refresh.has(i)) { l.favicon = prev.favicon; continue; }
+    // A changed address drops the old icon at once, so a failed fetch never leaves another site's icon. A plain refresh keeps the old icon if nothing new is found.
+    l.favicon = changed ? '' : prev.favicon;
+    if (fetches >= MAX_ICON_FETCHES) { notes.push({ id: l.id, title: l.title, icon: 'later', reason: 'Too many new icons in one save. Use Refresh icon on this link.' }); continue; }
+    fetches++;
+    try {
+      const r = await fetcher(l.url);
+      if (r) { l.favicon = linksStore.saveFavicon(dir, l.id, r.ext, r.data); notes.push({ id: l.id, title: l.title, icon: 'found' }); }
+      else notes.push({ id: l.id, title: l.title, icon: 'none', reason: l.favicon ? 'No new icon found. The old icon is kept.' : 'No icon found. The generic icon is used.' });
+    } catch (err) {
+      notes.push({ id: l.id, title: l.title, icon: 'none', reason: 'Icon not fetched: ' + (err && err.message ? err.message : 'failed') + (l.favicon ? '. The old icon is kept.' : '. The generic icon is used.') });
+    }
+  }
+  linksStore.writeLinks(dir, v.links);
+  return { links: v.links, notes };
+}
+
+/** Admin-only links API and icon files. Returns true when handled. */
+async function handleLinksAPI(req, res, pathname) {
+  if (req.user.role !== 'admin') { sendError(res, 403, 'Administrator only'); return true; }
+  try {
+    if (req.method === 'GET' && pathname === '/api/links') { sendJSON(res, 200, { links: linksStore.readLinks(dataDir()), max: linksStore.MAX_LINKS, maxTitle: linksStore.MAX_TITLE }); return true; }
+    if (req.method === 'POST' && pathname === '/api/links') {
+      const body = await parseJSONBody(req);
+      const out = await saveLinks(body && body.links);
+      authLog('links-saved', req.user.name);
+      sendSuccess(res, out); return true;
+    }
+    const m = pathname.match(/^\/api\/links\/icon\/([a-f0-9]{12}\.(?:png|ico|gif|jpg|webp))$/);
+    if (req.method === 'GET' && m) {
+      const f = path.join(dataDir(), 'favicons', m[1]);
+      if (!fs.existsSync(f)) { sendError(res, 404, 'Not found'); return true; }
+      const types = { png: 'image/png', ico: 'image/x-icon', gif: 'image/gif', jpg: 'image/jpeg', webp: 'image/webp' };
+      res.writeHead(200, { 'Content-Type': types[m[1].split('.')[1]], 'Cache-Control': 'private, max-age=300', ...SECURITY_HEADERS });
+      res.end(fs.readFileSync(f)); return true;
+    }
+  } catch (err) { sendBadInput(res, err); return true; }
   return false;
 }
 
@@ -1009,6 +1080,10 @@ async function handleAPI(req, res, pathname, url) {
   if (req.method === 'POST' && pathname === '/api/change-password') return handleChangePassword(req, res);
   if (pathname === '/api/users' || pathname.startsWith('/api/users/')) {
     if (await handleAdminAPI(req, res, pathname)) return;
+  }
+
+  if (pathname === '/api/links' || pathname.startsWith('/api/links/')) {
+    if (await handleLinksAPI(req, res, pathname)) return;
   }
 
   if (pathname === '/api/publish' || pathname === '/api/publish/status') {
@@ -1160,6 +1235,11 @@ function requestHandler(req, res) {
     if (!resolveSession(req)) return redirect(res, '/login');
     if (req.user.role !== 'admin') return sendError(res, 403, 'Administrator only');
     return servePublicPage(res, 'admin-users.html');
+  }
+  if (pathname === '/admin/links') {
+    if (!resolveSession(req)) return redirect(res, '/login');
+    if (req.user.role !== 'admin') return sendError(res, 403, 'Administrator only');
+    return servePublicPage(res, 'admin-links.html');
   }
   if (pathname === '/' || pathname === '/editor' || pathname === '/editor.html') {
     if (!resolveSession(req)) return redirect(res, '/login');

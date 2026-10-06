@@ -49,6 +49,8 @@
           if (d.user.role === 'admin') {
             const a = mk('a', 'user-item', 'Users and sections'); a.href = '/admin/users'; a.setAttribute('role', 'menuitem');
             panel.appendChild(a);
+            const lk = mk('a', 'user-item', 'Header links'); lk.href = '/admin/links'; lk.setAttribute('role', 'menuitem');
+            panel.appendChild(lk);
           }
           const out = mk('button', 'user-item', 'Sign out'); out.type = 'button'; out.setAttribute('role', 'menuitem');
           out.addEventListener('click', async () => {

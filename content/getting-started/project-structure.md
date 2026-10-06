@@ -131,7 +131,8 @@ The HTML template that wraps every page. It contains placeholders that the build
 | `{{sidebar}}` | Generated navigation tree |
 | `{{breadcrumbs}}` | Generated breadcrumb links |
 | `{{siteTitle}}` | Site title from siteconfig.json |
-| `{{copyrightText}}` | Copyright from siteconfig.json |
+| `{{headerLinks}}` | Header links from the editor's data directory |
+| `{{copyrightText}}` | Copyright from siteconfig.json (unused by the default template) |
 
 Edit this file to:
 
