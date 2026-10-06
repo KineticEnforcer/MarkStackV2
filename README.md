@@ -109,7 +109,7 @@ npm run build
 - **Task lists and footnotes** for checklists and academic-style references
 - **Syntax highlighting** for 190+ programming languages via highlight.js
 - **Mermaid diagrams** for flowcharts, sequence diagrams, and other visualizations
-- **Visual editor** with live preview, scroll sync, file management and a mobile layout (file drawer, Edit/Preview switch)
+- **Visual editor** with live preview, a Hide button in the Markdown pane header (and Show editor in the Preview header), scroll sync, file management and a mobile layout (file drawer, Edit/Preview switch)
 - **Publish Changes** (administrators): Save writes the Markdown file only; Publish Changes rebuilds the whole site beside the live one, checks it, and switches it in only if the build succeeded, with live progress and a copyable error report if it fails
 
 ### User Experience
@@ -117,7 +117,7 @@ npm run build
 - **Dark and light themes** with automatic preference persistence; the page sets its background and colour scheme before the stylesheets load, and web fonts load without blocking the first paint
 - **IBM Plex typography** for professional, readable text
 - **Responsive layout** that adapts to desktop, tablet, and mobile screens
-- **Collapsible sidebar** with hierarchical navigation; open folders and scroll position are restored before the page paints, and a sliding marker follows the current page
+- **Collapsible sidebar** with a hide button in its own header strip (a slim tab on the left edge brings it back) and hierarchical navigation; open folders and scroll position are restored before the page paints, and a sliding marker follows the current page
 - **"On this page" rail**, breadcrumb, reading time and previous/next links on every documentation page
 
 ### Performance
