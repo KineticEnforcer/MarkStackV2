@@ -15,6 +15,18 @@
 (function() {
   'use strict';
 
+  // Browser storage can be blocked or full (private mode, policies). Every read
+  // and write below goes through these wrappers so the page keeps working.
+  function safeStore(kind) {
+    return {
+      getItem: function(k) { try { return window[kind].getItem(k); } catch (e) { return null; } },
+      setItem: function(k, v) { try { window[kind].setItem(k, v); } catch (e) {} },
+      removeItem: function(k) { try { window[kind].removeItem(k); } catch (e) {} }
+    };
+  }
+  const localStorage = safeStore('localStorage');
+  const sessionStorage = safeStore('sessionStorage');
+
   // ============================================
   // Theme Toggle
   // ============================================
@@ -184,12 +196,23 @@
   
   if (sidebarNav) {
     const sidebarEl = document.querySelector('.sidebar');
+    // Keys are scoped to this site's base path so sites sharing an origin do not share state
+    const navScope = baseUrlForNav();
+    const openKey = 'sidebar-open:' + navScope;
+    const scrollKey = 'sidebar-scroll:' + navScope;
+    function baseUrlForNav() {
+      const l = document.querySelector('.site-logo');
+      return (l ? l.getAttribute('href') : '/').replace(/\/$/, '');
+    }
 
     function readOpen() {
-      try { return JSON.parse(localStorage.getItem('sidebar-open') || '[]'); } catch (e) { return []; }
+      try {
+        const v = JSON.parse(localStorage.getItem(openKey) || '[]');
+        return Array.isArray(v) ? v.filter(function(x) { return typeof x === 'string'; }) : [];
+      } catch (e) { return []; }
     }
     function writeOpen(list) {
-      try { localStorage.setItem('sidebar-open', JSON.stringify(list)); } catch (e) {}
+      try { localStorage.setItem(openKey, JSON.stringify(list)); } catch (e) {}
     }
     function setOpen(item, open) {
       const children = item.querySelector(':scope > .sidebar-children');
@@ -224,7 +247,7 @@
 
     // Remember where the list was scrolled, so the next page opens in the same place
     function saveScroll() {
-      try { sessionStorage.setItem('sidebar-scroll', String(sidebarEl.scrollTop)); } catch (e) {}
+      try { sessionStorage.setItem(scrollKey, String(sidebarEl.scrollTop)); } catch (e) {}
     }
     sidebarEl.addEventListener('scroll', saveScroll, { passive: true });
     sidebarNav.addEventListener('click', saveScroll);

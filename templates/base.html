@@ -5,14 +5,16 @@
   <script>
     // Apply theme immediately to prevent flash of unstyled content (FOUC)
     (function() {
-      const theme = localStorage.getItem('theme') || 'dark';
+      var theme = 'dark';
+      try { theme = localStorage.getItem('theme') || 'dark'; } catch (e) {}
       document.documentElement.setAttribute('data-theme', theme);
     })();
   </script>
   <script>
     // Apply sidebar state immediately to prevent layout shift
     (function() {
-      const savedState = localStorage.getItem('sidebar-state');
+      var savedState = null;
+      try { savedState = localStorage.getItem('sidebar-state'); } catch (e) {}
       if (savedState === 'collapsed') {
         document.documentElement.classList.add('sidebar-collapsed');
       }
@@ -36,16 +38,18 @@
   <script>
     // Apply mobile menu state ASAP to avoid flicker on mobile nav
     (function() {
-      if (sessionStorage.getItem('mobile-menu-open') === 'true') {
+      var wasOpen = false;
+      try { wasOpen = sessionStorage.getItem('mobile-menu-open') === 'true'; } catch (e) {}
+      if (wasOpen) {
         document.documentElement.classList.add('mobile-menu-open');
         // Body may not exist yet; apply once ready
         if (document.body) {
           document.body.classList.add('mobile-menu-open');
-          sessionStorage.removeItem('mobile-menu-open');
+          try { sessionStorage.removeItem('mobile-menu-open'); } catch (e) {}
         } else {
           document.addEventListener('DOMContentLoaded', function() {
             document.body.classList.add('mobile-menu-open');
-            sessionStorage.removeItem('mobile-menu-open');
+            try { sessionStorage.removeItem('mobile-menu-open'); } catch (e) {}
           });
         }
       }
@@ -121,7 +125,11 @@
       (function() {
         try {
           var nav = document.querySelector('.sidebar-nav');
-          var open = JSON.parse(localStorage.getItem('sidebar-open') || '[]');
+          var logo = document.querySelector('.site-logo');
+          var scope = (logo ? logo.getAttribute('href') : '/').replace(/\/$/, '');
+          var open = [];
+          try { open = JSON.parse(localStorage.getItem('sidebar-open:' + scope) || '[]'); } catch (e) {}
+          if (!Array.isArray(open)) open = [];
           nav.querySelectorAll('.sidebar-item.sidebar-folder').forEach(function(li) {
             if (open.indexOf(li.getAttribute('data-path')) !== -1) {
               li.dataset.state = 'expanded';
@@ -132,7 +140,8 @@
               if (b) b.setAttribute('aria-expanded', 'true');
             }
           });
-          var y = sessionStorage.getItem('sidebar-scroll');
+          var y = null;
+          try { y = sessionStorage.getItem('sidebar-scroll:' + scope); } catch (e) {}
           if (y !== null) document.querySelector('.sidebar').scrollTop = parseInt(y, 10) || 0;
         } catch (e) {}
       })();
@@ -158,7 +167,7 @@
   </footer>
 
   <script src="{{baseUrl}}/js/search-core.js?v=1"></script>
-  <script src="{{baseUrl}}/js/app.js?v=10"></script>
+  <script src="{{baseUrl}}/js/app.js?v=12"></script>
   <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
     mermaid.initialize({ 
