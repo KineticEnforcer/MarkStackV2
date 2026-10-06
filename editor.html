@@ -428,6 +428,11 @@
     .editor-unsaved.visible {
       display: inline-block;
     }
+    .editor-unsaved[data-state="saving"] { color: var(--color-text-secondary); background-color: var(--color-bg-tertiary, rgba(128,128,128,.2)); }
+    .editor-unsaved[data-state="saved"] { color: #2da44e; background-color: rgba(45,164,78,.14); }
+    [data-theme="light"] .editor-unsaved[data-state="saved"] { color: #1a7f37; }
+    .editor-unsaved[data-state="error"] { color: #fff; background-color: #d9534f; cursor: pointer; max-width: 46ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #save-btn[aria-busy="true"] { opacity: .7; cursor: progress; }
     
     .editor-toolbar-right {
       margin-left: auto;
@@ -1306,7 +1311,7 @@
         <span class="editor-file-path" id="current-file-path">
           <span class="path-segment">No file selected</span>
         </span>
-        <span class="editor-unsaved" id="unsaved-indicator">Unsaved</span>
+        <span class="editor-unsaved" id="unsaved-indicator" role="status" aria-live="polite" data-state="unsaved">Unsaved</span>
         <div class="view-switch" id="view-switch" role="tablist" aria-label="View">
           <button type="button" role="tab" data-view="edit" class="active" aria-selected="true">Edit</button>
           <button type="button" role="tab" data-view="preview" aria-selected="false">Preview</button>
@@ -1650,6 +1655,7 @@
       
       // Toolbar buttons
       const saveBtn = document.getElementById('save-btn');
+      const publishBtn = document.getElementById('publish-btn');
       const refreshBtn = document.getElementById('refresh-tree');
       const themeToggle = document.getElementById('theme-toggle');
       const scrollSyncBtn = document.getElementById('scroll-sync-btn');
@@ -2084,6 +2090,7 @@
           }
           
           currentFilePath = filePath;
+          saveState = 'idle'; saveQueued = false; saveSeq++; saveBtn.removeAttribute('aria-busy');
           originalContent = data.content;
           markdownInput.value = data.content;
           hasUnsavedChanges = false;
@@ -2115,33 +2122,49 @@
        * Save the current file to the server.
        * Updates the original content reference on success.
        */
+      let saveState = 'idle';      // idle | saving | saved | error
+      let saveErrorText = '';
+      let saveQueued = false;
+      let saveSeq = 0;
       async function saveFile() {
         if (!currentFilePath) return;
-        
+        if (saveState === 'saving') { saveQueued = true; return; }
+        const path = currentFilePath;
+        const sent = markdownInput.value;
+        if (sent === originalContent && saveState !== 'error') { saveState = 'saved'; updateUnsavedIndicator(); return; }
+        const seq = ++saveSeq;
+        saveState = 'saving'; saveErrorText = '';
+        saveBtn.setAttribute('aria-busy', 'true');
+        updateUnsavedIndicator();
+        let failure = '';
         try {
           const res = await fetch('/api/file', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              path: currentFilePath,
-              content: markdownInput.value
-            })
+            body: JSON.stringify({ path: path, content: sent })
           });
-          
-          const data = await res.json();
-          
-          if (data.error) {
-            alert('Error saving: ' + data.error);
-            return;
-          }
-          
-          originalContent = markdownInput.value;
-          hasUnsavedChanges = false;
-          updateUnsavedIndicator();
+          let data = null;
+          try { data = await res.json(); } catch (e) { /* not JSON */ }
+          if (res.status === 401) failure = 'Your session expired. Sign in again; your text is still here.';
+          else if (!res.ok || !data || data.error || data.success !== true) failure = (data && data.error) || ('Server answered ' + res.status);
         } catch (err) {
           console.error('Failed to save file:', err);
-          alert('Failed to save file');
+          failure = 'Could not reach the server';
         }
+        saveBtn.removeAttribute('aria-busy');
+        if (path !== currentFilePath || seq !== saveSeq) { saveState = 'idle'; updateUnsavedIndicator(); return; }
+        if (failure) {
+          saveState = 'error'; saveErrorText = failure;
+          saveQueued = false;
+        } else {
+          // The server confirmed exactly the text we sent. Text typed while the
+          // request was running stays unsaved.
+          originalContent = sent;
+          hasUnsavedChanges = markdownInput.value !== originalContent;
+          saveState = 'saved';
+        }
+        updateUnsavedIndicator();
+        if (!failure && saveQueued) { saveQueued = false; if (hasUnsavedChanges) saveFile(); }
       }
       
       // =========================================================================
@@ -2312,7 +2335,18 @@
        * Show or hide the unsaved changes indicator.
        */
       function updateUnsavedIndicator() {
-        unsavedIndicator.classList.toggle('visible', hasUnsavedChanges);
+        let text = '', state = '', show = true;
+        if (saveState === 'saving') { text = 'Saving...'; state = 'saving'; }
+        else if (saveState === 'error') { text = 'Not saved: ' + saveErrorText; state = 'error'; }
+        else if (hasUnsavedChanges) { text = 'Unsaved'; state = 'unsaved'; }
+        else if (saveState === 'saved') {
+          const canPublish = typeof publishBtn !== 'undefined' && publishBtn && !publishBtn.hidden;
+          text = canPublish ? 'Saved, not published yet' : 'Saved'; state = 'saved';
+        } else show = false;
+        unsavedIndicator.textContent = text;
+        unsavedIndicator.dataset.state = state;
+        unsavedIndicator.title = state === 'saved' ? 'Saved to the server. The live docs update only after Publish Changes.' : (state === 'error' ? 'Click to try saving again' : '');
+        unsavedIndicator.classList.toggle('visible', show);
       }
       
       // =========================================================================
@@ -2325,6 +2359,7 @@
        */
       markdownInput.addEventListener('input', function() {
         hasUnsavedChanges = markdownInput.value !== originalContent;
+        if (saveState === 'saved' && hasUnsavedChanges) saveState = 'idle';
         updatePreview();
         updateLineNumbers();
         updateSyntaxHighlight();
@@ -2408,6 +2443,7 @@
       
       // Toolbar button handlers
       saveBtn.addEventListener('click', saveFile);
+      unsavedIndicator.addEventListener('click', function() { if (saveState === 'error') saveFile(); });
 
       // =========================================================================
       // Publish Changes (administrators): rebuild the site and switch it in
