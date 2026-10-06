@@ -117,6 +117,7 @@ npm run build
 - **IBM Plex typography** for professional, readable text
 - **Responsive layout** that adapts to desktop, tablet, and mobile screens
 - **Collapsible sidebar** with hierarchical navigation
+- **"On this page" rail**, breadcrumb, reading time and previous/next links on every documentation page
 
 ### Performance
 
@@ -282,6 +283,8 @@ description: Description for search engines and social sharing.
 
 Content begins here...
 ```
+
+Optional `updated` (or `date`) in the frontmatter, for example `updated: 2026-10-02`, shows an "Updated" date under the page title. Without it only the reading time is shown; the build does not guess dates from file times.
 
 Page and category URLs come from the `title`, not the file or folder name. Two pages (or two categories) with the same title in the same place would produce the same URL, so the build stops with `Duplicate URL ... is produced by both ...` and names both content paths. Change one of the titles. A failed build leaves the previous `dist/` untouched.
 
