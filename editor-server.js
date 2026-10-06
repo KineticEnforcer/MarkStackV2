@@ -895,7 +895,8 @@ function getPublisher() {
     publisher = new Publisher({
       root: __dirname, contentDir: CONFIG.contentDir, staticDir: CONFIG.staticDir,
       templatesDir: path.join(__dirname, 'templates'), distDir: CONFIG.distDir,
-      buildScript: path.join(__dirname, 'build.js'), siteConfig: path.join(__dirname, 'siteconfig.json')
+      buildScript: path.join(__dirname, 'build.js'), siteConfig: path.join(__dirname, 'siteconfig.json'),
+      stateFile: path.join(path.dirname(CONFIG.usersFile), 'publish-state.json')
     });
   }
   return publisher;

@@ -2468,7 +2468,8 @@
           fill.style.width = pct + '%';
           bar.setAttribute('aria-valuenow', String(pct));
           bar.classList.toggle('failed', st.state === 'failed');
-          detail.textContent = st.state === 'running' && current ? current.label + '...' : '';
+          detail.textContent = st.state === 'running' && current ? current.label + '... (you can hide this window; the publish keeps running)' : '';
+          if (st.state === 'running') cancelBtn.textContent = 'Hide progress';
           if (st.state === 'done' || st.state === 'failed') {
             show(result, true);
             rTitle.textContent = st.state === 'done' ? 'Published. ' + st.pages.done + ' pages are live.' : 'Publish failed at: ' + (st.failedStage || 'unknown step');

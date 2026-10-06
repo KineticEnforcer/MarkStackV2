@@ -15,7 +15,8 @@ function setup(extra = {}) {
   fs.writeFileSync(path.join(distDir, 'index.html'), 'OLD LIVE SITE');
   const p = new Publisher({
     root: ROOT, contentDir: path.join(ROOT, 'content'), staticDir: path.join(ROOT, 'static'),
-    templatesDir: path.join(ROOT, 'templates'), distDir, buildScript: path.join(ROOT, 'build.js'), ...extra
+    templatesDir: path.join(ROOT, 'templates'), distDir, buildScript: path.join(ROOT, 'build.js'),
+    stateFile: path.join(tmp, 'state', 'publish-state.json'), ...extra
   });
   return { tmp, distDir, p };
 }
@@ -32,7 +33,8 @@ test('a good publish builds beside the live site, switches it in and keeps the p
   assert.match(fs.readFileSync(path.join(distDir, 'index.html'), 'utf-8'), /<html/);
   assert.equal(fs.readFileSync(path.join(distDir + '.previous', 'index.html'), 'utf-8'), 'OLD LIVE SITE');
   assert.equal(s.previous, 'dist.previous');
-  assert.deepEqual(fs.readdirSync(tmp).sort(), ['dist', 'dist.previous']);
+  assert.deepEqual(fs.readdirSync(tmp).sort(), ['dist', 'dist.previous', 'state']);
+  assert.match(s.live, /new build is now in the live folder/);
   fs.rmSync(tmp, { recursive: true, force: true });
 });
 
@@ -72,17 +74,29 @@ test('an incomplete build is rejected before the switch', async () => {
   fs.rmSync(tmp, { recursive: true, force: true });
 });
 
-test('unpublished changes are detected from file times', () => {
-  const { tmp, distDir, p } = setup({ contentDir: null, staticDir: null, templatesDir: null });
-  const content = path.join(tmp, 'content'); fs.mkdirSync(content);
+test('unpublished detection covers edits, new files, deletes, renames and config changes', async () => {
+  const { tmp, p } = setup({ contentDir: null, staticDir: null, templatesDir: null });
+  const content = path.join(tmp, 'content'); fs.mkdirSync(path.join(content, 'sec'), { recursive: true });
   fs.writeFileSync(path.join(content, 'a.md'), '# a');
-  p.o.contentDir = content;
-  const mid = new Date(Date.now() - 1800e3); fs.utimesSync(path.join(distDir, 'index.html'), mid, mid);
-  const old = new Date(Date.now() - 3600e3);
-  fs.utimesSync(path.join(content, 'a.md'), old, old); fs.utimesSync(content, old, old);
-  assert.equal(p.unpublished().unpublished, false);
-  fs.writeFileSync(path.join(content, 'a.md'), '# a changed');
-  assert.equal(p.unpublished().unpublished, true);
+  fs.writeFileSync(path.join(content, 'sec', 'b.md'), '# b');
+  const cfg = path.join(tmp, 'siteconfig.json'); fs.writeFileSync(cfg, '{"siteTitle":"x"}');
+  p.o.contentDir = content; p.o.siteConfig = cfg;
+  assert.equal(p.unpublished().unpublished, true, 'never published');
+  p.start('admin1'); await p.finished();
+  // this test's build script reads the real repo; record the state as a publish of THESE sources
+  const fp = () => p.unpublished();
+  fs.mkdirSync(path.dirname(p.o.stateFile), { recursive: true });
+  const rec = () => fs.writeFileSync(p.o.stateFile, JSON.stringify({ fingerprint: p._fp(), publishedAt: 'x' }));
+  p._fp = () => require('../lib/publish').fingerprintFor(p.sourceTargets());
+  rec();
+  assert.equal(fp().unpublished, false);
+  const check = async (label, fn) => { fn(); assert.equal(fp().unpublished, true, label); rec(); assert.equal(fp().unpublished, false, label + ' recorded'); };
+  await check('edit', () => fs.writeFileSync(path.join(content, 'a.md'), '# a changed, longer'));
+  await check('new file', () => fs.writeFileSync(path.join(content, 'c.md'), '# c'));
+  await check('delete', () => fs.rmSync(path.join(content, 'c.md')));
+  await check('rename', () => fs.renameSync(path.join(content, 'sec', 'b.md'), path.join(content, 'sec', 'b2.md')));
+  await check('move between folders', () => fs.renameSync(path.join(content, 'sec', 'b2.md'), path.join(content, 'b2.md')));
+  await check('config', () => fs.writeFileSync(cfg, '{"siteTitle":"y"}'));
   fs.rmSync(tmp, { recursive: true, force: true });
 });
 
@@ -90,4 +104,63 @@ test('redaction removes secret-looking values', () => {
   const t = redact('token=abc123\nAuthorization: Bearer abcdefghijkl1234\nDB_PASSWORD="x y" ghp_' + 'a'.repeat(30) + '\nnormal line');
   assert.doesNotMatch(t, /abc123|abcdefghijkl1234|x y|ghp_/);
   assert.match(t, /normal line/);
+});
+
+function smallSite(tmp, pages) {
+  const content = path.join(tmp, 'content'); fs.mkdirSync(content, { recursive: true });
+  for (let i = 1; i <= pages; i++) fs.writeFileSync(path.join(content, 'p' + i + '.md'), '---\ntitle: Page ' + i + '\n---\n# Page ' + i + '\n');
+  return content;
+}
+
+test('a save during the build cannot change the snapshot or tear the page count', async () => {
+  const { tmp, distDir, p } = setup();
+  p.o.contentDir = smallSite(tmp, 5);
+  p.start('admin1');
+  // the snapshot is already taken: changes after start() must not enter this build
+  fs.writeFileSync(path.join(p.o.contentDir, 'p6.md'), '---\ntitle: Late\n---\n# Late\n');
+  fs.writeFileSync(path.join(p.o.contentDir, 'p1.md'), '---\ntitle: Page 1 edited\n---\n# edited\n');
+  await p.finished();
+  const s = p.status();
+  assert.equal(s.state, 'done', s.error);
+  assert.deepEqual(s.pages, { done: 5, total: 5 });
+  const allHtml = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? allHtml(path.join(d, e.name)) : e.name.endsWith('.html') ? [fs.readFileSync(path.join(d, e.name), 'utf-8')] : []).join('\n');
+  const html1 = allHtml(distDir);
+  assert.match(html1, /Page 1/);
+  assert.doesNotMatch(html1, /Late|edited/);
+  assert.equal(p.unpublished().unpublished, true, 'the late saves are still unpublished');
+  p.start('admin1'); await p.finished();
+  assert.equal(p.status().pages.total, 6);
+  assert.match(allHtml(distDir), /Late/);
+  assert.equal(p.unpublished().unpublished, false);
+  fs.rmSync(tmp, { recursive: true, force: true });
+});
+
+test('if the second rename fails the old live site is put back and the old backup is untouched', async () => {
+  const { tmp, distDir } = setup();
+  const content = smallSite(tmp, 3);
+  fs.mkdirSync(distDir + '.previous'); fs.writeFileSync(path.join(distDir + '.previous', 'index.html'), 'OLDER BACKUP');
+  let calls = 0;
+  const flaky = { ...fs, renameSync(a, b) { calls++; if (calls === 2) { const e = new Error('disk gremlin'); e.code = 'EIO'; throw e; } return fs.renameSync(a, b); } };
+  const p = new Publisher({ root: ROOT, contentDir: content, staticDir: '', templatesDir: '', distDir, buildScript: path.join(ROOT, 'build.js'), stateFile: path.join(tmp, 'st.json'), fs: flaky });
+  p.start('admin1'); await p.finished();
+  const s = p.status();
+  assert.equal(s.state, 'failed');
+  assert.equal(s.failedStage, 'Switching the live site');
+  assert.match(s.live, /restored to the previous version/);
+  assert.equal(fs.readFileSync(path.join(distDir, 'index.html'), 'utf-8'), 'OLD LIVE SITE');
+  assert.equal(fs.readFileSync(path.join(distDir + '.previous', 'index.html'), 'utf-8'), 'OLDER BACKUP');
+  assert.equal(fs.existsSync(path.join(tmp, 'st.json')), false, 'no publish recorded');
+  assert.deepEqual(fs.readdirSync(tmp).filter(n => n.startsWith('dist')).sort(), ['dist', 'dist.previous']);
+  fs.rmSync(tmp, { recursive: true, force: true });
+});
+
+test('a failed publish keeps the existing dist.previous', async () => {
+  const { tmp, distDir } = setup();
+  fs.mkdirSync(distDir + '.previous'); fs.writeFileSync(path.join(distDir + '.previous', 'index.html'), 'OLDER BACKUP');
+  const bad = path.join(tmp, 'bad.js'); fs.writeFileSync(bad, 'process.exit(3)');
+  const p = new Publisher({ root: ROOT, contentDir: smallSite(tmp, 2), staticDir: '', templatesDir: '', distDir, buildScript: bad });
+  p.start('admin1'); await p.finished();
+  assert.equal(p.status().state, 'failed');
+  assert.equal(fs.readFileSync(path.join(distDir + '.previous', 'index.html'), 'utf-8'), 'OLDER BACKUP');
+  fs.rmSync(tmp, { recursive: true, force: true });
 });

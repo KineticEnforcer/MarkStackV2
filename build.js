@@ -148,16 +148,19 @@ md.renderer.rules.alert_title = function(tokens, idx) {
 };
 
 /**
- * Optional "--out <dir>": build into another folder (the editor's Publish uses
- * this to build beside the live site and switch only when the build succeeds).
+ * Optional "--out <dir>": build into another folder, and "--content <dir>": read
+ * the Markdown from another folder (the editor's Publish uses both: it builds a
+ * snapshot of the content beside the live site and switches only when the build
+ * succeeded).
  */
-function outputDirFromArgs() {
-  const i = process.argv.indexOf('--out');
+function folderFromArgs(flag) {
+  const i = process.argv.indexOf(flag);
   if (i === -1) return null;
   const v = process.argv[i + 1];
-  if (!v || v.startsWith('--')) { console.error('--out needs a folder'); process.exit(2); }
+  if (!v || v.startsWith('--')) { console.error(flag + ' needs a folder'); process.exit(2); }
   return path.resolve(v);
 }
+function outputDirFromArgs() { return folderFromArgs('--out'); }
 
 /** Progress events for the editor ("@@MS {json}" lines) when MARKSTACK_BUILD_EVENTS=1. */
 function buildEvent(obj) {
@@ -177,7 +180,7 @@ function countMarkdownFiles(dir) {
 
 // Configuration
 const CONFIG = {
-  contentDir: path.join(__dirname, 'content'),
+  contentDir: folderFromArgs('--content') || path.join(__dirname, 'content'),
   staticDir: path.join(__dirname, 'static'),
   templatesDir: path.join(__dirname, 'templates'),
   distDir: outputDirFromArgs() || path.join(__dirname, 'dist'),
