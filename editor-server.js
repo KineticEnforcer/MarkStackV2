@@ -313,6 +313,10 @@ function isContentRoot(fullPath) {
   return path.resolve(fullPath) === path.resolve(CONFIG.contentDir);
 }
 
+function isDirectory(p) {
+  try { return fs.statSync(p).isDirectory(); } catch (e) { return false; }
+}
+
 /** Reject non-strings and NUL bytes in user supplied relative paths. */
 function isValidRelPath(p) {
   return typeof p === 'string' && p.length > 0 && !p.includes('\0');
@@ -591,6 +595,9 @@ async function handleCreateFolder(req, res) {
       return sendError(res, 403, 'Access denied');
     }
     if (!allowed(req, res, 'create', folderPath)) return;
+    if (parentPath && !isDirectory(path.join(CONFIG.contentDir, parentPath))) {
+      return sendError(res, 404, 'Parent folder not found');
+    }
     
     if (fs.existsSync(fullPath)) {
       return sendError(res, 409, 'Folder already exists');
@@ -633,6 +640,9 @@ async function handleCreateFile(req, res) {
       return sendError(res, 403, 'Access denied');
     }
     if (!allowed(req, res, 'create', filePath)) return;
+    if (parentPath && !isDirectory(path.join(CONFIG.contentDir, parentPath))) {
+      return sendError(res, 404, 'Parent folder not found');
+    }
     
     if (fs.existsSync(fullPath)) {
       return sendError(res, 409, 'File already exists');

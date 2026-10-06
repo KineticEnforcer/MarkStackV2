@@ -211,6 +211,42 @@ test('an editor sees and reaches only the assigned section, enforced on the serv
   assert.equal((await request('GET', '/admin/users', { cookie: s.cookie })).status, 403);
 });
 
+test('new folders and files can be nested at any depth, inside the user\'s own sections only', async () => {
+  const post = (who, route, body) => request('POST', route, { cookie: who.cookie, csrf: who.csrf, body });
+  const ian = await login('ian', EDITOR_PW);
+  const ada = await login('ada', ADMIN_PW);
+  // an editor nests three levels deep inside the assigned section
+  assert.equal((await post(ian, '/api/create-folder', { parentPath: 'it', name: 'guides' })).json.path, 'it/guides');
+  assert.equal((await post(ian, '/api/create-folder', { parentPath: 'it/guides', name: 'setup' })).json.path, 'it/guides/setup');
+  const f = await post(ian, '/api/create-file', { parentPath: 'it/guides/setup', name: 'linux' });
+  assert.equal(f.json.path, 'it/guides/setup/linux.md');
+  assert.ok(fs.existsSync(path.join(CONFIG.contentDir, 'it', 'guides', 'setup', '_index.md')));
+  assert.ok(fs.existsSync(path.join(CONFIG.contentDir, 'it', 'guides', 'setup', 'linux.md')));
+  // the tree shows the nested folders to the editor
+  const tree = await request('GET', '/api/tree', { cookie: ian.cookie });
+  const guides = tree.json[0].children.find(n => n.name === 'guides');
+  assert.equal(guides.children.find(n => n.name === 'setup').type, 'folder');
+  // an editor cannot place anything in another section or at the top level
+  assert.equal((await post(ian, '/api/create-folder', { parentPath: 'marketing', name: 'x' })).status, 404);
+  assert.equal((await post(ian, '/api/create-file', { parentPath: 'marketing', name: 'x' })).status, 404);
+  assert.equal((await post(ian, '/api/create-file', { parentPath: '', name: 'top' })).status, 404);
+  assert.ok(!fs.existsSync(path.join(CONFIG.contentDir, 'marketing', 'x')));
+  // climbing out with .. is refused
+  assert.notEqual((await post(ian, '/api/create-folder', { parentPath: 'it/../marketing', name: 'x' })).status, 200);
+  assert.ok(!fs.existsSync(path.join(CONFIG.contentDir, 'marketing', 'x')));
+  // a parent that does not exist is refused instead of being created silently
+  const missing = await post(ian, '/api/create-file', { parentPath: 'it/not-there', name: 'x' });
+  assert.equal(missing.status, 404);
+  assert.ok(!fs.existsSync(path.join(CONFIG.contentDir, 'it', 'not-there')));
+  const missingAdmin = await post(ada, '/api/create-folder', { parentPath: 'nope/deeper', name: 'x' });
+  assert.equal(missingAdmin.status, 404);
+  assert.ok(!fs.existsSync(path.join(CONFIG.contentDir, 'nope')));
+  // an administrator may create at the top level and in any section
+  assert.equal((await post(ada, '/api/create-folder', { parentPath: '', name: 'ops' })).status, 200);
+  assert.equal((await post(ada, '/api/create-file', { parentPath: 'marketing', name: 'y' })).status, 200);
+  for (const p of ['ops', 'it/guides', 'marketing/y.md']) fs.rmSync(path.join(CONFIG.contentDir, p), { recursive: true, force: true });
+});
+
 test('with the user file locked by another process, a password change fails closed and nothing changes', async () => {
   await users.create({ name: 'lena', role: 'editor', password: 'lena first password 1', sections: ['it'] });
   const s = await login('lena', 'lena first password 1');

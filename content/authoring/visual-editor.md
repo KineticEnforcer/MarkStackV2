@@ -103,17 +103,19 @@ Toggle scroll sync using the button in the toolbar. The button appears highlight
 
 #### Creating Files
 
-1. Right-click a folder in the file tree
-2. Select "New File"
+1. Use the new file button above the file tree, or right-click a folder and choose "New File"
+2. Pick the **Location**: any folder at any depth, shown as a full path such as `guides/setup/`. The folder you right-clicked is selected for you; from the toolbar the folder of the open file is selected
 3. Enter a filename (the `.md` extension is added automatically if omitted)
-4. The new file opens in the editor with basic frontmatter
+4. The new file opens in the editor with basic frontmatter, and its folders open in the tree
 
 #### Creating Folders
 
-1. Right-click the parent folder (or root)
-2. Select "New Folder"
+1. Use the new folder button above the file tree, or right-click a folder and choose "New Folder"
+2. Pick the **Location** the same way, so folders can be nested as deep as you need
 3. Enter a folder name
-4. Create an `_index.md` file inside to define the category
+4. MarkStack creates the folder with an `_index.md` file that defines the category
+
+Administrators can also choose the top level (`/`) as the location. Editors only see the folders inside the sections assigned to them, so they cannot create anything outside those sections.
 
 #### Renaming Items
 
