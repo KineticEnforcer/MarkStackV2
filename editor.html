@@ -428,10 +428,19 @@
     .editor-unsaved.visible {
       display: inline-block;
     }
-    .editor-unsaved[data-state="saving"] { color: var(--color-text-secondary); background-color: var(--color-bg-tertiary, rgba(128,128,128,.2)); }
-    .editor-unsaved[data-state="saved"] { color: #2da44e; background-color: rgba(45,164,78,.14); }
-    [data-theme="light"] .editor-unsaved[data-state="saved"] { color: #1a7f37; }
-    .editor-unsaved[data-state="error"] { color: #fff; background-color: #d9534f; cursor: pointer; max-width: 46ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .editor-unsaved { flex-shrink: 0; white-space: nowrap; }
+    .editor-unsaved[data-state="saving"], .editor-unsaved[data-state="saved"] { color: var(--color-text-primary); background-color: var(--color-bg-tertiary, rgba(128,128,128,.2)); }
+    .editor-unsaved[data-state="saved"]::before { content: '\2713\00a0'; color: #2da44e; font-weight: 700; }
+    [data-theme="light"] .editor-unsaved[data-state="saved"]::before { color: #1a7f37; }
+    .editor-unsaved[data-state="error"] { color: #fff; background-color: #b42318; cursor: pointer; }
+    .editor-file-path { min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .editor-file-path .path-segment { white-space: nowrap; }
+    .save-error { display: flex; align-items: flex-start; gap: var(--space-sm); padding: 8px var(--space-md); background: rgba(180,35,24,.14); border-bottom: 1px solid #b42318; border-left: 3px solid #b42318; font-size: var(--font-size-sm); color: var(--color-text-primary); }
+    .save-error[hidden] { display: none; }
+    .save-error-text { flex: 1; min-width: 0; overflow-wrap: anywhere; max-height: 4.5em; overflow: auto; }
+    .save-error .editor-btn { flex-shrink: 0; }
+    .scroll-sync-btn { flex-shrink: 0; white-space: nowrap; }
+    @media (max-width: 640px) { .save-error { flex-wrap: wrap; } .save-error-text { flex: 1 1 100%; max-height: 9em; } }
     #save-btn[aria-busy="true"] { opacity: .7; cursor: progress; }
     
     .editor-toolbar-right {
@@ -1328,6 +1337,11 @@
           </button>
         </div>
       </div>
+      <div class="save-error" id="save-error" role="alert" hidden>
+        <span class="save-error-text" id="save-error-text"></span>
+        <button type="button" class="editor-btn" id="save-error-retry">Retry</button>
+        <button type="button" class="editor-btn" id="save-error-dismiss" aria-label="Dismiss">Dismiss</button>
+      </div>
       
       <div class="editor-content">
         <!-- Empty state when no file selected -->
@@ -1500,8 +1514,6 @@
       let currentFilePath = null;
       
       /** @type {string} Original content when file was loaded (for unsaved detection) */
-      let originalContent = '';
-      
       /** @type {boolean} Whether there are unsaved changes in the editor */
       let hasUnsavedChanges = false;
       
@@ -2090,10 +2102,8 @@
           }
           
           currentFilePath = filePath;
-          saveState = 'idle'; saveQueued = false; saveSeq++; saveBtn.removeAttribute('aria-busy');
-          originalContent = data.content;
           markdownInput.value = data.content;
-          hasUnsavedChanges = false;
+          saver.load(filePath, data.content);
           
           // Reset scroll positions to top
           markdownInput.scrollTop = 0;
@@ -2122,50 +2132,91 @@
        * Save the current file to the server.
        * Updates the original content reference on success.
        */
-      let saveState = 'idle';      // idle | saving | saved | error
-      let saveErrorText = '';
-      let saveQueued = false;
-      let saveSeq = 0;
-      async function saveFile() {
-        if (!currentFilePath) return;
-        if (saveState === 'saving') { saveQueued = true; return; }
-        const path = currentFilePath;
-        const sent = markdownInput.value;
-        if (sent === originalContent && saveState !== 'error') { saveState = 'saved'; updateUnsavedIndicator(); return; }
-        const seq = ++saveSeq;
-        saveState = 'saving'; saveErrorText = '';
-        saveBtn.setAttribute('aria-busy', 'true');
-        updateUnsavedIndicator();
-        let failure = '';
+      // <save-controller>
+      /**
+       * Save state machine. No DOM access: the page supplies the current text,
+       * a post() that resolves {ok, error}, and a change callback.
+       * "saved" is set only after post() reports success for the exact text sent.
+       */
+      function createSaveController(deps) {
+        let path = null, original = '', state = 'idle', error = '', queued = false, seq = 0, dirty = false;
+        function view() { return { state: state, error: error, dirty: dirty, path: path }; }
+        function notify() { deps.onChange(view()); }
+        const api = {
+          view: view,
+          load: function (p, text) { path = p; original = text; state = 'idle'; error = ''; queued = false; seq++; dirty = false; notify(); },
+          input: function () {
+            dirty = path !== null && deps.getText() !== original;
+            if (state === 'saved' && dirty) state = 'idle';
+            notify();
+          },
+          dismissError: function () { if (state === 'error') { state = 'idle'; error = ''; notify(); } },
+          save: async function () {
+            if (path === null) return;
+            if (state === 'saving') { queued = true; return; }
+            const sentPath = path, sent = deps.getText();
+            if (sent === original && state !== 'error') { if (state !== 'saved') { state = 'saved'; notify(); } return; }
+            const mySeq = ++seq;
+            state = 'saving'; error = '';
+            notify();
+            let result;
+            try { result = await deps.post(sentPath, sent); }
+            catch (e) { result = { ok: false, error: 'Could not reach the server' }; }
+            if (mySeq !== seq || sentPath !== path) return;   // another file was opened meanwhile
+            if (!result || !result.ok) {
+              state = 'error'; error = (result && result.error) || 'Unknown error'; queued = false;
+              dirty = deps.getText() !== original;
+              notify();
+              return;
+            }
+            original = sent;                                   // only the text the server confirmed
+            dirty = deps.getText() !== original;
+            state = dirty ? 'idle' : 'saved';
+            notify();
+            if (queued) { queued = false; if (dirty) return api.save(); }
+          }
+        };
+        return api;
+      }
+      // </save-controller>
+
+      async function postFile(path, content) {
         try {
           const res = await fetch('/api/file', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ path: path, content: sent })
+            body: JSON.stringify({ path: path, content: content })
           });
           let data = null;
           try { data = await res.json(); } catch (e) { /* not JSON */ }
-          if (res.status === 401) failure = 'Your session expired. Sign in again; your text is still here.';
-          else if (!res.ok || !data || data.error || data.success !== true) failure = (data && data.error) || ('Server answered ' + res.status);
+          if (res.status === 401) return { ok: false, error: 'Your session expired. Sign in again; your text is still in the editor.' };
+          if (!res.ok || !data || data.error || data.success !== true) return { ok: false, error: (data && data.error) || ('The server answered ' + res.status + '.') };
+          return { ok: true };
         } catch (err) {
           console.error('Failed to save file:', err);
-          failure = 'Could not reach the server';
+          return { ok: false, error: 'Could not reach the server. Check your connection and try again.' };
         }
-        saveBtn.removeAttribute('aria-busy');
-        if (path !== currentFilePath || seq !== saveSeq) { saveState = 'idle'; updateUnsavedIndicator(); return; }
-        if (failure) {
-          saveState = 'error'; saveErrorText = failure;
-          saveQueued = false;
-        } else {
-          // The server confirmed exactly the text we sent. Text typed while the
-          // request was running stays unsaved.
-          originalContent = sent;
-          hasUnsavedChanges = markdownInput.value !== originalContent;
-          saveState = 'saved';
-        }
-        updateUnsavedIndicator();
-        if (!failure && saveQueued) { saveQueued = false; if (hasUnsavedChanges) saveFile(); }
       }
+
+      let publishNote = '';
+      const saver = createSaveController({
+        getText: function () { return markdownInput.value; },
+        post: postFile,
+        onChange: function (v) {
+          const was = hasUnsavedChanges;
+          hasUnsavedChanges = v.dirty;
+          saveBtn.setAttribute('aria-busy', v.state === 'saving' ? 'true' : 'false');
+          if (v.state === 'saved' && window.msPublishState) {
+            const forPath = v.path;
+            publishNote = '';
+            window.msPublishState().then(function (u) {
+              if (saver.view().state === 'saved' && saver.view().path === forPath) { publishNote = u === true ? ' (not published yet)' : ''; renderSaveStatus(); }
+            }).catch(function () {});
+          } else if (v.state !== 'saved') publishNote = '';
+          renderSaveStatus();
+        }
+      });
+      function saveFile() { return saver.save(); }
       
       // =========================================================================
       // UI Update Functions
@@ -2334,20 +2385,22 @@
       /**
        * Show or hide the unsaved changes indicator.
        */
-      function updateUnsavedIndicator() {
-        let text = '', state = '', show = true;
-        if (saveState === 'saving') { text = 'Saving...'; state = 'saving'; }
-        else if (saveState === 'error') { text = 'Not saved: ' + saveErrorText; state = 'error'; }
-        else if (hasUnsavedChanges) { text = 'Unsaved'; state = 'unsaved'; }
-        else if (saveState === 'saved') {
-          const canPublish = typeof publishBtn !== 'undefined' && publishBtn && !publishBtn.hidden;
-          text = canPublish ? 'Saved, not published yet' : 'Saved'; state = 'saved';
-        } else show = false;
+      function renderSaveStatus() {
+        const v = saver.view();
+        let text = '', state = '';
+        if (v.state === 'saving') { text = 'Saving...'; state = 'saving'; }
+        else if (v.state === 'error') { text = 'Not saved'; state = 'error'; }
+        else if (v.dirty) { text = 'Unsaved'; state = 'unsaved'; }
+        else if (v.state === 'saved') { text = 'Saved' + publishNote; state = 'saved'; }
         unsavedIndicator.textContent = text;
         unsavedIndicator.dataset.state = state;
-        unsavedIndicator.title = state === 'saved' ? 'Saved to the server. The live docs update only after Publish Changes.' : (state === 'error' ? 'Click to try saving again' : '');
-        unsavedIndicator.classList.toggle('visible', show);
+        unsavedIndicator.title = state === 'error' ? 'Click to try saving again' : (state === 'saved' ? 'Saved on the server. The live docs change only after Publish Changes.' : '');
+        unsavedIndicator.classList.toggle('visible', !!state);
+        const box = document.getElementById('save-error');
+        box.hidden = v.state !== 'error';
+        document.getElementById('save-error-text').textContent = v.state === 'error' ? 'Not saved: ' + v.error + ' Your changes are still in the editor.' : '';
       }
+      function updateUnsavedIndicator() { renderSaveStatus(); }
       
       // =========================================================================
       // Editor Event Handlers
@@ -2358,8 +2411,7 @@
        * Updates all related UI components on each keystroke.
        */
       markdownInput.addEventListener('input', function() {
-        hasUnsavedChanges = markdownInput.value !== originalContent;
-        if (saveState === 'saved' && hasUnsavedChanges) saveState = 'idle';
+        saver.input();
         updatePreview();
         updateLineNumbers();
         updateSyntaxHighlight();
@@ -2443,7 +2495,9 @@
       
       // Toolbar button handlers
       saveBtn.addEventListener('click', saveFile);
-      unsavedIndicator.addEventListener('click', function() { if (saveState === 'error') saveFile(); });
+      unsavedIndicator.addEventListener('click', function() { if (saver.view().state === 'error') saveFile(); });
+      document.getElementById('save-error-retry').addEventListener('click', saveFile);
+      document.getElementById('save-error-dismiss').addEventListener('click', function() { saver.dismissError(); });
 
       // =========================================================================
       // Publish Changes (administrators): rebuild the site and switch it in
@@ -2480,6 +2534,10 @@
             .then(function (r) { return r.json().catch(function () { return {}; }).then(function (b) { return { status: r.status, body: b }; }); });
         }
         function show(el, on) { el.hidden = !on; }
+        window.msPublishState = function () {
+          if (btn.hidden) return Promise.resolve(null);
+          return api('GET', '/api/publish/status').then(function (r) { if (r.status !== 200) return null; show(dot, !!r.body.unpublished && r.body.state !== 'running'); return r.body.unpublished === true ? true : (r.body.unpublished === false ? false : null); });
+        };
         function openModal() { ov.classList.add('visible'); }
         function closeModal() { ov.classList.remove('visible'); if (timer) { clearTimeout(timer); timer = null; } }
 
