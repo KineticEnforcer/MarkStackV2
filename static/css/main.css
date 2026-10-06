@@ -153,6 +153,7 @@
 }
 
 html {
+  background-color: var(--color-bg-primary);
   font-size: 16px;
   scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;

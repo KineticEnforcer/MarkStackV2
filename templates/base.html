@@ -8,6 +8,16 @@
       var theme = 'dark';
       try { theme = localStorage.getItem('theme') || 'dark'; } catch (e) {}
       document.documentElement.setAttribute('data-theme', theme);
+      // Tell the browser which scheme the page uses, so the canvas is dark from the first frame
+      var cs = document.createElement('meta');
+      cs.name = 'color-scheme';
+      cs.content = theme === 'light' ? 'light' : 'dark';
+      document.head.appendChild(cs);
+      // Web fonts: a stylesheet added by script does not hold back the first paint
+      var fl = document.createElement('link');
+      fl.rel = 'stylesheet';
+      fl.href = 'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap';
+      document.head.appendChild(fl);
     })();
   </script>
   <script>
@@ -20,17 +30,23 @@
       }
     })();
   </script>
+  <style>
+    /* Background shown before the stylesheets arrive; main.css takes over with the theme variables */
+    :where(html[data-theme="dark"]) { background-color: #0f1218; }
+    :where(html[data-theme="light"]) { background-color: #ffffff; }
+  </style>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="description" content="{{description}}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Fonts are added by the script above, so they never block the first paint; without JavaScript this normal link is used -->
+  <noscript><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
   <meta property="og:title" content="{{title}} | {{siteTitle}}">
   <meta property="og:description" content="{{description}}">
   <meta property="og:url" content="{{url}}">
   <meta property="og:type" content="website">
   <title>{{title}} | {{siteTitle}}</title>
-  <link rel="stylesheet" href="{{baseUrl}}/css/main.css?v=14">
+  <link rel="stylesheet" href="{{baseUrl}}/css/main.css?v=15">
   <link rel="stylesheet" href="{{baseUrl}}/css/hljs-theme.css?v=7">
   <link rel="icon" href="{{baseUrl}}/svg/logo.svg" type="image/svg+xml">
 </head>
