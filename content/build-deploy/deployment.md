@@ -31,8 +31,10 @@ Every page is a folder containing `index.html`. A page is linked as `/getting-st
 2. Copy the `dist` folder to the server. Any copy method works: `rsync`, `scp`, SFTP, a control panel upload, or a zip file you unpack there.
 
 ```bash
-rsync -av --delete dist/ user@your-server:/srv/knowledge-base/dist/
+rsync -av dist/ user@your-server:/srv/knowledge-base/dist/
 ```
+
+The trailing slashes matter: they copy the contents of `dist/` into the target folder. Use a folder that holds only this site. Add `--dry-run` first to see what would change. Add `--delete` only when the target folder is dedicated to the site, because it removes every file in the target that is not in `dist/`.
 
 3. Point a web server at that folder, as in the nginx and Caddy examples below, or any other server that serves `index.html` for a folder.
 4. Open the address and check the home page, a deep page, search and a made-up URL.
@@ -42,7 +44,7 @@ Rules for a portable copy:
 - **Serve it over HTTP.** Open it through a web server, not by double-clicking `index.html`. Links start with `/` and point to folders, which a `file://` address cannot resolve. For a quick local look, run `npm run serve` on the build machine, or any static file server on the copied folder.
 - **Root or sub-folder is decided at build time.** The default build expects the site at the root of its host name. To serve it at a path such as `/docs/`, set `baseUrl` before building and copy that build. Moving a finished build into a sub-folder later breaks its links. See [Sub-folder hosting](#sub-folder-hosting).
 - **Set `siteUrl` before you build** for the address the copy will have, since it is written into each page.
-- **Updating is another build and copy.** Copy the new `dist` over the old one, or into a new folder, and switch the server to it. With `rsync --delete` removed pages disappear from the server too.
+- **Updating is another build and copy.** Copy the new `dist` over the old one, or into a new folder, and switch the server to it. Without `--delete`, pages you removed stay on the server until you delete them.
 - **No editor on the public server.** The editor is a separate Node.js program. You can run it on another machine and copy its `dist` output, or not run it at all and build from Markdown files. See [Team Server Setup](/build-and-deploy/team-server-setup/).
 
 ## Before you deploy

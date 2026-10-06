@@ -71,7 +71,7 @@ Spacing uses `--space-xs` to `--space-2xl`.
 
 ## Logo and icon
 
-The logo in the header and the browser tab icon are both `static/svg/logo.svg`. Replace the file with your own SVG, keeping the file name. It is shown at 32 by 32 pixels. Header links have their own icons, see [Header Links](/editing-and-admin/header-links/).
+The logo in the header and the browser tab icon are both `static/svg/logo.svg`. Replace the file with your own SVG, keeping the file name. The header shows it at 24 by 24 pixels. Header links have their own icons, see [Header Links](/editing-and-admin/header-links/).
 
 ## Code highlighting
 

@@ -15,7 +15,7 @@ MarkStack uses the CommonMark flavor of Markdown with a few well-known additions
 #### A smaller one
 ```
 
-Use one `#` heading at the top of a page, then `##` for sections. Every heading gets an anchor: hover it and click the `#` that appears to copy a link to that spot. The anchor is the heading in lowercase with spaces and punctuation turned into dashes, so `## Getting started` links as `#getting-started`.
+Use one `#` heading at the top of a page, then `##` for sections. Every heading gets an anchor: hover it and click the `#` that appears to jump to that spot and put its link in the address bar. The anchor is the heading in lowercase with every run of characters other than A to Z, digits and underscore turned into one dash, so `## Getting started` links as `#getting-started`. Accented letters and non-Latin scripts count as those other characters: `## Café über` becomes `#caf-ber`, and a heading with no Latin letters gets only dashes. Give such headings some plain text if you link to them.
 
 The right-hand **On this page** list shows the `##` headings. Search indexes `##`, `###` and `####` headings, so readers can jump straight to a subsection.
 

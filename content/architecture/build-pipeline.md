@@ -29,7 +29,7 @@ Doing this first means every page and the sidebar agree on addresses. See [Conte
 
 For each Markdown file:
 
-1. The YAML frontmatter is parsed. Invalid YAML stops the build with the file and line.
+1. The YAML frontmatter is parsed. Invalid YAML stops the build with the YAML error and its line and column inside the frontmatter. The message does not name the file, so check the page you changed last.
 2. The Markdown is rendered with `markdown-it`, with anchors on headings, footnotes, task lists, and highlighted code with a copy button. Mermaid blocks are kept as text for the browser to draw.
 3. The page gets a breadcrumb trail, the sidebar with its current page marked, an "On this page" list built from the `##` headings, an updated date and a reading time, and previous and next links.
 4. The result is put into `templates/base.html` and written to `<url>/index.html`.

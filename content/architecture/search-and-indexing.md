@@ -23,7 +23,7 @@ For every page the build adds:
 
 A section result links straight to its heading, so readers land on the right part of a long page.
 
-Not indexed: code blocks and diagrams, because they are rarely what people search in prose. Titles of the folders above a page are used as extra context.
+Not indexed: fenced code blocks and diagrams, because they are rarely what people search in prose. Inline code inside a sentence is indexed like any other text. Titles of the folders above a page are used as extra context.
 
 ## How results are ranked
 
@@ -46,6 +46,6 @@ Matched words are highlighted in titles and excerpts.
 ## Limits
 
 - No stemming or synonyms, apart from the start-of-word and typo matching above.
-- Code is not searchable.
+- Text inside fenced code blocks is not searchable.
 - The index is rebuilt with the site. Changes to a page appear in search after the next build or publish.
 - All the work happens on the reader's device. Very large sites send a large index file.

@@ -102,7 +102,7 @@ Check that the code fence names a language that highlight.js knows, such as `jav
 ### Search finds nothing
 
 - The site was not rebuilt after you added the page.
-- You are searching for code. Code blocks are not indexed.
+- You are searching for text that only appears in a fenced code block. Those are not indexed.
 - `search-index.json` is missing from the output or not served. Open it in the browser.
 
 ### Ctrl+K does nothing
@@ -125,7 +125,7 @@ Upload or build again, then clear the host's cache. If you use the editor, remem
 
 ### I cannot sign in
 
-- After five failed attempts sign-in is blocked for 15 minutes.
+- Repeated failed attempts block sign-in for 15 minutes. Five failures for one account from one address is enough. See [Security](/editing-and-admin/security/).
 - Lost the administrator password? Run `npm run editor:reset-admin -- --user NAME` on the server. See [Users and Roles](/editing-and-admin/users-and-roles/).
 - Behind a reverse proxy, "Host not allowed" means the public host name is missing from `MARKSTACK_EDITOR_ALLOWED_HOSTS`.
 

@@ -117,7 +117,7 @@ Building this documentation, a few dozen pages, takes roughly half a second on a
 
 ### Can it handle a large site?
 
-It suits hundreds of pages well. Beyond that the search index file and the build time grow in step with your content.
+I have not measured sites of that size. The documentation site here has about 40 pages. Build time and the size of the search index file both grow with the number of pages, so test a copy of your own content.
 
 ## Limits
 

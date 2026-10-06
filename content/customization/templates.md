@@ -22,7 +22,7 @@ Every page on the site, including the home page and the 404 page, is made from o
 | `{{content}}` | The rendered page |
 | `{{prevNext}}` | Previous and next page cards |
 | `{{toc}}` | The "On this page" list |
-| `{{pageClass}}` | An extra class on the main layout for some page types |
+| `{{pageClass}}` | `is-homepage` on the home page, empty on other pages |
 | `{{copyrightText}}` | The `copyrightText` setting. The default template does not use it |
 
 Use `{{baseUrl}}` in front of every local link or file in the template, so a site in a sub-folder keeps working:
@@ -62,7 +62,7 @@ If you never use diagrams, delete the `<script type="module">` block that import
 
 - Keep each placeholder exactly as written, with double braces.
 - Do not remove `{{sidebar}}`, `{{content}}` or `{{title}}` unless you are sure. The site depends on them.
-- Keep the version numbers on the CSS and JavaScript links (`?v=21`), and raise them when you change those files, so browsers fetch the new copy.
+- Keep the version numbers on the CSS and JavaScript links (such as `?v=21`; each file has its own), and raise one when you change those files, so browsers fetch the new copy.
 - After a change, run a build and open a normal page, the home page and the 404 page.
 
 ## Limits
