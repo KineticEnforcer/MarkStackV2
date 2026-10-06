@@ -54,8 +54,8 @@ Use GitHub-style alerts for callouts:
 
 ## Links
 
-Link to other pages using relative URLs based on their title-slug:
-- [Another Article](/category-name/another-article)
+Link to other pages with absolute paths built from their titles:
+- [Another Article](/category-title/another-article)
 - [External Link](https://example.com)
 
 ## Tables

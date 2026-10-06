@@ -1,467 +1,134 @@
 ---
 title: Deployment Guide
-description: Deploy your MarkStack site to Netlify, Vercel, GitHub Pages, Cloudflare Pages, or self-host with nginx and Apache.
+description: Host a MarkStack site on a static host or your own web server, with sub-folder, caching and 404 notes.
 ---
 
 # Deployment Guide
 
-MarkStack generates a static site that can be deployed anywhere static files are served. This guide covers deployment to popular platforms and self-hosting options.
+The output of `npm run build` is the `dist/` folder. Deploying means putting that folder where a web server can serve it. Nothing in it needs Node.js at run time.
 
-## Pre-Deployment Checklist
+## What is in dist
 
-Before deploying, verify your site is ready:
-
-- [ ] Site builds without errors: `npm run build`
-- [ ] All pages render correctly in local preview
-- [ ] Search functionality works
-- [ ] Navigation is correct
-- [ ] `siteconfig.json` has the correct `siteUrl` for production
-- [ ] Images and links work
-
-### Update Site URL
-
-Edit `siteconfig.json` and set the production URL:
-
-```json
-{
-  "siteUrl": "https://docs.yoursite.com"
-}
+```text
+dist/
+  index.html            home page
+  404.html              not found page
+  search-index.json     data for search
+  css/  js/  svg/  images/
+  getting-started/
+    index.html          each page is a folder with an index.html
+    installation/
+      index.html
 ```
 
-This URL is used in OpenGraph meta tags for social sharing. Rebuild after changing.
+Every page is a folder containing `index.html`. A page is linked as `/getting-started/installation` and a section as `/getting-started/`. Any server that serves a directory's `index.html` handles both, with no rewrite rules. Most servers redirect the form without the slash to the one with it.
 
-## Netlify
+## The portable copy: dist on any web server
 
-Netlify offers free hosting for static sites with automatic deployments from Git.
+`dist/` is the whole public site. It is plain HTML, CSS, JavaScript, images and one JSON file, so you can build once and run the folder anywhere. The server does not need Node.js, npm, the source repository or the editor.
 
-### Deploy from Git (Recommended)
-
-1. Push your project to GitHub, GitLab, or Bitbucket
-2. Sign in to [Netlify](https://app.netlify.com/)
-3. Click "Add new site" and select "Import an existing project"
-4. Connect your Git provider and select your repository
-5. Configure build settings:
-   - **Build command**: `npm run build`
-   - **Publish directory**: `dist`
-6. Click "Deploy site"
-
-Netlify will build and deploy automatically on every push to your main branch.
-
-### Create netlify.toml
-
-For consistent builds, add a `netlify.toml` file to your project root:
-
-```toml
-[build]
-  command = "npm run build"
-  publish = "dist"
-
-[build.environment]
-  NODE_VERSION = "24"
-
-# Redirect rules for clean URLs
-[[redirects]]
-  from = "/*"
-  to = "/404.html"
-  status = 404
-```
-
-### Manual Deploy with CLI
-
-For one-time deploys without Git:
+1. Build on any machine: `npm run build`.
+2. Copy the `dist` folder to the server. Any copy method works: `rsync`, `scp`, SFTP, a control panel upload, or a zip file you unpack there.
 
 ```bash
-# Install Netlify CLI
-npm install -g netlify-cli
-
-# Login to Netlify
-netlify login
-
-# Build your site
-npm run build
-
-# Deploy to production
-netlify deploy --prod --dir=dist
+rsync -av dist/ user@your-server:/srv/knowledge-base/dist/
 ```
 
-### Custom Domain
+The trailing slashes matter: they copy the contents of `dist/` into the target folder. Use a folder that holds only this site. Add `--dry-run` first to see what would change. Add `--delete` only when the target folder is dedicated to the site, because it removes every file in the target that is not in `dist/`.
 
-1. Go to Site settings in Netlify
-2. Click "Domain management"
-3. Add your custom domain
-4. Follow DNS configuration instructions
-5. Enable HTTPS (automatic with Let's Encrypt)
+3. Point a web server at that folder, as in the nginx and Caddy examples below, or any other server that serves `index.html` for a folder.
+4. Open the address and check the home page, a deep page, search and a made-up URL.
 
-## Vercel
+Rules for a portable copy:
 
-Vercel provides fast global hosting with Git integration.
+- **Serve it over HTTP.** Open it through a web server, not by double-clicking `index.html`. Links start with `/` and point to folders, which a `file://` address cannot resolve. For a quick local look, run `npm run serve` on the build machine, or any static file server on the copied folder.
+- **Root or sub-folder is decided at build time.** The default build expects the site at the root of its host name. To serve it at a path such as `/docs/`, set `baseUrl` before building and copy that build. Moving a finished build into a sub-folder later breaks its links. See [Sub-folder hosting](#sub-folder-hosting).
+- **Set `siteUrl` before you build** for the address the copy will have, since it is written into each page.
+- **Updating is another build and copy.** Copy the new `dist` over the old one, or into a new folder, and switch the server to it. Without `--delete`, pages you removed stay on the server until you delete them.
+- **No editor on the public server.** The editor is a separate Node.js program. You can run it on another machine and copy its `dist` output, or not run it at all and build from Markdown files. See [Team Server Setup](/build-and-deploy/team-server-setup/).
 
-### Deploy from Git
+## Before you deploy
 
-1. Push your project to GitHub, GitLab, or Bitbucket
-2. Sign in to [Vercel](https://vercel.com/)
-3. Click "Add New Project"
-4. Import your repository
-5. Configure settings:
-   - **Framework Preset**: Other
-   - **Build Command**: `npm run build`
-   - **Output Directory**: `dist`
-6. Click "Deploy"
+1. Set `siteUrl` in `siteconfig.json` to the address the site will have. It is used for the page address in social previews. See [Site Config](/configuration/site-config/).
+2. Set `baseUrl` only if the site lives in a sub-folder. Leave it empty otherwise.
+3. Run `npm test` and `npm run build`, and open the result with `npm run serve`.
 
-### Create vercel.json
+## A static host
 
-Add a `vercel.json` file for configuration:
+Any host that serves a folder of files works. The pattern is the same everywhere:
 
-```json
-{
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "routes": [
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/404.html", "status": 404 }
-  ]
-}
-```
+| Setting | Value |
+|---------|-------|
+| Build command | `npm run build` |
+| Output folder | `dist` |
+| Node.js version | 24 or newer |
 
-### Manual Deploy with CLI
+Many hosts can build for you from a Git repository with those settings. Others take an upload.
 
-```bash
-# Install Vercel CLI
-npm install -g vercel
+### Cloudflare Pages
 
-# Login
-vercel login
+Cloudflare Pages can build from a connected Git repository using the table above. It can also take a prebuilt folder with direct upload. At the time of writing, the Cloudflare documentation lists these limits for direct upload: a drag and drop upload accepts up to 1,000 files and 25 MiB per file, while Wrangler uploads a folder of up to 20,000 files. Check the current documentation before you rely on them.
 
-# Build
-npm run build
+Cloudflare serves `404.html` for unknown paths on its own. See the [direct upload guide](https://developers.cloudflare.com/pages/get-started/direct-upload/).
 
-# Deploy (follow prompts)
-vercel --prod
-```
+## Your own server
 
-## GitHub Pages
+Serve `dist/` with any web server. These two examples use placeholders. Replace the host name and paths.
 
-GitHub Pages hosts static sites directly from your repository.
-
-### Using GitHub Actions (Recommended)
-
-1. Create `.github/workflows/deploy.yml`:
-
-```yaml
-name: Deploy to GitHub Pages
-
-on:
-  push:
-    branches: [main]
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build
-        run: npm run build
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./dist
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-```
-
-2. In your repository settings, go to Pages
-3. Under "Build and deployment", select "GitHub Actions"
-4. Push to main branch to trigger deployment
-
-### GitHub Pages URL
-
-Your site will be available at:
-
-- Organization/user site: `https://username.github.io/`
-- Project site: `https://username.github.io/repository-name/`
-
-For project sites, you may need to update base URLs in your config.
-
-## Cloudflare Pages
-
-Cloudflare Pages offers fast global hosting with Git integration.
-
-### Deploy from Git
-
-1. Sign in to [Cloudflare Dashboard](https://dash.cloudflare.com/)
-2. Go to Workers and Pages
-3. Click "Create application" then "Pages"
-4. Connect to Git and select your repository
-5. Configure build settings:
-   - **Framework preset**: None
-   - **Build command**: `npm run build`
-   - **Build output directory**: `dist`
-6. Click "Save and Deploy"
-
-### Create wrangler.toml
-
-For Cloudflare-specific configuration:
-
-```toml
-name = "your-site-name"
-pages_build_output_dir = "dist"
-```
-
-## Self-Hosting
-
-For complete control, host the static files yourself.
-
-### nginx Configuration
+### nginx
 
 ```nginx
 server {
     listen 80;
-    server_name docs.yoursite.com;
-    
-    # Redirect to HTTPS
-    return 301 https://$server_name$request_uri;
-}
-
-server {
-    listen 443 ssl http2;
-    server_name docs.yoursite.com;
-    
-    # SSL certificates (use Let's Encrypt)
-    ssl_certificate /etc/letsencrypt/live/docs.yoursite.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/docs.yoursite.com/privkey.pem;
-    
-    root /var/www/docs.yoursite.com;
+    server_name docs.example.com;
+    root /srv/knowledge-base/dist;
     index index.html;
-    
-    # Clean URLs
+
     location / {
-        try_files $uri $uri/ $uri/index.html =404;
+        try_files $uri $uri/ =404;
     }
-    
-    # Custom 404 page
+
     error_page 404 /404.html;
-    
-    # Cache static assets
-    location ~* \.(css|js|svg|png|jpg|jpeg|gif|ico|woff2)$ {
-        expires 1y;
-        add_header Cache-Control "public, immutable";
-    }
-    
-    # Security headers
-    add_header X-Content-Type-Options nosniff;
-    add_header X-Frame-Options DENY;
-    add_header X-XSS-Protection "1; mode=block";
 }
 ```
 
-### Apache Configuration
+### Caddy
 
-Create a `.htaccess` file in your document root:
-
-```apache
-# Enable rewrite engine
-RewriteEngine On
-
-# Redirect HTTP to HTTPS
-RewriteCond %{HTTPS} off
-RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
-
-# Clean URLs
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteCond %{REQUEST_FILENAME}/index.html -f
-RewriteRule ^(.*)$ $1/index.html [L]
-
-# Custom 404
-ErrorDocument 404 /404.html
-
-# Cache static assets
-<IfModule mod_expires.c>
-    ExpiresActive On
-    ExpiresByType text/css "access plus 1 year"
-    ExpiresByType application/javascript "access plus 1 year"
-    ExpiresByType image/svg+xml "access plus 1 year"
-    ExpiresByType image/png "access plus 1 year"
-    ExpiresByType image/jpeg "access plus 1 year"
-</IfModule>
-
-# Security headers
-<IfModule mod_headers.c>
-    Header set X-Content-Type-Options "nosniff"
-    Header set X-Frame-Options "DENY"
-    Header set X-XSS-Protection "1; mode=block"
-</IfModule>
-```
-
-### Caddy Configuration
-
-Caddy provides automatic HTTPS:
-
-```
-docs.yoursite.com {
-    root * /var/www/docs.yoursite.com
+```text
+docs.example.com {
+    root * /srv/knowledge-base/dist
     file_server
-    
-    # Clean URLs
-    try_files {path} {path}/ {path}/index.html
-    
-    # Custom 404
     handle_errors {
         rewrite * /404.html
         file_server
     }
-    
-    # Cache headers
-    @static {
-        path *.css *.js *.svg *.png *.jpg *.jpeg *.gif *.woff2
-    }
-    header @static Cache-Control "public, max-age=31536000, immutable"
 }
 ```
 
-### Deploying to Self-Hosted Server
+Check them with `nginx -t` or `caddy validate` before you reload. Both examples assume you add HTTPS the way your server normally does. Caddy does this by itself for a public host name.
 
-```bash
-# Build locally
-npm run build
+## Updating the site
 
-# Copy to server (example using rsync)
-rsync -avz --delete dist/ user@server:/var/www/docs.yoursite.com/
+- **From Git:** pull, run `npm run build`, and the web server serves the new `dist/`. The build deletes and recreates `dist/`, so a visitor can hit a short gap. Build into another folder with `--out` and swap it in if that matters.
+- **From the editor:** an administrator clicks Publish Changes. It builds into a temporary folder, checks it and switches it in. See [Publishing](/editing-and-admin/publishing/).
 
-# Or using SCP
-scp -r dist/* user@server:/var/www/docs.yoursite.com/
-```
+If you deploy by uploading `dist/` to a host, remember that the editor's Publish Changes only updates the folder on the editor's own server. Upload that folder again to update the public host.
 
-## Docker Deployment
+## Sub-folder hosting
 
-### Create Dockerfile
+To serve the site at `https://example.com/docs/`, set `"baseUrl": "/docs"` in `siteconfig.json` and rebuild. Links in the template follow it. Links and images you write in Markdown do not, so include the `/docs` prefix in them. See [Media and Links](/authoring-content/media-and-links/).
 
-```dockerfile
-FROM node:24-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
+## Caching
 
-FROM nginx:alpine
-COPY --from=builder /app/dist /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
-```
+CSS and JavaScript file names stay the same between builds, and the templates add a version number to them. If readers see old styles after an update, a cached file is the usual reason. Set a short cache lifetime on `css/` and `js/`, or purge your CDN after each deploy.
 
-### Create nginx.conf
+## Third-party requests
 
-```nginx
-server {
-    listen 80;
-    root /usr/share/nginx/html;
-    index index.html;
-    
-    location / {
-        try_files $uri $uri/ $uri/index.html =404;
-    }
-    
-    error_page 404 /404.html;
-}
-```
+Pages load IBM Plex fonts from Google Fonts and Mermaid from jsDelivr. See [Security](/editing-and-admin/security/) for what that means and how to turn it off.
 
-### Build and Run
+## Checklist
 
-```bash
-docker build -t markstack-docs .
-docker run -p 8080:80 markstack-docs
-```
-
-## CDN Configuration
-
-For better performance, serve assets through a CDN:
-
-### Recommended CDN Settings
-
-| Asset Type | Cache Duration |
-|------------|----------------|
-| HTML files | 1 hour or less |
-| CSS files | 1 year |
-| JavaScript | 1 year |
-| Images | 1 year |
-| Fonts | 1 year |
-
-### Cache Invalidation
-
-Since MarkStack rebuilds everything on each build, use cache-busting only for HTML. CSS and JS can be cached long-term because they do not change frequently.
-
-## Performance Optimization
-
-### Compression
-
-Enable gzip or brotli compression on your server:
-
-**nginx:**
-```nginx
-gzip on;
-gzip_types text/html text/css application/javascript application/json image/svg+xml;
-```
-
-**Apache:**
-```apache
-<IfModule mod_deflate.c>
-    AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json image/svg+xml
-</IfModule>
-```
-
-### HTTP/2
-
-Enable HTTP/2 for parallel asset loading:
-
-- Netlify, Vercel, Cloudflare: Enabled by default
-- nginx: `listen 443 ssl http2;`
-- Apache: `Protocols h2 http/1.1`
-
-## Post-Deployment Verification
-
-After deploying, verify:
-
-- [ ] Homepage loads correctly
-- [ ] Navigation works on all pages
-- [ ] Search returns results
-- [ ] Theme toggle works
-- [ ] Code blocks display correctly
-- [ ] External links open correctly
-- [ ] 404 page shows for invalid URLs
-- [ ] HTTPS is working (no mixed content warnings)
-
-> [!TIP]
-> Use browser developer tools to check for console errors and network issues after deployment.
+- [ ] `siteUrl` and `baseUrl` are right for the final address
+- [ ] `npm test` passes and the build finishes without errors
+- [ ] The home page, a deep page, search and a made-up URL (for the 404 page) all work on the live address
+- [ ] The editor, if you run one, is not reachable from the public internet without HTTPS and a sign-in

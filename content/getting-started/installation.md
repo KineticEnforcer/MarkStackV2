@@ -1,239 +1,93 @@
 ---
 title: Installation
-description: Complete guide to installing MarkStack prerequisites, cloning the repository, and verifying your development environment works correctly.
+description: What MarkStack needs, how to get the code, how to install the dependencies and how to confirm the install works.
 ---
 
 # Installation
 
-This guide walks through every step needed to get MarkStack running on your machine. Even if you have never used Node.js before, you will have a working installation by the end.
+MarkStack is a Node.js project. There is nothing to install globally: you get the code, run `npm install` once, and everything runs from the project folder.
 
-## Prerequisites
+## Requirements
 
-Before installing MarkStack, you need two things on your computer:
+MarkStack needs **Node.js 24 or newer**. The version is enforced in `package.json`, so an older Node prints a warning during install and may fail with syntax errors when you build.
 
-### Node.js (version 24 or later)
-
-Node.js is a JavaScript runtime that executes the MarkStack build script. MarkStack requires Node.js version 24 or later because the build script uses modern JavaScript features not available in older versions.
-
-To check if Node.js is already installed, open a terminal and run:
-
-```bash
-node --version
-```
-
-If you see a version number starting with v24 or higher (like `v24.1.0`), you are ready to proceed. If you see "command not found" or a version below 24, you need to install or upgrade Node.js.
-
-#### Installing Node.js
-
-Download Node.js from the official website: [https://nodejs.org](https://nodejs.org)
-
-Choose the LTS (Long Term Support) version, which is the left button on the download page. LTS versions receive security updates and bug fixes for years, making them the most reliable choice.
-
-**On Windows:** Download the `.msi` installer, run it, and follow the prompts. The installer adds Node.js to your system PATH automatically.
-
-**On macOS:** Download the `.pkg` installer, run it, and follow the prompts. Alternatively, if you use Homebrew, run `brew install node@24`.
-
-**On Linux:** Use your distribution's package manager or download from nodejs.org. For Ubuntu/Debian:
-
-```bash
-curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
-sudo apt-get install -y nodejs
-```
-
-After installing, close and reopen your terminal, then verify the installation:
+Check what you have:
 
 ```bash
 node --version
 npm --version
 ```
 
-Both commands should print version numbers. npm (Node Package Manager) comes bundled with Node.js, so installing Node.js gives you npm automatically.
+If `node --version` prints `v24.0.0` or higher, you are ready. Otherwise install the current LTS release from [nodejs.org](https://nodejs.org), or use a version manager such as `nvm`, `fnm` or `volta` and select version 24.
 
-### Git
+Git is optional. You need it only to download the code with `git clone`, or to keep your site under version control.
 
-Git is used to clone the MarkStack repository. Most developers already have Git installed. Check by running:
+## Get the code
 
-```bash
-git --version
-```
-
-If Git is not installed, download it from [https://git-scm.com](https://git-scm.com) or install via your system's package manager.
-
-## Step 1: Clone the Repository
-
-Open a terminal and navigate to the directory where you want to create your MarkStack project. Then clone the repository:
+Clone your copy of the repository and enter the folder:
 
 ```bash
-git clone https://github.com/KineticEnforcer/MarkStack.git
-cd MarkStack
+git clone <repository-url> my-docs
+cd my-docs
 ```
 
-This creates a new folder called `markstack` containing all the source files and changes your working directory into it.
+Replace `<repository-url>` with the address of the repository you were given. You can also download the source as a ZIP file from the repository page and unpack it. The folder name is up to you.
 
-> [!NOTE]
-> If you want to name your project folder something other than "MarkStack", you can specify a different name when cloning:
-> ```bash
-> git clone https://github.com/KineticEnforcer/MarkStack.git my-docs-site
-> cd my-docs-site
-> ```
-
-## Step 2: Install Dependencies
-
-MarkStack uses several npm packages for markdown parsing, syntax highlighting, and file watching. Install all dependencies with a single command:
+## Install the dependencies
 
 ```bash
 npm install
 ```
 
-This command reads the `package.json` file, downloads all required packages from the npm registry, and stores them in a `node_modules` folder. The process typically takes 10 to 30 seconds depending on your internet connection.
+This reads `package.json` and downloads the libraries MarkStack uses into `node_modules/`:
 
-You will see output showing packages being downloaded and installed. When it finishes, you should see a summary like:
+| Library | Used for |
+| --- | --- |
+| `markdown-it` and its plugins | Converting Markdown to HTML: heading anchors, footnotes, task lists |
+| `highlight.js` | Syntax highlighting in code blocks |
+| `gray-matter` and `js-yaml` | Reading the YAML block at the top of each page |
+| `chokidar` | Watching files for changes in watch mode |
 
-```
-added 147 packages in 12s
-```
+Use `npm ci` instead of `npm install` when you want exactly the versions in `package-lock.json`, for example in automated builds.
 
-The exact number of packages may vary between versions.
+## Check that it works
 
-## Step 3: Run Your First Build
-
-With dependencies installed, you can now generate the site:
+Run a build:
 
 ```bash
 npm run build
 ```
 
-This executes the MarkStack build script, which:
+You should see one line per page, then a summary like this:
 
-1. Scans the `content/` directory for markdown files
-2. Parses frontmatter and markdown content
-3. Generates HTML pages with navigation and search
-4. Copies static assets (CSS, JavaScript, images)
-5. Writes everything to the `dist/` folder
-
-A successful build prints output like:
-
-```
+```text
 🔨 Building MarkStack...
 
 ✓ Copied static files
 
+✓ Header links: 0 shown (data: /path/to/my-docs/.markstack)
+
+✓ Generated: /
 ✓ Generated: /getting-started/
-✓ Generated: /getting-started/installation/
-✓ Generated: /getting-started/quickstart/
-... (more pages)
-✓ Generated: / (homepage)
+...
 ✓ Generated: /404.html
-✓ Generated: /search-index.json (25 pages)
+✓ Generated: /search-index.json (… pages)
 
-✅ Build complete in 87ms
-📁 Output: /path/to/markstack/dist
+✅ Build complete in 525ms
+📁 Output: /path/to/my-docs/dist
 ```
 
-The build completes in well under a second for most documentation sites.
+The exact page count and timing depend on your content and machine. When you see `Build complete`, the install works. The site is now in the `dist/` folder.
 
-## Step 4: Verify the Output
+## What if something fails
 
-After building, your `dist/` folder should contain the generated site. You can check its contents:
+| Symptom | Likely cause and fix |
+| --- | --- |
+| `SyntaxError` when building | Node.js is older than 24. Check `node --version` and upgrade. |
+| `Cannot find module` | Dependencies are missing. Run `npm install` in the project folder. |
+| `EACCES` errors during `npm install` | The folder is not writable by your user. Do not use `sudo`; fix the folder permissions or clone somewhere you own. |
+| The build says a URL is used twice | Two pages have the same title in the same folder. Titles decide URLs, so give one of them a different title. |
 
-```bash
-# On macOS/Linux
-ls dist/
+More fixes are in [Troubleshooting](/troubleshooting/).
 
-# On Windows PowerShell
-Get-ChildItem dist/
-```
-
-You should see:
-
-- `index.html` (the homepage)
-- `404.html` (the error page)
-- `search-index.json` (the search data)
-- `css/` folder (stylesheets)
-- `js/` folder (JavaScript)
-- `svg/` folder (icons and logo)
-- One folder for each documentation section
-
-## Step 5: Preview Locally
-
-To view the generated site in your browser, start the preview server:
-
-```bash
-npm run serve
-```
-
-This starts a local web server that serves files from `dist/`. Open your browser to:
-
-```
-http://localhost:3000
-```
-
-You should see the MarkStack documentation site with working navigation, search, and theme toggle. Click around to verify everything works.
-
-Press `Ctrl+C` in the terminal to stop the server when you are done.
-
-## Troubleshooting
-
-### npm install hangs or fails
-
-If `npm install` seems stuck or fails with network errors:
-
-1. Check your internet connection
-2. If you are behind a corporate proxy, configure npm to use it:
-   ```bash
-   npm config set proxy http://your-proxy:port
-   npm config set https-proxy http://your-proxy:port
-   ```
-3. Try clearing the npm cache and reinstalling:
-   ```bash
-   npm cache clean --force
-   npm install
-   ```
-
-### Permission errors on macOS or Linux
-
-If you see `EACCES` permission errors:
-
-1. Never use `sudo` with npm. It creates permission problems that are hard to fix.
-2. Check that your user owns the project folder:
-   ```bash
-   ls -la
-   ```
-3. If needed, fix ownership:
-   ```bash
-   sudo chown -R $(whoami) .
-   ```
-
-### Native module build errors
-
-If you see errors mentioning `gyp`, `node-gyp`, or "native module":
-
-1. Make sure you are using Node.js 24 or later
-2. Delete the existing modules and lockfile, then reinstall:
-   ```bash
-   rm -rf node_modules package-lock.json
-   npm install
-   ```
-
-### Windows-specific issues
-
-On Windows, prefer running commands from a normal PowerShell or Command Prompt window rather than an elevated (Administrator) shell. Elevated shells can create files with permissions that cause problems later.
-
-If you use Windows Subsystem for Linux (WSL), you can follow the Linux instructions instead.
-
-### Build fails with syntax errors
-
-If `npm run build` fails with JavaScript syntax errors, your Node.js version is likely too old. Verify you have version 24 or later:
-
-```bash
-node --version
-```
-
-If not, upgrade Node.js and reinstall dependencies.
-
-## Next Steps
-
-With installation complete, proceed to the [Quickstart](/getting-started/quickstart/) guide to learn the development workflow for editing and previewing your documentation.
-
-> [!TIP]
-> Bookmark the project folder location. You will return to it frequently when working on your documentation.
+Next: [Quickstart](/getting-started/quickstart).

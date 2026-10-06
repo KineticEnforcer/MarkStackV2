@@ -1,113 +1,61 @@
 ---
 title: MarkStack Documentation
-description: Official documentation for MarkStack, a modern static site generator that transforms markdown files into a fast, searchable documentation website with zero configuration.
+description: MarkStack turns a folder of Markdown files into a fast, searchable knowledge base, with a built-in visual editor, user accounts and one-click publishing.
 ---
 
-# Welcome to MarkStack
+# MarkStack
 
-MarkStack is a static site generator purpose-built for documentation and knowledge bases. It takes the markdown files you write in a simple folder structure and transforms them into a polished, professional documentation website complete with search, navigation, syntax highlighting, and dark/light themes.
+MarkStack is a self-hosted knowledge base. You write pages in Markdown, MarkStack builds them into a plain static website, and readers get a clean documentation site with a sidebar, full-text search, a table of contents on every page and a light and a dark theme.
 
-This entire documentation site was built using MarkStack itself, so everything you see here demonstrates exactly what the tool can produce. The sidebar navigation, the search bar, the code blocks with copy buttons, the alerts and callouts, and even the theme toggle in the header are all generated from plain markdown files.
+V2 adds a **visual editor** to the generator. You can write, preview and publish from a browser, give each editor access to only the sections they own, and keep the public site as static files that any web server can host.
 
-## What Makes MarkStack Different
+This documentation site is built with MarkStack. Every page you read here is a Markdown file in the `content/` folder.
 
-Unlike heavier documentation frameworks that require complex configuration files, plugins, and build pipelines, MarkStack follows a philosophy of simplicity:
+## What you get
 
-- **Single build script**: The entire generator is one JavaScript file with no compilation step. You can read it, understand it, and modify it.
-- **Folder-based navigation**: Your folder structure becomes your sidebar. Create a folder, add markdown files, and navigation appears automatically.
-- **Zero configuration to start**: Clone the repository, run `npm install`, and you have a working documentation site. Configuration is optional, not required.
-- **Fast builds**: Most sites rebuild in under 100 milliseconds, making the write-preview-iterate loop almost instantaneous.
-- **Portable output**: The generated `dist/` folder contains pure static HTML, CSS, and JavaScript. Host it anywhere that serves files: GitHub Pages, Netlify, Vercel, a simple web server, or even a USB drive.
+- **A static site.** The output is a `dist/` folder of HTML, CSS and JavaScript. No database, no server code and no editor on the public side.
+- **Folders become navigation.** Create a folder, add Markdown files, and the sidebar, breadcrumbs and previous/next links appear on their own.
+- **Search with no search server.** Pages and individual sections are indexed at build time into one file the browser downloads on first use, then searches locally. Open search with `Ctrl+K` or `/`. It ranks results, forgives small typos and understands "quoted phrases".
+- **Rich Markdown.** Tables, task lists, footnotes, code with syntax highlighting and a copy button, GitHub-style alert boxes and Mermaid diagrams.
+- **A visual editor.** File tree, Markdown editor, live preview and a Publish Changes button. It is built for desktop screens.
+- **Accounts and roles.** Administrators manage everything. Editors only see the sections assigned to them.
+- **Header links.** A short list of links with icons in the top bar, managed from an admin page.
+- **Light and dark themes.** The reader's choice is remembered, and code blocks, diagrams and scrollbars follow it.
+- **Safe by default.** Raw HTML in Markdown is off, frontmatter is plain YAML only, the editor listens on the local machine only until you say otherwise, and a publish that fails its checks or times out leaves the live site as it was.
 
-## How It Works
+## Where to start
 
-The build process follows a straightforward pipeline:
+| If you want to... | Read |
+| --- | --- |
+| Install MarkStack and see a site on screen | [Getting Started](/getting-started/) |
+| Understand every folder and file in the project | [Project Structure](/getting-started/project-structure) |
+| Create the first administrator and use the editor | [Set Up the Editor](/getting-started/set-up-the-editor) |
+| Write pages and use all the Markdown features | [Authoring Content](/authoring-content/) |
+| Manage users, sections and publishing | [Editing and Admin](/editing-and-admin/) |
+| Change the site title, home page and header links | [Configuration](/configuration/) |
+| Change colors, layout and templates | [Customization](/customization/) |
+| Put the site on a server or a static host | [Build and Deploy](/build-and-deploy/) |
+| Learn how the build works inside | [Architecture](/architecture/) |
+| Fix a problem | [Troubleshooting](/troubleshooting/) |
 
-1. **Scan**: MarkStack reads every `.md` file in your `content/` directory
-2. **Parse**: Each file's frontmatter (the YAML at the top) provides metadata like title and description
-3. **Transform**: Markdown content converts to HTML with syntax highlighting, GitHub-style alerts, task lists, and more
-4. **Assemble**: Navigation trees, breadcrumbs, and search indexes generate automatically from the folder structure
-5. **Output**: Everything writes to `dist/` as clean, fast-loading static HTML
+## How it works in one minute
 
-## Documentation Guide
+1. You write Markdown files in `content/`. Each one starts with a short YAML block that gives the page a title and a description.
+2. `npm run build` reads the folder, converts every page to HTML, builds the sidebar and the search index, and writes the result to `dist/`.
+3. You upload `dist/` to any static host, or serve it from your own machine.
+4. If you use the editor, the **Publish Changes** button does the same build for you, checks it, and switches the live site to the new version only when the check passes.
 
-This documentation covers everything you need to go from first install to production deployment. Here is the recommended reading path:
+> [!NOTE]
+> The public site never contains the editor. The editor is a separate program that you run only where you write. Readers only ever receive static files.
 
-### For New Users
+## A first look
 
-Start with the [Getting Started](/getting-started/) section. It walks through prerequisites, installation, and your first build in about five minutes. You will learn the basic workflow and have a running site to experiment with.
+Most of the work happens in the editor. The file tree is on the left, the Markdown is in the middle and the live preview is on the right.
 
-### For Content Authors
+![The MarkStack editor in the light theme](/images/docs/editor-overview-light.png)
 
-The [Authoring Content](/authoring/) section explains how to structure your documentation. Learn about the content model, how frontmatter works, the full range of markdown features supported (including code blocks, alerts, task lists, footnotes, and more), and best practices for organizing large documentation projects.
+The same screen in the dark theme:
 
-### For Site Administrators
+![The MarkStack editor in the dark theme](/images/docs/editor-overview-dark.png)
 
-[Configuration](/configuration/) covers the `siteconfig.json` file where you set your site title, description, URLs, and homepage behavior. [Customization](/customization/) goes deeper into themes, CSS variables, template modifications, and branding.
-
-### For DevOps and Deployment
-
-[Build and Deploy](/build-deploy/) provides the commands reference, CI/CD pipeline examples for GitHub Actions and other platforms, and guides for deploying to popular hosting providers like GitHub Pages, Netlify, Vercel, and Cloudflare Pages.
-
-### For Contributors and Advanced Users
-
-The [Architecture](/architecture/) section documents how MarkStack works internally. Understand the build pipeline, how navigation and routing decisions are made, and how the search index generates. This knowledge helps if you want to extend or customize the generator itself.
-
-### When Things Go Wrong
-
-[Troubleshooting](/troubleshooting/) collects solutions to common issues and answers frequently asked questions. Check here before opening an issue if something is not working as expected.
-
-## Quick Reference
-
-Here are the commands you will use most often:
-
-| Command | Purpose |
-|---------|---------|
-| `npm run build` | Generate the site once into `dist/` |
-| `npm run watch` | Rebuild automatically when files change |
-| `npm run editor` | Launch the visual editor with live preview |
-| `npm run serve` | Start a local preview server at `http://localhost:3000` |
-| `npm run clean` | Delete `dist/` for a fresh start |
-
-A typical authoring workflow uses two terminal windows:
-
-```bash
-# Terminal 1: Auto-rebuild on changes
-npm run watch
-
-# Terminal 2: Preview server
-npm run serve
-```
-
-Or use the visual editor for a more integrated experience:
-
-```bash
-# Launch the visual editor
-npm run editor
-```
-
-With this setup, you can edit markdown files, save them, and refresh your browser to see changes immediately.
-
-## What You Will Find in This Documentation
-
-Every section aims to be practical and complete:
-
-- Step-by-step instructions you can follow without prior knowledge
-- Code samples you can copy and paste directly
-- Examples that mirror real folder structures and configurations
-- Explanations of why things work the way they do, not just how
-- Tips and warnings called out in styled alert boxes
-
-> [!TIP]
-> As you read through the documentation, keep a terminal running `npm run watch` in your MarkStack project. Try out concepts as you learn them. The instant rebuild makes experimentation fast and safe.
-
-## Getting Help
-
-If you run into issues not covered in the documentation:
-
-1. Check the [Common Issues](/troubleshooting/common-issues/) page for known solutions
-2. Review the [FAQ](/troubleshooting/faq/) for quick answers to frequent questions
-3. Search the GitHub repository issues for similar problems
-4. Open a new issue with details about your environment and what you tried
-
-Welcome to MarkStack. Let's build something great.
+Continue with [Getting Started](/getting-started/) to install MarkStack in a few minutes.

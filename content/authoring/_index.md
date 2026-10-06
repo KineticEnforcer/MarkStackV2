@@ -1,112 +1,43 @@
 ---
 title: Authoring Content
-description: Complete guide to writing documentation in MarkStack, covering the content model, frontmatter metadata, markdown features, media handling, and copy-ready examples.
+description: Everything about writing pages in MarkStack - how files become pages, what goes in the frontmatter, every Markdown feature, images and links, and worked examples.
 ---
 
 # Authoring Content
 
-This section teaches you everything about writing documentation in MarkStack. You will learn how to organize content, use frontmatter for metadata, leverage markdown extensions for rich formatting, and follow best practices that make your documentation clear and maintainable.
+Pages are Markdown files. This section explains how they turn into a site and everything you can put in them.
 
-MarkStack extends standard markdown with GitHub-style features like callout alerts, task lists, footnotes, and syntax-highlighted code blocks. Understanding these features helps you create documentation that communicates effectively and looks professional.
+## In this section
 
-## What This Section Covers
+| Page | What it covers |
+| --- | --- |
+| [Content Model](/authoring-content/content-model) | How files and folders become pages, URLs and the sidebar |
+| [Frontmatter](/authoring-content/frontmatter) | The YAML block at the top of every page and the three fields MarkStack reads |
+| [Markdown Features](/authoring-content/markdown-features) | Headings, tables, code, alerts, task lists, footnotes and diagrams, with examples |
+| [Media and Links](/authoring-content/media-and-links) | Images, internal and external links, and downloads |
+| [Examples](/authoring-content/examples) | Complete pages you can copy: a guide, a reference page, a FAQ and a changelog |
 
-### Content Model
+## The short version
 
-The [Content Model](/authoring/content-model/) guide explains how MarkStack organizes documentation:
+1. Put a `.md` file in a folder under `content/`.
+2. Start it with a title and a description between two `---` lines.
+3. Write Markdown below.
+4. Build, or save in the editor and publish.
 
-- How folders become navigation categories
-- How markdown files become documentation pages
-- The role of `_index.md` files for category landing pages
-- How titles transform into URL slugs
-- Strategies for organizing large documentation projects
-- How nesting and ordering work
+```markdown
+---
+title: Reset a Password
+description: How to reset your account password.
+---
 
-Understanding the content model is essential. It determines how your documentation appears in the sidebar, how URLs generate, and how readers navigate your site.
+# Reset a Password
 
-### Frontmatter
+1. Open **Settings**.
+2. Choose **Security**.
+3. Select **Reset password**.
+```
 
-The [Frontmatter](/authoring/frontmatter/) guide covers the YAML metadata at the top of each markdown file:
-
-- The `title` field and how it affects navigation, page titles, and URLs
-- The `description` field and its role in search results and SEO
-- How frontmatter interacts with siteconfig.json defaults
-- Best practices for writing effective titles and descriptions
-
-Good frontmatter makes your documentation discoverable in search engines and helps readers understand what each page contains before clicking.
-
-### Markdown Features
-
-The [Markdown Features](/authoring/markdown-features/) guide documents everything you can do with markdown in MarkStack:
-
-- Standard markdown syntax (headings, paragraphs, lists, links, images)
-- GitHub-style callout alerts (NOTE, TIP, IMPORTANT, WARNING, CAUTION)
-- Fenced code blocks with syntax highlighting for 190+ languages
-- Task lists with checkboxes
-- Footnotes for references and citations
-- Tables for structured data
-- Horizontal rules and other formatting
-
-Each feature includes examples you can copy directly into your documentation.
-
-### Media and Links
-
-The [Media and Links](/authoring/media-and-links/) guide covers how to include assets and create connections:
-
-- Where to place images and how to reference them
-- Handling downloadable files like PDFs
-- Internal linking between documentation pages
-- External links to other websites
-- Accessibility best practices for images and links
-
-Proper linking ensures your documentation works correctly after deployment and provides a good experience for all readers.
-
-### Examples
-
-The [Examples](/authoring/examples/) page provides ready-to-use templates:
-
-- Category landing pages with navigation
-- Standard documentation pages with frontmatter
-- Pages using multiple markdown features together
-- Common patterns you can adapt for your needs
-
-These examples help you start new pages quickly without recreating boilerplate.
-
-### Visual Editor
-
-The [Visual Editor](/authoring/visual-editor/) guide covers the browser-based writing environment:
-
-- Live preview with identical styling to your built site
-- File tree for navigating and managing content
-- Scroll synchronization between editor and preview
-- Save and build functionality with keyboard shortcuts
-
-Use the visual editor when you want immediate feedback on how your content will appear.
-
-## Recommended Reading Order
-
-If you are new to writing documentation in MarkStack, read these guides in order:
-
-1. **[Content Model](/authoring/content-model/)** first, to understand how organization works
-2. **[Frontmatter](/authoring/frontmatter/)** second, to learn about metadata
-3. **[Markdown Features](/authoring/markdown-features/)** third, for formatting options
-4. **[Media and Links](/authoring/media-and-links/)** fourth, for asset handling
-5. **[Examples](/authoring/examples/)** as needed, when creating new content
-6. **[Visual Editor](/authoring/visual-editor/)** for the integrated writing environment
-
-If you already know markdown basics, you can skip to specific guides for the information you need.
-
-## Quick Tips for Good Documentation
-
-As you work through this section, keep these principles in mind:
-
-| Principle | How to Apply It |
-|-----------|-----------------|
-| Clear titles | Use descriptive titles that tell readers what the page covers |
-| Helpful descriptions | Write descriptions that appear in search results and help readers decide whether to read the page |
-| Scannable structure | Use headings, lists, and tables so readers can find information quickly |
-| Working examples | Include code samples readers can copy and use directly |
-| Consistent style | Follow the same patterns throughout your documentation |
+That is a complete page. It gets a place in the sidebar, a URL, breadcrumbs, search entries, a reading time and previous/next links automatically.
 
 > [!TIP]
-> As you read through this section, have a markdown file open in your editor. Try each feature as you learn about it. The immediate feedback helps concepts stick.
+> You can write in any text editor, or in the built-in [visual editor](/editing-and-admin/visual-editor) with a live preview. Both produce the same files.

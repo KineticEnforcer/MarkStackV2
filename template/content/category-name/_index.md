@@ -1,6 +1,6 @@
 ---
 title: Category Title
-description: A brief description of this category for SEO and listings.
+description: A brief description of this category for search engines and link previews.
 ---
 
 # Category Title
