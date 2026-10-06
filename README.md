@@ -110,6 +110,7 @@ npm run build
 - **Syntax highlighting** for 190+ programming languages via highlight.js
 - **Mermaid diagrams** for flowcharts, sequence diagrams, and other visualizations
 - **Visual editor** with live preview, scroll sync, file management and a mobile layout (file drawer, Edit/Preview switch)
+- **Publish Changes** (administrators): Save writes the Markdown file only; Publish Changes rebuilds the whole site beside the live one, checks it, and switches it in only if the build succeeded, with live progress and a copyable error report if it fails
 
 ### User Experience
 
@@ -403,7 +404,7 @@ This release introduces the Visual Editor and significantly improves code qualit
   - Real-time preview styled exactly like the built site
   - Scroll synchronization between editor and preview panels (the preview follows instantly, with no smooth-scroll lag)
   - File management: create, rename, delete files and folders
-  - Keyboard shortcuts: Ctrl+S (save), Ctrl+B (build)
+  - Keyboard shortcut: Ctrl+S (save)
   - Confirmation modals for unsaved changes and destructive actions
 
 #### Improvements
@@ -438,7 +439,7 @@ This release introduces the Visual Editor and significantly improves code qualit
 
 ### Editor security
 
-The visual editor (`npm run editor`) requires sign-in. Accounts are stored in `.markstack/users.json` (owner-only, git-ignored; `MARKSTACK_USERS_FILE` changes the path).
+The visual editor (`npm run editor`) requires sign-in. Accounts are stored in `.markstack/users.json` (owner-only, git-ignored; `MARKSTACK_USERS_FILE` changes the path). Publish Changes records what it last published in `publish-state.json` in the same folder as the users file. That file is only a marker for the "unpublished changes" dot; if it is lost, the editor simply shows the site as not published yet.
 
 - Create the first administrator on the server with `npm run editor:create-admin -- --user NAME`. The password is typed at a hidden prompt (or piped on standard input for scripts). It is never a command line argument and is never logged.
 - Locked-out administrator: on the server run `npm run editor:reset-admin -- --user NAME`. Same hidden prompt, nothing in the command line or the logs; it also re-enables a disabled account. It needs shell access to the server, which already means access to the user file. The running editor picks the change up on its next request: the old password stops working, the new one works, and sessions open for that account end, with no restart. Every change to the user file (the commands and the editor) takes a lock file next to it (`users.json.lock`), reads the current file, applies the change and writes it atomically, so changes made at the same time from different processes all survive. If the lock cannot be taken within 5 seconds the change fails with an error and nothing is written; a lock left by a process that no longer exists is taken over after 30 seconds. If the user file cannot be read, changes stop with an error instead of overwriting it. The lock is advisory: it covers MarkStack's own commands and editor, not another program that edits the file by hand.

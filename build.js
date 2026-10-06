@@ -147,12 +147,43 @@ md.renderer.rules.alert_title = function(tokens, idx) {
   return '<span class="alert-title"><span class="alert-icon">' + icon + '</span>' + type + '</span>';
 };
 
+/**
+ * Optional "--out <dir>": build into another folder, and "--content <dir>": read
+ * the Markdown from another folder (the editor's Publish uses both: it builds a
+ * snapshot of the content beside the live site and switches only when the build
+ * succeeded).
+ */
+function folderFromArgs(flag) {
+  const i = process.argv.indexOf(flag);
+  if (i === -1) return null;
+  const v = process.argv[i + 1];
+  if (!v || v.startsWith('--')) { console.error(flag + ' needs a folder'); process.exit(2); }
+  return path.resolve(v);
+}
+function outputDirFromArgs() { return folderFromArgs('--out'); }
+
+/** Progress events for the editor ("@@MS {json}" lines) when MARKSTACK_BUILD_EVENTS=1. */
+function buildEvent(obj) {
+  if (process.env.MARKSTACK_BUILD_EVENTS === '1') console.log('@@MS ' + JSON.stringify(obj));
+}
+
+function countMarkdownFiles(dir) {
+  let n = 0;
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (e.name.startsWith('.')) continue;
+    const full = path.join(dir, e.name);
+    if (e.isDirectory()) n += countMarkdownFiles(full);
+    else if (e.name.endsWith('.md')) n++;
+  }
+  return n;
+}
+
 // Configuration
 const CONFIG = {
-  contentDir: path.join(__dirname, 'content'),
+  contentDir: folderFromArgs('--content') || path.join(__dirname, 'content'),
   staticDir: path.join(__dirname, 'static'),
   templatesDir: path.join(__dirname, 'templates'),
-  distDir: path.join(__dirname, 'dist'),
+  distDir: outputDirFromArgs() || path.join(__dirname, 'dist'),
   siteTitle: siteConfig.siteTitle || 'Knowledge Base',
   headerTitle: siteConfig.headerTitle || siteConfig.siteTitle || 'Knowledge Base',
   siteSubtitle: siteConfig.siteSubtitle || '',
@@ -827,6 +858,7 @@ function processDirectory(dirPath) {
       addToSearchIndex(processed);
       
       console.log(`✓ Generated: ${processed.urlPath}`);
+      buildEvent({ t: 'page', url: processed.urlPath });
     }
   }
 }
@@ -963,10 +995,12 @@ function build() {
   }
   
   // Process content
+  buildEvent({ t: 'total', n: fs.existsSync(CONFIG.contentDir) ? countMarkdownFiles(CONFIG.contentDir) : 0 });
   if (fs.existsSync(CONFIG.contentDir)) {
     processDirectory(CONFIG.contentDir);
   }
   
+  buildEvent({ t: 'stage', name: 'special' });
   // Generate special pages
   generateHomepage();
   generate404();

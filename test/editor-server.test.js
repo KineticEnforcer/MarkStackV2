@@ -200,3 +200,15 @@ test('the editor page follows the site setting for raw HTML (off unless siteconf
   assert.ok(r.body.includes('html: false,'));
   assert.ok(!r.body.includes('__ALLOW_RAW_HTML__'));
 });
+
+test('Publish Changes status is admin-only and idle before any publish', async () => {
+  const ok = await request('GET', '/api/publish/status');
+  assert.equal(ok.status, 200);
+  const j = JSON.parse(ok.body);
+  assert.equal(j.state, 'idle');
+  assert.deepEqual(j.stages.map(s => s.key), ['check', 'build', 'verify', 'switch']);
+  const anon = await request('GET', '/api/publish/status', { anon: true });
+  assert.equal(anon.status, 401);
+  const noCsrf = await request('POST', '/api/publish', { headers: { 'X-CSRF-Token': 'wrong' }, body: {} });
+  assert.ok(noCsrf.status === 403 || noCsrf.status === 400, 'status ' + noCsrf.status);
+});

@@ -60,6 +60,8 @@ const CONFIG = {
   contentDir: path.join(__dirname, 'content'),
   /** Path to static assets directory */
   staticDir: path.join(__dirname, 'static'),
+  /** Folder the docs site is served from (Publish Changes replaces it) */
+  distDir: path.join(__dirname, 'dist'),
   /** Users file (owner-only, git-ignored). MARKSTACK_USERS_FILE overrides. */
   usersFile: process.env.MARKSTACK_USERS_FILE || path.join(__dirname, '.markstack', 'users.json'),
   /** Session lifetimes in minutes (defaults are proposals pending review) */
@@ -886,6 +888,37 @@ function temporaryPassword() {
   return out.replace(/(.{5})(?=.)/g, '$1-');
 }
 
+let publisher = null;
+function getPublisher() {
+  if (!publisher) {
+    const { Publisher } = require('./lib/publish');
+    publisher = new Publisher({
+      root: __dirname, contentDir: CONFIG.contentDir, staticDir: CONFIG.staticDir,
+      templatesDir: path.join(__dirname, 'templates'), distDir: CONFIG.distDir,
+      buildScript: path.join(__dirname, 'build.js'), siteConfig: path.join(__dirname, 'siteconfig.json'),
+      stateFile: path.join(path.dirname(CONFIG.usersFile), 'publish-state.json')
+    });
+  }
+  return publisher;
+}
+
+/** Admin-only Publish Changes API. Returns true when the request was handled. */
+function handlePublishAPI(req, res, pathname) {
+  if (req.user.role !== 'admin') { sendError(res, 403, 'Administrator only'); return true; }
+  if (req.method === 'GET' && pathname === '/api/publish/status') { sendJSON(res, 200, getPublisher().status()); return true; }
+  if (req.method === 'POST' && pathname === '/api/publish') {
+    try {
+      const id = getPublisher().start(req.user.name);
+      authLog('publish-started', req.user.name);
+      sendSuccess(res, { id });
+    } catch (err) {
+      if (err.code === 'BUSY') sendError(res, 409, err.message); else sendFailure(res, err);
+    }
+    return true;
+  }
+  return false;
+}
+
 function listSections() {
   return scanDirectory(CONFIG.contentDir).filter(n => n.type === 'folder').map(n => n.name);
 }
@@ -976,6 +1009,10 @@ async function handleAPI(req, res, pathname, url) {
   if (req.method === 'POST' && pathname === '/api/change-password') return handleChangePassword(req, res);
   if (pathname === '/api/users' || pathname.startsWith('/api/users/')) {
     if (await handleAdminAPI(req, res, pathname)) return;
+  }
+
+  if (pathname === '/api/publish' || pathname === '/api/publish/status') {
+    if (handlePublishAPI(req, res, pathname)) return;
   }
 
   // GET /api/tree - File tree
@@ -1160,4 +1197,4 @@ if (require.main === module) {
   start();
 }
 
-module.exports = { server, CONFIG, AUTH, initAuth, isInside, isPathSecure, checkRequestOrigin, start };
+module.exports = { server, CONFIG, getPublisher, AUTH, initAuth, isInside, isPathSecure, checkRequestOrigin, start };
