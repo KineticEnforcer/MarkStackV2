@@ -234,7 +234,7 @@ Controls whether the hero section appears on the homepage.
 
 ### copyrightText
 
-Text displayed in the footer of every page.
+**Not displayed.** The default template no longer has a footer, so this value is read but not shown. Header links (see Header links in the editor menu) replace the footer area. A custom template can still use `{{copyrightText}}`.
 
 | Property | Value |
 |----------|-------|
@@ -244,7 +244,7 @@ Text displayed in the footer of every page.
 
 **Where it appears:**
 
-- The site footer on all pages
+- Nowhere in the default template (the footer was removed)
 
 **Example:**
 
@@ -371,7 +371,7 @@ To verify your configuration:
 2. Open `dist/index.html` in a browser
 3. View page source and check meta tags
 4. Verify the header shows your expected title
-5. Check the footer for copyright text
+5. Copyright text is not shown by the default template
 
 > [!NOTE]
 > JSON does not allow trailing commas. If you see parse errors, check for commas after the last item in objects or arrays.

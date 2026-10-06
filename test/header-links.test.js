@@ -198,3 +198,36 @@ test('api: at most five new icons are fetched per save; removing a link deletes 
   await post([]);
   assert.deepEqual(fs.readdirSync(dir), []);
 });
+
+test('api: changing the address drops the old icon at once, even when the new fetch fails; a failed refresh keeps the old icon', async () => {
+  await post([]);
+  let d = JSON.parse((await post([{ title: 'Site', url: 'https://good.example' }])).body);
+  const old = d.links[0].favicon;
+  assert.match(old, /\.png$/);
+  const dir = path.join(path.dirname(CONFIG.usersFile), 'favicons');
+  assert.ok(fs.existsSync(path.join(dir, old)));
+  // refresh that finds nothing: the old icon stays
+  d = JSON.parse((await post([{ ...d.links[0], url: 'https://good.example', refresh: true, title: 'Site' }].map(l => ({ ...l })))).body);
+  const keepFetcher = CONFIG.faviconFetcher;
+  CONFIG.faviconFetcher = async () => null;
+  d = JSON.parse((await post([{ ...d.links[0], refresh: true }])).body);
+  assert.equal(d.links[0].favicon, old, 'old icon kept on a failed refresh');
+  assert.match(d.notes[0].reason, /old icon is kept/);
+  // new address, fetch fails: no icon from the old site remains
+  CONFIG.faviconFetcher = async () => { throw new Error('boom'); };
+  d = JSON.parse((await post([{ ...d.links[0], url: 'https://other.example' }])).body);
+  assert.equal(d.links[0].favicon, '');
+  assert.ok(!fs.existsSync(path.join(dir, old)), 'old icon file removed');
+  assert.equal(JSON.parse((await request('GET', '/api/links')).body).links[0].favicon, '');
+  CONFIG.faviconFetcher = keepFetcher;
+});
+
+test('build: 30 links render once each inside one nav; the page script only hides or moves them', () => {
+  const t = mkTmp(); smallContent(t);
+  const data = path.join(t, 'data');
+  store.writeLinks(data, Array.from({ length: 30 }, (_, i) => ({ id: String(i).padStart(12, 'a'), title: 'Link ' + i, url: 'https://s' + i + '.example', show: true, favicon: '' })));
+  const html = fs.readFileSync(path.join(build(t, data), 'index.html'), 'utf-8');
+  assert.equal((html.match(/class="header-link"/g) || []).length, 30);
+  assert.equal((html.match(/<nav class="header-links"/g) || []).length, 1);
+  fs.rmSync(t, { recursive: true, force: true });
+});

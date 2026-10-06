@@ -951,15 +951,16 @@ async function saveLinks(rawList) {
     const prev = old.get(l.id);
     const changed = !prev || prev.url !== l.url;
     if (!changed && !refresh.has(i)) { l.favicon = prev.favicon; continue; }
-    l.favicon = '';
+    // A changed address drops the old icon at once, so a failed fetch never leaves another site's icon. A plain refresh keeps the old icon if nothing new is found.
+    l.favicon = changed ? '' : prev.favicon;
     if (fetches >= MAX_ICON_FETCHES) { notes.push({ id: l.id, title: l.title, icon: 'later', reason: 'Too many new icons in one save. Use Refresh icon on this link.' }); continue; }
     fetches++;
     try {
       const r = await fetcher(l.url);
       if (r) { l.favicon = linksStore.saveFavicon(dir, l.id, r.ext, r.data); notes.push({ id: l.id, title: l.title, icon: 'found' }); }
-      else notes.push({ id: l.id, title: l.title, icon: 'none', reason: 'No icon found. The generic icon is used.' });
+      else notes.push({ id: l.id, title: l.title, icon: 'none', reason: l.favicon ? 'No new icon found. The old icon is kept.' : 'No icon found. The generic icon is used.' });
     } catch (err) {
-      notes.push({ id: l.id, title: l.title, icon: 'none', reason: 'Icon not fetched: ' + (err && err.message ? err.message : 'failed') + '. The generic icon is used.' });
+      notes.push({ id: l.id, title: l.title, icon: 'none', reason: 'Icon not fetched: ' + (err && err.message ? err.message : 'failed') + (l.favicon ? '. The old icon is kept.' : '. The generic icon is used.') });
     }
   }
   linksStore.writeLinks(dir, v.links);

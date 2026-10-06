@@ -60,12 +60,14 @@ try { document.documentElement.setAttribute('data-theme', localStorage.getItem('
   .dlg-b { padding:4px 20px 8px; }
   .dlg-f { display:flex; justify-content:flex-end; gap:8px; padding:12px 20px 16px; }
   .dlg-b p { margin:10px 0 10px; }
-  td.ico { width:36px; padding-right:0; } td.ico img, td.ico svg { display:block; width:18px; height:18px; object-fit:contain; border-radius:3px; color:var(--muted); }
+  td.ico { width:36px; padding-right:0; } td.ico img { background:#fff; padding:1px; }
+  td.ico img, td.ico svg { display:block; width:18px; height:18px; object-fit:contain; border-radius:3px; color:var(--muted); }
   td.addr { color:var(--muted); max-width:340px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; }
   td.u { max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   tr.off td.u, tr.off td.addr, tr.off td.ico { opacity:.55; }
   .actions button { min-width:0; padding:0 10px; }
   .actions button.sq { width:32px; padding:0; }
+  td.shown .chk { margin:0; white-space:nowrap; }
   .chk { display:flex; gap:8px; align-items:center; margin:14px 0 0; font-size:13px; font-weight:400; color:var(--text); }
   .empty { padding:28px 16px; text-align:center; color:var(--muted); }
   ul.notes { margin:8px 2px 0; padding-left:18px; font-size:13px; color:var(--muted); } ul.notes li { margin:2px 0; }
@@ -78,7 +80,7 @@ try { document.documentElement.setAttribute('data-theme', localStorage.getItem('
     tr { display:grid; grid-template-columns:auto 1fr; gap:6px 10px; padding:12px 14px; border-bottom:1px solid var(--line); }
     tr:last-child { border-bottom:0; }
     td { padding:0; border:0; max-width:none; }
-    td.ico { grid-column:1; width:auto; } td.u { grid-column:2; } td.addr { grid-column:1 / -1; white-space:normal; word-break:break-all; }
+    td.ico { grid-column:1; width:auto; } td.u { grid-column:2; } td.addr { grid-column:1 / -1; white-space:normal; word-break:break-all; } td.shown { grid-column:1 / -1; }
     td.actions { grid-column:1 / -1; text-align:left; display:flex; flex-wrap:wrap; gap:6px; }
     .actions button { margin:0; flex:1 1 auto; height:36px; white-space:nowrap; } .actions button.sq { flex:0 0 40px; width:40px; }
     dialog button, .top button { height:38px; }
@@ -93,7 +95,7 @@ try { document.documentElement.setAttribute('data-theme', localStorage.getItem('
     <button class="primary" id="addOpen">Add link</button>
   </div>
   <div class="card">
-    <table><thead><tr><th></th><th>Title</th><th>Address</th><th class="r">Actions</th></tr></thead><tbody id="rows"></tbody></table>
+    <table><thead><tr><th></th><th>Title</th><th>Address</th><th>Show on site</th><th class="r">Actions</th></tr></thead><tbody id="rows"></tbody></table>
     <div class="empty" id="empty" hidden>No links yet. The header shows only the theme button.</div>
   </div>
   <div class="msg" id="listMsg" role="status"></div>
@@ -166,15 +168,22 @@ try { document.documentElement.setAttribute('data-theme', localStorage.getItem('
       var tr = el('tr', { 'class': l.show ? '' : 'off' });
       tr.appendChild(iconCell(l));
       var t = el('td', { 'class': 'u', title: l.title, text: l.title });
-      if (!l.show) t.appendChild(el('span', { 'class': 'pill', text: 'hidden' }));
       tr.appendChild(t);
       tr.appendChild(el('td', { 'class': 'addr', title: l.url, text: l.url }));
+      var shownTd = el('td', { 'class': 'shown' });
+      var cb = el('input', { type: 'checkbox', 'aria-label': 'Show ' + l.title + ' on the site' });
+      cb.checked = l.show;
+      cb.addEventListener('change', function () {
+        var a = links.map(function (x) { return plain(x); }); a[i].show = cb.checked;
+        send(a, cb.checked ? 'Now shown. Publish Changes to update the docs site.' : 'Now hidden. Publish Changes to update the docs site.').catch(function () { render(); });
+      });
+      shownTd.appendChild(el('label', { 'class': 'chk' }, [cb, document.createTextNode('Show on site')]));
+      tr.appendChild(shownTd);
       var act = el('td', { 'class': 'actions' });
       function btn(text, label, cls, fn) { var b = el('button', { type: 'button', 'class': cls || '', text: text, 'aria-label': label }); b.addEventListener('click', fn); act.appendChild(b); return b; }
       var up = btn('\u2191', 'Move ' + l.title + ' up', 'sq', function () { var a = links.map(function (x) { return plain(x); }); a.splice(i - 1, 0, a.splice(i, 1)[0]); send(a, 'Order saved.').catch(function () {}); });
       var dn = btn('\u2193', 'Move ' + l.title + ' down', 'sq', function () { var a = links.map(function (x) { return plain(x); }); a.splice(i + 1, 0, a.splice(i, 1)[0]); send(a, 'Order saved.').catch(function () {}); });
       up.disabled = i === 0; dn.disabled = i === links.length - 1;
-      btn(l.show ? 'Hide' : 'Show', (l.show ? 'Hide ' : 'Show ') + l.title, '', function () { var a = links.map(function (x) { return plain(x); }); a[i].show = !l.show; send(a).catch(function () {}); });
       btn('Edit', 'Edit ' + l.title, '', function () { editing = l; $('dlgTitle').textContent = 'Edit link'; $('fTitle').value = l.title; $('fUrl').value = l.url; $('fShow').checked = l.show; $('fRefresh').checked = false; $('fRefreshRow').hidden = false; msg('fMsg', ''); open($('dlg')); $('fTitle').focus(); });
       btn('Remove', 'Remove ' + l.title, 'danger', function () {
         if (!window.confirm('Remove "' + l.title + '" from the header?')) return;

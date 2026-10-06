@@ -692,7 +692,7 @@ function renderHeaderLinks(distDir) {
     }
     out += '<a class="header-link" href="' + escapeText(url) + '" target="_blank" rel="noopener noreferrer" title="' + escapeText(l.title) + '">' + icon + '<span class="header-link-label">' + escapeText(l.title) + '</span></a>\n        ';
   }
-  return out.trimEnd();
+  return out ? '<nav class="header-links" aria-label="Links">' + out.trimEnd() + '</nav>' : '';
 }
 
 /** Escape text for HTML output. */
@@ -1038,6 +1038,7 @@ function build() {
   }
   
   HEADER_LINKS_HTML = renderHeaderLinks(CONFIG.distDir);
+  console.log('✓ Header links: ' + (HEADER_LINKS_HTML.match(/class="header-link"/g) || []).length + ' shown (data: ' + CONFIG.dataDir + ')\n');
   
   // Process content
   buildEvent({ t: 'total', n: fs.existsSync(CONFIG.contentDir) ? countMarkdownFiles(CONFIG.contentDir) : 0 });
