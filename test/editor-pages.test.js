@@ -40,3 +40,12 @@ test('preview frame turns off smooth scrolling so synced scrolling does not lag 
   const html = fs.readFileSync(path.join(__dirname, '..', 'editor.html'), 'utf-8');
   assert.ok(/<style>html\{scroll-behavior:auto;\}/.test(html), 'srcdoc style must reset scroll-behavior');
 });
+
+test('new file and new folder always ask for a location, from every entry point', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'editor.html'), 'utf-8');
+  assert.ok(html.includes('id="modal-parent"'), 'location picker exists');
+  assert.equal((html.match(/showCreateModal\('New (File|Folder)'/g) || []).length, 4, 'two buttons and two menu items');
+  assert.equal(/showModal\('New (File|Folder)'/.test(html), false, 'no creation dialog without a location');
+  assert.equal(/create(File|Folder)\(''/.test(html), false, 'nothing is created at a hard-coded top level');
+  assert.ok(html.includes("user.role === 'admin'"), 'top level offered to administrators only');
+});

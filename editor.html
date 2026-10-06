@@ -1058,6 +1058,17 @@
       box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.2);
     }
     
+    .modal-label {
+      display: block;
+      margin-bottom: var(--space-xs);
+      font-size: var(--font-size-xs);
+      font-weight: 600;
+      color: var(--color-text-secondary);
+    }
+
+    .modal-location { margin-bottom: var(--space-md); }
+    .modal-location select { font-family: var(--font-mono, var(--font-sans)); }
+
     .modal-hint {
       margin-top: var(--space-sm);
       font-size: var(--font-size-xs);
@@ -1434,6 +1445,11 @@
         <h3 class="modal-title" id="modal-title">Dialog</h3>
       </div>
       <div class="modal-body">
+        <div class="modal-location" id="modal-location" hidden>
+          <label class="modal-label" for="modal-parent">Location</label>
+          <select class="modal-input" id="modal-parent"></select>
+        </div>
+        <label class="modal-label" id="modal-name-label" for="modal-input" hidden>Name</label>
         <input type="text" class="modal-input" id="modal-input" placeholder="">
         <div class="modal-hint" id="modal-hint"></div>
       </div>
@@ -1512,6 +1528,14 @@
       
       /** @type {string|null} Currently opened file path relative to content/ */
       let currentFilePath = null;
+      /** Last file tree from the server (already limited to what this user may see) */
+      let lastTree = [];
+      /** Folders to open on the next tree render, so a new item is visible */
+      let revealFolders = new Set();
+      function revealParentsOf(newPath) {
+        const parts = newPath.split('/');
+        for (let i = 1; i < parts.length; i++) revealFolders.add(parts.slice(0, i).join('/'));
+      }
       
       /** @type {string} Original content when file was loaded (for unsaved detection) */
       /** @type {boolean} Whether there are unsaved changes in the editor */
@@ -1683,6 +1707,9 @@
       const modalTitle = document.getElementById('modal-title');
       const modalInput = document.getElementById('modal-input');
       const modalHint = document.getElementById('modal-hint');
+      const modalLocation = document.getElementById('modal-location');
+      const modalParent = document.getElementById('modal-parent');
+      const modalNameLabel = document.getElementById('modal-name-label');
       const modalCancel = document.getElementById('modal-cancel');
       const modalConfirm = document.getElementById('modal-confirm');
       
@@ -1829,6 +1856,7 @@
           }
           const res = await fetch('/api/tree');
           const tree = await res.json();
+          lastTree = Array.isArray(tree) ? tree : [];
           renderTree(tree, fileTreeEl);
         } catch (err) {
           console.error('Failed to load file tree:', err);
@@ -1905,6 +1933,7 @@
               li.classList.toggle('tree-open', open);
             };
             li._setOpen = setOpen;
+            if (revealFolders.has(item.path)) ctx.open.add(item.path);
             setOpen(ctx.open.has(item.path));
 
             const toggle = function(e) {
@@ -2682,13 +2711,13 @@
         
         switch (action) {
           case 'new-file':
-            showModal('New File', 'Enter file name:', 'new-file.md', 'Spaces will be replaced with dashes. .md extension will be added if missing.', function(name) {
-              createFile(parentPath, name);
+            showCreateModal('New File', 'Enter file name:', 'new-file.md', 'Spaces will be replaced with dashes. .md extension will be added if missing.', parentPath, function(name, where) {
+              createFile(where, name);
             });
             break;
           case 'new-folder':
-            showModal('New Folder', 'Enter folder name:', 'new-folder', 'Spaces will be replaced with dashes. A _index.md file will be created automatically.', function(name) {
-              createFolder(parentPath, name);
+            showCreateModal('New Folder', 'Enter folder name:', 'new-folder', 'Spaces will be replaced with dashes. A _index.md file will be created automatically.', parentPath, function(name, where) {
+              createFolder(where, name);
             });
             break;
           case 'rename':
@@ -2715,14 +2744,14 @@
       
       // Root-level new file/folder buttons
       newFileRoot.addEventListener('click', function() {
-        showModal('New File', 'Enter file name:', 'new-file.md', 'Spaces will be replaced with dashes. .md extension will be added if missing.', function(name) {
-          createFile('', name);
+        showCreateModal('New File', 'Enter file name:', 'new-file.md', 'Spaces will be replaced with dashes. .md extension will be added if missing.', defaultParentPath(), function(name, where) {
+          createFile(where, name);
         });
       });
       
       newFolderRoot.addEventListener('click', function() {
-        showModal('New Folder', 'Enter folder name:', 'new-folder', 'Spaces will be replaced with dashes. A _index.md file will be created automatically.', function(name) {
-          createFolder('', name);
+        showCreateModal('New Folder', 'Enter folder name:', 'new-folder', 'Spaces will be replaced with dashes. A _index.md file will be created automatically.', defaultParentPath(), function(name, where) {
+          createFolder(where, name);
         });
       });
       
@@ -2739,7 +2768,63 @@
        * @param {string} hint - Help text shown below input
        * @param {Function} callback - Called with input value on confirm
        */
+      /**
+       * Folders the user may create in, as { path, depth } in tree order.
+       * Administrators may also create at the top level; editors only inside
+       * their assigned sections (the server enforces this either way).
+       */
+      function listFolderChoices(items, depth, out) {
+        (items || []).forEach(function(it) {
+          if (it.type === 'folder') {
+            out.push({ path: it.path, depth: depth });
+            listFolderChoices(it.children, depth + 1, out);
+          }
+        });
+        return out;
+      }
+
+      function fillParentPicker(selectedPath) {
+        const user = window.__markstackUser || {};
+        modalParent.innerHTML = '';
+        const choices = listFolderChoices(lastTree, 0, []);
+        if (user.role === 'admin') {
+          const o = document.createElement('option');
+          o.value = ''; o.textContent = '/ (top level)';
+          modalParent.appendChild(o);
+        }
+        choices.forEach(function(c) {
+          const o = document.createElement('option');
+          o.value = c.path;
+          o.textContent = c.path + '/';
+          modalParent.appendChild(o);
+        });
+        const has = Array.prototype.some.call(modalParent.options, function(o) { return o.value === selectedPath; });
+        modalParent.value = has ? selectedPath : (modalParent.options[0] ? modalParent.options[0].value : '');
+      }
+
+      /** Folder that should be pre-selected: the open file's folder, else the top. */
+      function defaultParentPath() {
+        return currentFilePath ? currentFilePath.split('/').slice(0, -1).join('/') : '';
+      }
+
+      /**
+       * Like showModal, but also asks where the new item goes.
+       * callback(name, parentPath)
+       */
+      function showCreateModal(title, placeholder, defaultValue, hint, startParent, callback) {
+        fillParentPicker(startParent);
+        showModal(title, placeholder, defaultValue, hint, function(name) {
+          callback(name, modalParent.value);
+        });
+        modalLocation.hidden = false;
+        modalNameLabel.hidden = false;
+        modalInput.focus();
+        modalInput.select();
+      }
+
       function showModal(title, placeholder, defaultValue, hint, callback) {
+        modalLocation.hidden = true;
+        modalNameLabel.hidden = true;
         modalTitle.textContent = title;
         modalInput.placeholder = placeholder;
         modalInput.value = defaultValue;
@@ -2862,7 +2947,9 @@
             return;
           }
           
+          revealParentsOf(data.path);
           await loadFileTree();
+          revealFolders = new Set();
           loadFile(data.path);
         } catch (err) {
           console.error('Failed to create file:', err);
@@ -2890,7 +2977,9 @@
             return;
           }
           
+          revealParentsOf(data.path);
           await loadFileTree();
+          revealFolders = new Set();
         } catch (err) {
           console.error('Failed to create folder:', err);
           alert('Failed to create folder');
