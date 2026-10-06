@@ -34,7 +34,7 @@
 MarkStack is built on a simple premise: **Documentation should be accessible, robust, and permanent.** It is designed to serve all walks of life, from the student building a second brain, to the Dungeon Master organizing a campaign, to a team that wants its documentation reviewed like code.
 
 **Built for the "Potato" & the Cloud**
-I developed MarkStack on a single-core, 1GB RAM virtual machine, so it is built to stay light. The build is a single Node.js process and the output is plain static files.
+MarkStack is built to stay light. The build is a single Node.js process and the output is plain static files.
 * **For the Hobbyist:** Run it on a small VPS, an old laptop or a free static host. The public site needs no server-side code.
 * **For Teams:** The output is a folder of static files, so you can serve it from any web server or CDN you already run. High availability and scaling depend on that hosting, not on MarkStack. The visual editor is a single Node.js process and is not clustered.
 

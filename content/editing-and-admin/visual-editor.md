@@ -82,7 +82,7 @@ Administrators see a **Publish Changes** button. A small dot on it means there a
 
 The sun and moon button switches between dark and light, and the choice is remembered in your browser. The default is dark.
 
-On a narrow screen the file tree becomes a drawer opened from the menu button, and an Edit and Preview toggle replaces the side by side view.
+The editor is designed for desktop screens, and that is the tested experience. Below 800px wide it switches to one pane at a time with an Edit and Preview switch, and the file tree becomes a drawer opened from the menu button. Treat that small-screen layout as basic.
 
 ## Shortcuts
 
