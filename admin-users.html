@@ -28,67 +28,110 @@ try { document.documentElement.setAttribute('data-theme', localStorage.getItem('
   [hidden] { display:none !important; }
   header { display:flex; align-items:center; gap:16px; height:48px; padding:0 24px; border-bottom:1px solid var(--line); background:var(--panel); }
   header .grow { flex:1; }
-  main { max-width:960px; margin:24px auto; padding:0 16px; }
-  h1 { margin:0 0 4px; font-size:22px; }
-  p.lead { margin:0 0 20px; color:var(--muted); }
-  section { margin-bottom:24px; padding:20px; background:var(--panel); border:1px solid var(--line); border-radius:10px; }
-  h2 { margin:0 0 12px; font-size:11px; font-weight:600; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); }
+  main { max-width:980px; margin:28px auto; padding:0 16px; }
+  .top { display:flex; align-items:flex-end; gap:16px; margin-bottom:16px; }
+  .top > div { flex:1; min-width:0; }
+  h1 { margin:0 0 2px; font-size:22px; line-height:1.3; }
+  p.lead { margin:0; color:var(--muted); }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden; }
   table { width:100%; border-collapse:collapse; }
-  th, td { padding:10px 8px; text-align:left; border-bottom:1px solid var(--line); vertical-align:top; }
+  th, td { padding:11px 14px; text-align:left; border-bottom:1px solid var(--line); vertical-align:middle; }
   tr:last-child td { border-bottom:0; }
-  th { font-size:11px; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); font-weight:600; }
+  th { font-size:11px; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); font-weight:600; background:var(--bg); }
+  th.r, td.actions { text-align:right; white-space:nowrap; }
   td.u { font-weight:600; }
-  .pill { display:inline-block; margin-left:6px; padding:0 8px; border:1px solid var(--line); border-radius:10px; font-size:11px; font-weight:500; color:var(--muted); text-transform:capitalize; }
+  .pill { display:inline-block; margin-left:6px; padding:0 8px; border:1px solid var(--line); border-radius:10px; font-size:11px; font-weight:500; color:var(--muted); }
   .pill.warn { color:var(--err); border-color:var(--err); }
-  .secs { display:flex; flex-wrap:wrap; gap:6px 14px; }
-  .secs label { display:inline-flex; gap:6px; align-items:center; margin:2px 0; font-size:13px; font-weight:400; color:var(--text); }
-  td > button { margin-top:8px; }
-  .row-form { max-width:360px; }
-  .msg { min-height:1.4em; margin-top:10px; font-size:13px; }
+  .role { color:var(--muted); text-transform:capitalize; }
+  .chips { display:flex; flex-wrap:wrap; gap:4px; }
+  .chip { padding:1px 8px; font-size:12px; background:var(--accent-soft); color:var(--accent); border-radius:10px; max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .chip.more { background:var(--raised); color:var(--muted); }
+  .muted { color:var(--muted); font-size:13px; }
+  .actions button { margin-left:6px; min-width:84px; }
+  .actions button.danger:hover { color:var(--err); border-color:var(--err); }
+  .msg { min-height:1.4em; margin:12px 2px 0; font-size:13px; }
   .msg.err { color:var(--err); } .msg.ok { color:var(--ok); }
   code { padding:2px 6px; background:var(--bg); border:1px solid var(--line); border-radius:5px; user-select:all; font-family:"IBM Plex Mono", ui-monospace, monospace; }
-  .muted { color:var(--muted); font-size:13px; }
-  .actions button { margin:2px 6px 2px 0; }
+  .secs { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:2px 12px; max-height:260px; overflow:auto; }
+  .secs label { display:flex; gap:8px; align-items:center; margin:0; padding:5px 0; font-size:13px; font-weight:400; color:var(--text); }
+  dialog { width:min(440px, calc(100vw - 24px)); max-height:calc(100vh - 24px); padding:0; color:var(--text); background:var(--panel); border:1px solid var(--line); border-radius:10px; box-shadow:0 20px 50px rgba(0,0,0,.35); overflow:auto; }
+  dialog::backdrop { background:rgba(8,10,16,.55); }
+  .dlg-h { padding:16px 20px 0; font-size:16px; font-weight:600; }
+  .dlg-b { padding:4px 20px 8px; }
+  .dlg-f { display:flex; justify-content:flex-end; gap:8px; padding:12px 20px 16px; }
+  .dlg-b p { margin:10px 0 10px; }
   @media (max-width:720px) {
     header { padding:0 12px; }
     main { margin:16px auto; }
-    section { padding:14px; }
+    .top { flex-wrap:wrap; }
     table, tbody, tr, td { display:block; width:100%; }
     thead { display:none; }
-    tr { padding:12px 0; border-bottom:1px solid var(--line); }
+    tr { display:grid; grid-template-columns:1fr auto; gap:6px 10px; padding:12px 14px; border-bottom:1px solid var(--line); }
     tr:last-child { border-bottom:0; }
-    td { border:0; padding:4px 0; }
-    td[data-label]::before { content:attr(data-label); display:block; font-size:11px; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); }
-    button { height:38px; }
+    td { padding:0; border:0; }
+    td.u { grid-column:1; }
+    td.r2 { grid-column:2; text-align:right; }
+    td.sec { grid-column:1 / -1; }
+    td.actions { grid-column:1 / -1; text-align:left; display:flex; flex-wrap:wrap; gap:6px; }
+    .actions button { margin:0; flex:1 1 auto; min-width:0; padding:0 12px; height:36px; white-space:nowrap; }
+    dialog button, .top button { height:38px; }
   }
 </style>
 </head>
 <body>
 <header><div class="brand"><img src="/svg/logo.svg" alt="" width="22" height="22"><span>MarkStack</span><span class="sub">Users</span></div><span class="grow"></span><a href="/">Back to the editor</a></header>
 <main>
-  <h1>Users and sections</h1>
-  <p class="lead">Editors can change only the sections you give them. Administrators can change everything.</p>
-  <section>
-    <h2>Accounts</h2>
-    <table><thead><tr><th>User</th><th>Role</th><th>Sections</th><th></th></tr></thead><tbody id="rows"></tbody></table>
-    <div class="msg" id="listMsg" role="status"></div>
-  </section>
-  <section>
-    <h2>Add a user</h2>
-    <div class="row-form">
-    <label for="newName">Username (lowercase letters, digits, . _ -)</label>
-    <input id="newName" type="text" autocomplete="off">
-    <label for="newRole">Role</label>
-    <select id="newRole"><option value="editor">Editor</option><option value="admin">Administrator</option></select>
-    <label for="newPass">Initial password (at least 12 characters)</label>
-    <input id="newPass" type="password" autocomplete="new-password">
-    <label id="newSecsLabel">Sections this editor may change</label>
-    <div class="secs" id="newSecs"></div>
-    <p><button class="primary" id="addBtn">Add user</button></p>
-    <div class="msg" id="addMsg" role="status"></div>
-    </div>
-  </section>
+  <div class="top">
+    <div><h1>Users and sections</h1><p class="lead">Editors can change only the sections assigned to them. Administrators can change everything.</p></div>
+    <button class="primary" id="addOpen">Add user</button>
+  </div>
+  <div class="card">
+    <table><thead><tr><th>User</th><th>Role</th><th>Sections</th><th class="r">Actions</th></tr></thead><tbody id="rows"></tbody></table>
+  </div>
+  <div class="msg" id="listMsg" role="status"></div>
 </main>
+
+<dialog id="addDlg" aria-labelledby="addTitle">
+  <form method="dialog" id="addForm" novalidate>
+    <div class="dlg-h" id="addTitle">Add a user</div>
+    <div class="dlg-b">
+      <label for="newName">Username (lowercase letters, digits, . _ -)</label>
+      <input id="newName" type="text" autocomplete="off">
+      <label for="newRole">Role</label>
+      <select id="newRole"><option value="editor">Editor</option><option value="admin">Administrator</option></select>
+      <label for="newPass">Initial password (at least 12 characters)</label>
+      <input id="newPass" type="password" autocomplete="new-password">
+      <label id="newSecsLabel">Sections this editor may change</label>
+      <div class="secs" id="newSecs"></div>
+      <div class="msg" id="addMsg" role="status"></div>
+    </div>
+    <div class="dlg-f"><button type="button" id="addCancel">Cancel</button><button type="submit" class="primary" id="addBtn">Add user</button></div>
+  </form>
+</dialog>
+
+<dialog id="secDlg" aria-labelledby="secTitle">
+  <form method="dialog" id="secForm">
+    <div class="dlg-h" id="secTitle">Sections</div>
+    <div class="dlg-b">
+      <p class="muted" id="secHint">Saving ends this user's sessions.</p>
+      <div class="secs" id="secBox"></div>
+      <div class="msg" id="secMsg" role="status"></div>
+    </div>
+    <div class="dlg-f"><button type="button" id="secCancel">Cancel</button><button type="submit" class="primary" id="secSave">Save sections</button></div>
+  </form>
+</dialog>
+
+<dialog id="rstDlg" aria-labelledby="rstTitle">
+  <form method="dialog" id="rstForm">
+    <div class="dlg-h" id="rstTitle">Reset password</div>
+    <div class="dlg-b">
+      <p id="rstText"></p>
+      <div class="msg" id="rstMsg" role="status"></div>
+    </div>
+    <div class="dlg-f"><button type="button" id="rstCancel">Cancel</button><button type="submit" class="primary" id="rstGo">Reset password</button></div>
+  </form>
+</dialog>
+
 <script nonce="__CSP_NONCE__">
 (function () {
   var csrf = null, sections = [], me = null;
@@ -108,57 +151,63 @@ try { document.documentElement.setAttribute('data-theme', localStorage.getItem('
     (kids || []).forEach(function (c) { n.appendChild(c); });
     return n;
   }
-  function checks(selected, prefix) {
-    var box = el('div', { 'class': 'secs' });
+  function $(id) { return document.getElementById(id); }
+  function checks(box, selected) {
+    box.textContent = '';
     if (!sections.length) box.appendChild(el('span', { 'class': 'muted', text: 'No section folders exist yet.' }));
     sections.forEach(function (s) {
-      var cb = el('input', { type: 'checkbox', value: s, 'data-prefix': prefix });
+      var cb = el('input', { type: 'checkbox', value: s });
       cb.checked = selected.indexOf(s) !== -1;
       box.appendChild(el('label', {}, [cb, document.createTextNode(s)]));
     });
-    return box;
   }
   function picked(box) {
     return Array.prototype.slice.call(box.querySelectorAll('input:checked')).map(function (i) { return i.value; });
   }
-  function msg(id, text, ok) { var m = document.getElementById(id); m.textContent = text || ''; m.className = 'msg ' + (text ? (ok ? 'ok' : 'err') : ''); }
+  function msg(id, text, ok) { var m = $(id); m.textContent = text || ''; m.className = 'msg ' + (text ? (ok ? 'ok' : 'err') : ''); }
+  function open(d) { if (d.showModal) d.showModal(); else d.setAttribute('open', ''); }
+  function close(d) { if (d.close) d.close(); else d.removeAttribute('open'); }
+  function summary(u) {
+    var td = el('td', { 'class': 'sec' });
+    if (u.role === 'admin') { td.appendChild(el('span', { 'class': 'muted', text: 'All sections' })); return td; }
+    if (!u.sections.length) { td.appendChild(el('span', { 'class': 'muted', text: 'No sections' })); return td; }
+    var box = el('div', { 'class': 'chips' });
+    u.sections.slice(0, 3).forEach(function (s) { box.appendChild(el('span', { 'class': 'chip', title: s, text: s })); });
+    if (u.sections.length > 3) box.appendChild(el('span', { 'class': 'chip more', title: u.sections.slice(3).join(', '), text: '+' + (u.sections.length - 3) }));
+    td.appendChild(box);
+    return td;
+  }
 
+  var secUser = null, rstUser = null;
   function render(users) {
-    var rows = document.getElementById('rows'); rows.textContent = '';
+    var rows = $('rows'); rows.textContent = '';
     users.forEach(function (u) {
       var tr = el('tr');
-      var nameTd = el('td', { 'class': 'u', 'data-label': 'User', text: u.name });
+      var nameTd = el('td', { 'class': 'u', text: u.name });
       if (u.disabled) nameTd.appendChild(el('span', { 'class': 'pill warn', text: 'disabled' }));
       if (u.mustChangePassword) nameTd.appendChild(el('span', { 'class': 'pill', text: 'must change password' }));
       tr.appendChild(nameTd);
-      tr.appendChild(el('td', { 'data-label': 'Role', text: u.role }));
-      var secTd = el('td', { 'data-label': 'Sections' });
-      if (u.role === 'admin') secTd.appendChild(el('span', { 'class': 'muted', text: 'All sections' }));
-      else {
-        var box = checks(u.sections, u.name); secTd.appendChild(box);
-        secTd.appendChild(el('button', { text: 'Save sections' })).addEventListener('click', function () {
-          api('POST', '/api/users/sections', { name: u.name, sections: picked(box) }).then(function () { msg('listMsg', 'Sections saved for ' + u.name + '. Their sessions were ended.', true); }).catch(function (e) { msg('listMsg', e.message); });
-        });
-      }
-      tr.appendChild(secTd);
-      var act = el('td', { 'class': 'actions', 'data-label': 'Actions' });
-      var dis = el('button', { text: u.disabled ? 'Enable' : 'Disable' });
-      dis.addEventListener('click', function () {
-        api('POST', '/api/users/disable', { name: u.name, disabled: !u.disabled }).then(load).catch(function (e) { msg('listMsg', e.message); });
-      });
-      act.appendChild(dis);
+      tr.appendChild(el('td', { 'class': 'role r2', text: u.role === 'admin' ? 'Administrator' : 'Editor' }));
+      tr.appendChild(summary(u));
+      var act = el('td', { 'class': 'actions' });
       if (u.role === 'editor') {
-        var rst = el('button', { text: 'Reset password' });
+        var ed = el('button', { type: 'button', text: 'Sections', 'aria-label': 'Edit sections for ' + u.name });
+        ed.addEventListener('click', function () {
+          secUser = u; $('secTitle').textContent = 'Sections for ' + u.name; checks($('secBox'), u.sections); msg('secMsg', ''); open($('secDlg'));
+        });
+        act.appendChild(ed);
+        var rst = el('button', { type: 'button', text: 'Reset password', 'aria-label': 'Reset password for ' + u.name });
         rst.addEventListener('click', function () {
-          if (!confirm('Reset the password for ' + u.name + '? Their sessions end and the new password is shown once.')) return;
-          api('POST', '/api/users/reset-password', { name: u.name }).then(function (d) {
-            var m = document.getElementById('listMsg'); m.className = 'msg ok'; m.textContent = 'Temporary password for ' + u.name + ' (shown once): ';
-            m.appendChild(el('code', { text: d.temporaryPassword }));
-            load(true);
-          }).catch(function (e) { msg('listMsg', e.message); });
+          rstUser = u; $('rstText').textContent = 'Reset the password for ' + u.name + '? Their sessions end and the new password is shown once.';
+          msg('rstMsg', ''); $('rstGo').hidden = false; $('rstCancel').textContent = 'Cancel'; open($('rstDlg'));
         });
         act.appendChild(rst);
       }
+      var dis = el('button', { type: 'button', 'class': u.disabled ? '' : 'danger', text: u.disabled ? 'Enable' : 'Disable', 'aria-label': (u.disabled ? 'Enable ' : 'Disable ') + u.name });
+      dis.addEventListener('click', function () {
+        api('POST', '/api/users/disable', { name: u.name, disabled: !u.disabled }).then(function () { return load(); }).catch(function (e) { msg('listMsg', e.message); });
+      });
+      act.appendChild(dis);
       tr.appendChild(act);
       rows.appendChild(tr);
     });
@@ -166,21 +215,47 @@ try { document.documentElement.setAttribute('data-theme', localStorage.getItem('
   function load(keepMsg) {
     return api('GET', '/api/users').then(function (d) {
       sections = d.sections; render(d.users);
-      var ns = document.getElementById('newSecs'); ns.textContent = ''; ns.appendChild(checks([], 'new'));
       if (keepMsg !== true) msg('listMsg', '');
     }).catch(function (e) { msg('listMsg', e.message); });
   }
-  document.getElementById('newRole').addEventListener('change', function () {
-    document.getElementById('newSecs').hidden = document.getElementById('newSecsLabel').hidden = this.value === 'admin';
+
+  $('secCancel').addEventListener('click', function () { close($('secDlg')); });
+  $('secForm').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var u = secUser; if (!u) return;
+    api('POST', '/api/users/sections', { name: u.name, sections: picked($('secBox')) }).then(function () {
+      close($('secDlg')); msg('listMsg', 'Sections saved for ' + u.name + '. Their sessions were ended.', true); return load(true);
+    }).catch(function (e) { msg('secMsg', e.message); });
   });
-  document.getElementById('addBtn').addEventListener('click', function () {
-    var role = document.getElementById('newRole').value;
+
+  $('rstCancel').addEventListener('click', function () { close($('rstDlg')); });
+  $('rstForm').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var u = rstUser; if (!u || $('rstGo').hidden) return;
+    api('POST', '/api/users/reset-password', { name: u.name }).then(function (d) {
+      $('rstText').textContent = 'Temporary password for ' + u.name + ' (shown once, copy it now):';
+      var m = $('rstMsg'); m.className = 'msg ok'; m.textContent = ''; m.appendChild(el('code', { text: d.temporaryPassword }));
+      $('rstGo').hidden = true; $('rstCancel').textContent = 'Done';
+      return load(true);
+    }).catch(function (e) { msg('rstMsg', e.message); });
+  });
+
+  function syncNew() { $('newSecs').hidden = $('newSecsLabel').hidden = $('newRole').value === 'admin'; }
+  $('newRole').addEventListener('change', syncNew);
+  $('addOpen').addEventListener('click', function () {
+    $('newName').value = ''; $('newPass').value = ''; $('newRole').value = 'editor'; checks($('newSecs'), []); syncNew(); msg('addMsg', ''); open($('addDlg'));
+    $('newName').focus();
+  });
+  $('addCancel').addEventListener('click', function () { close($('addDlg')); });
+  $('addForm').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var role = $('newRole').value;
     api('POST', '/api/users', {
-      name: document.getElementById('newName').value.trim().toLowerCase(), role: role,
-      password: document.getElementById('newPass').value, sections: role === 'editor' ? picked(document.getElementById('newSecs')) : []
+      name: $('newName').value.trim().toLowerCase(), role: role,
+      password: $('newPass').value, sections: role === 'editor' ? picked($('newSecs')) : []
     }).then(function () {
-      document.getElementById('newName').value = ''; document.getElementById('newPass').value = '';
-      msg('addMsg', 'User added.', true); load();
+      $('newName').value = ''; $('newPass').value = '';
+      close($('addDlg')); msg('listMsg', 'User added.', true); return load(true);
     }).catch(function (e) { msg('addMsg', e.message); });
   });
   api('GET', '/api/me').then(function (d) { csrf = d.csrf; me = d.user; return load(); });
