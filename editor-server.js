@@ -28,6 +28,7 @@ const { authorize, filterTree, isValidSectionName } = require('./lib/section-acc
 const { hashPassword, checkPasswordPolicy } = require('./lib/passwords');
 const linksStore = require('./lib/links-store');
 const favicon = require('./lib/favicon');
+const contentCatalog = require('./lib/content-catalog');
 
 // =============================================================================
 // Configuration
@@ -366,7 +367,7 @@ function editorCsp(nonce) {
 /** Serve editor.html with a fresh nonce and its CSP header. */
 function serveEditorPage(res) {
   const nonce = require('crypto').randomBytes(16).toString('base64');
-  const page = fs.readFileSync(path.join(__dirname, 'editor.html'), 'utf-8').replace(/__CSP_NONCE__/g, nonce).replace(/__ALLOW_RAW_HTML__/g, siteAllowsRawHtml() ? 'true' : 'false').replace('__PUBLISH_CONTROLLER__', () => fs.readFileSync(path.join(__dirname, 'static/js/publish-controller.js'), 'utf-8'));
+  const page = fs.readFileSync(path.join(__dirname, 'editor.html'), 'utf-8').replace(/__CSP_NONCE__/g, nonce).replace(/__ALLOW_RAW_HTML__/g, siteAllowsRawHtml() ? 'true' : 'false').replace('__PUBLISH_CONTROLLER__', () => fs.readFileSync(path.join(__dirname, 'static/js/publish-controller.js'), 'utf-8')).replace('__CONTENT_CONTROLLER__', () => fs.readFileSync(path.join(__dirname, 'static/js/content-controller.js'), 'utf-8'));
   res.writeHead(200, {
     'Content-Type': 'text/html; charset=utf-8',
     'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -692,8 +693,16 @@ async function handleRename(req, res) {
       return sendError(res, 409, 'Target already exists');
     }
     
+    const topSection = isDirectory(fullOldPath) && path.dirname(oldPath) === '.';
+    if (topSection && (!isValidSectionName(normalizedName) || !isDirectory(fullOldPath))) return sendError(res, 400, 'Invalid section rename');
     fs.renameSync(fullOldPath, fullNewPath);
-    
+    if (topSection) {
+      try {
+        const changed = AUTH.users.renameSection(oldPath, newPath);
+        changed.forEach(name => AUTH.sessions.destroyUser(name));
+        authLog('section-renamed', oldPath);
+      } catch (err) { fs.renameSync(fullNewPath, fullOldPath); throw err; }
+    }
     sendSuccess(res, { newPath });
   } catch (err) {
     sendFailure(res, err);
@@ -1030,7 +1039,7 @@ async function handleAdminAPI(req, res, pathname) {
       authLog('sessions-ended', name);
       sendSuccess(res, { ended, signedOut: name === req.user.name }); return true;
     }
-    if (pathname === '/api/users') {
+  if (pathname === '/api/users') {
       const { name, role, password, sections } = await parseJSONBody(req);
       const u = await AUTH.users.create({ name, role, password, sections: sections || [] });
       authLog('user-created', name);
@@ -1066,6 +1075,29 @@ async function handleAdminAPI(req, res, pathname) {
   return false;
 }
 
+/** Administrator-only content metadata. Existing file APIs still own create/rename/delete. */
+async function handleContentAdminAPI(req, res, pathname) {
+  if (req.user.role !== 'admin') return sendError(res, 403, 'Administrator only');
+  try {
+    if (req.method === 'GET' && pathname === '/api/content-catalog') return sendJSON(res, 200, contentCatalog.catalog(CONFIG.contentDir, AUTH.users.list()));
+    if (req.method === 'POST' && pathname === '/api/sections/settings') {
+      const data = await parseJSONBody(req);
+      if (!isValidSectionName(data.name)) return sendError(res, 400, 'Invalid section name');
+      const rel = data.name + '/_index.md', full = path.join(CONFIG.contentDir, rel);
+      if (!allowed(req, res, 'write', rel)) return;
+      if (!isDirectory(path.join(CONFIG.contentDir,data.name))) return sendError(res, 404, 'Section not found');
+      const text = fs.existsSync(full) ? fs.readFileSync(full, 'utf8') : '';
+      if (typeof data.revision !== 'string' || contentCatalog.revision(text) !== data.revision) return sendError(res, 409, 'Section changed. Reload before saving.');
+      const updated = contentCatalog.updateSection(text, data);
+      const tmp = full + '.' + crypto.randomBytes(8).toString('hex') + '.tmp';
+      try { fs.writeFileSync(tmp, updated, { mode: 0o600 }); fs.renameSync(tmp, full); } finally { if(fs.existsSync(tmp))fs.unlinkSync(tmp); }
+      authLog('section-settings-saved', data.name);
+      return sendSuccess(res, { revision: contentCatalog.revision(updated) });
+    }
+    return sendError(res, 404, 'Not found');
+  } catch (err) { sendBadInput(res, err); }
+}
+
 /** Authorize a content action for the signed-in user; sends the error and returns false when denied. */
 function allowed(req, res, action, relPath, newRelPath) {
   const d = authorize(req.user, action, relPath, { contentDir: CONFIG.contentDir, newRelPath });
@@ -1077,7 +1109,7 @@ function allowed(req, res, action, relPath, newRelPath) {
 
 function servePublicPage(res, file) {
   const nonce = crypto.randomBytes(16).toString('base64');
-  const page = fs.readFileSync(path.join(__dirname, file), 'utf-8').replace(/__CSP_NONCE__/g, nonce).replace('__PUBLISH_CONTROLLER__', () => fs.readFileSync(path.join(__dirname, 'static/js/publish-controller.js'), 'utf-8'));
+  const page = fs.readFileSync(path.join(__dirname, file), 'utf-8').replace(/__CSP_NONCE__/g, nonce).replace('__PUBLISH_CONTROLLER__', () => fs.readFileSync(path.join(__dirname, 'static/js/publish-controller.js'), 'utf-8')).replace('__CONTENT_CONTROLLER__', () => fs.readFileSync(path.join(__dirname, 'static/js/content-controller.js'), 'utf-8'));
   res.writeHead(200, {
     'Content-Type': 'text/html; charset=utf-8',
     'Cache-Control': 'no-store',
@@ -1105,6 +1137,7 @@ function redirect(res, location) {
  * @param {URL} url - Parsed URL object
  */
 async function handleAPI(req, res, pathname, url) {
+  if (pathname === '/api/content-catalog' || pathname === '/api/sections/settings') return handleContentAdminAPI(req, res, pathname);
   if (req.method === 'GET' && pathname === '/api/me') return sendJSON(res, 200, me(req.user, req.session));
   if (req.method === 'POST' && pathname === '/api/logout') return handleLogout(req, res);
   if (req.method === 'POST' && pathname === '/api/change-password') return handleChangePassword(req, res);

@@ -3020,7 +3020,7 @@
       
       // Reopen only a path the current account can still read.
       loadFileTree().then(async function () {
-        const last = drafts.last();
+        const last = new URLSearchParams(location.search).get('file') || drafts.last();
         if (!last) return;
         function contains(items) { return items.some(i => i.type === 'file' ? i.path === last : contains(i.children || [])); }
         if (contains(lastTree)) await loadFile(last);
@@ -3043,4 +3043,4 @@
   })();
 </script>
 </body>
-              </html>
+        </html>

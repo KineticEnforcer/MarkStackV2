@@ -389,6 +389,8 @@ This project is licensed under the GPL-3.0 license. See [LICENSE](LICENSE) for t
 | Area | What you can do |
 |---|---|
 | Users | Search accounts, add a user, set section access, inspect account details and last sign-in, reset an editor password, disable or enable an account, inspect sessions and recent events, sign out everywhere |
+| Sections | Edit section title, sidebar position/visibility, folder name and assigned editors; inspect its pages |
+| Pages | Search all Markdown pages, inspect paths/URLs/times, open in editor, create, rename or delete |
 | Header links | Add, edit, reorder, remove or hide a link; the server fetches its favicon |
 | Publish Changes | Build saved content with staged progress, keep the previous live site, and inspect failure details |
 
@@ -418,3 +420,14 @@ Drafts are a convenience, not a backup. They stay on this device after sign-out 
 Last sign-in is recorded in the existing owner-only user file on a successful sign-in. Older accounts show **Never** until their next sign-in. A password check for changing a password does not update that time. Sessions and recent events are kept in memory and reset when the server restarts; persistent audit history is part of the later System phase. Roles are read-only because the existing user store does not support changing roles.
 
 This phase adds no environment variables or ports. Access changes, account disabling, password resets and Sign out everywhere take effect immediately, without publishing. Browser drafts are not deleted by session revocation.
+
+
+### Sections and Pages
+
+**Only administrators can use these console areas and metadata APIs. Hiding a section is navigation-only, not access control.** Hidden sections still build and remain reachable by URL.
+
+Section settings live in the section's `_index.md` frontmatter (`title`, integer `order`, boolean `hidden`). Save keeps the Markdown body and unrelated metadata. A revision check refuses to overwrite a file changed since it was loaded. Complex YAML that cannot be preserved safely must be edited in the Markdown editor. Lower positions sort first; equal positions sort by title. Save, then Publish Changes to update the public site.
+
+Changing a section title can change public URLs. Renaming its folder updates assigned editors and ends their sessions. Folder rename and metadata save are separate steps; if rename fails after metadata saved, the console reports that partial result and keeps the rename available to retry. Browser-local drafts for other tabs keep their old paths, so recover and save them before renaming.
+
+The Editors tab changes assignments immediately with confirmation and ends that editor's sessions. Pages shows source path, planned public URL, section and modification time; Open in editor selects that file only if it is in the current account's authorized tree. New section creates a top-level folder and `_index.md`; New page asks for its section. Page rename/delete reuse the existing safe APIs. Delete cannot be undone in the console. Duplicate public URLs still stop the build rather than overwrite output. No new data file, dependency, environment variable or port is required.
