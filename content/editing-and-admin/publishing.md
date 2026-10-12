@@ -51,3 +51,7 @@ mv dist.previous dist
 - The switch is two renames, one after the other. A request that arrives in the few microseconds between them can get a 404.
 - Publishing replaces the folder the editor knows as `dist/`. If your public site is deployed elsewhere, for example uploaded to a static host from your own machine, publishing only updates the local copy. See [Deployment Guide](/build-and-deploy/deployment-guide/).
 - A failure to write the backup is reported in the log, but the new site stays live.
+
+## Publish from the Admin console
+
+The **Publish Changes** button is also in the Admin header. It uses the same confirmation, staged progress, backup behavior and failure diagnostics as the editor. You can hide the progress window without stopping a running publish. Header link changes are saved immediately but need a publish before readers see them.
