@@ -164,3 +164,8 @@ test('a failed publish keeps the existing dist.previous', async () => {
   assert.equal(fs.readFileSync(path.join(distDir + '.previous', 'index.html'), 'utf-8'), 'OLDER BACKUP');
   fs.rmSync(tmp, { recursive: true, force: true });
 });
+test('site settings are snapshotted with a publish and late settings remain unpublished',async()=>{
+ const data=fs.mkdtempSync(path.join(os.tmpdir(),'ms-settings-publish-'));
+ const settings=path.join(data,'site-settings.json');fs.writeFileSync(settings,JSON.stringify({siteTitle:'Snapshot title'}));
+ const {tmp,distDir,p}=setup({dataDir:data});try{p.start('admin');fs.writeFileSync(settings,JSON.stringify({siteTitle:'Late changed title'}));await p.finished();assert.equal(p.status().state,'done',p.status().error);const html=fs.readFileSync(path.join(distDir,'index.html'),'utf8');assert.ok(html.includes('Snapshot title'));assert.ok(!html.includes('Late changed title'));assert.equal(p.unpublished().unpublished,true);}finally{fs.rmSync(tmp,{recursive:true,force:true});fs.rmSync(data,{recursive:true,force:true});}
+});
