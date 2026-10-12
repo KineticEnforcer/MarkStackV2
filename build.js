@@ -439,18 +439,21 @@ function buildFullNavTree(dirPath = CONFIG.contentDir, currentUrlPath = '') {
     
     if (entry.isDirectory()) {
       const indexPath = path.resolve(entryPath, '_index.md');
-      let folderTitle = formatTitle(entry.name);
+      let folderTitle = formatTitle(entry.name), folderOrder = 0;
       
       if (fs.existsSync(indexPath)) {
         const content = fs.readFileSync(indexPath, 'utf-8');
         const { data } = matter(content);
         if (data.title) folderTitle = data.title;
+        if (data.hidden === true) continue;
+        if (Number.isInteger(data.order)) folderOrder = data.order;
       }
       
       const folderUrl = urlMap.get(entryPath) || '/' + path.relative(CONFIG.contentDir, entryPath).replace(/\\/g, '/') + '/';
       
       folders.push({
         type: 'folder',
+        order: folderOrder,
         title: folderTitle,
         url: folderUrl,
         name: entry.name,
@@ -473,7 +476,7 @@ function buildFullNavTree(dirPath = CONFIG.contentDir, currentUrlPath = '') {
   }
   
   // Sort alphabetically by title
-  folders.sort((a, b) => a.title.localeCompare(b.title));
+  folders.sort((a, b) => a.order - b.order || a.title.localeCompare(b.title));
   files.sort((a, b) => a.title.localeCompare(b.title));
   
   return [...folders, ...files];
