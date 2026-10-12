@@ -750,7 +750,7 @@ const SECURE_SESSION_COOKIE = '__Host-ms_session';
  * unprefixed name.
  */
 function sessionCookieName() { return CONFIG.cookieSecure ? SECURE_SESSION_COOKIE : SESSION_COOKIE; }
-const AUTH = { users: null, sessions: null, byAccount: null, byAddress: null, byAccountAll: null, known: new Map() };
+const AUTH = { users: null, sessions: null, byAccount: null, byAddress: null, byAccountAll: null, known: new Map(), recentEvents: [] };
 
 /** Create the auth state. Tests and the CLI can pass their own stores. */
 function initAuth(opts = {}) {
@@ -770,10 +770,13 @@ function initAuth(opts = {}) {
   // lock the real user out of their usual place.
   AUTH.byAccountAll = opts.byAccountAll || new FailureLimiter({ maxFailures: 20 });
   AUTH.known = new Map();
+  AUTH.recentEvents = [];
 }
 
 /** Log an auth event. Never pass passwords, tokens or cookie values here. */
 function authLog(event, name) {
+  AUTH.recentEvents.push({ event, target: typeof name === 'string' ? name.slice(0, 40) : null, at: new Date().toISOString() });
+  if (AUTH.recentEvents.length > 500) AUTH.recentEvents.shift();
   console.log(`[auth] ${new Date().toISOString()} ${event}${name ? ` user=${String(name).slice(0, 40)}` : ''}`);
 }
 
@@ -858,6 +861,7 @@ async function handleLogin(req, res) {
     AUTH.byAccount.clear(acct);
     const seen = AUTH.known.get(user.name) || [];
     if (!seen.includes(addr)) { seen.push(addr); if (seen.length > 5) seen.shift(); AUTH.known.set(user.name, seen); }
+    AUTH.users.recordLogin(user.name, user.authVersion);
     const token = AUTH.sessions.create(user.name, user.authVersion);
     authLog('login', user.name);
     sendJSONWithCookie(res, 200, me(user, AUTH.sessions.get(token)), sessionCookieHeaders(token, CONFIG.sessionMaxMinutes * 60));
@@ -1009,7 +1013,23 @@ async function handleAdminAPI(req, res, pathname) {
   if (req.user.role !== 'admin') { sendError(res, 403, 'Administrator only'); return true; }
   try {
     if (req.method === 'GET' && pathname === '/api/users') { sendJSON(res, 200, { users: AUTH.users.list(), sections: listSections() }); return true; }
+    if (req.method === 'GET' && pathname.startsWith('/api/users/')) {
+      const name = decodeURIComponent(pathname.slice('/api/users/'.length));
+      if (!/^[a-z0-9][a-z0-9._-]{1,31}$/.test(name)) return sendError(res, 400, 'Invalid user name'), true;
+      const user = AUTH.users.get(name);
+      if (!user) return sendError(res, 404, 'No such user'), true;
+      sendJSON(res, 200, { user, sessions: AUTH.sessions.summary(name, user.authVersion), activity: AUTH.recentEvents.filter(e => e.target === name).slice(-50).reverse() });
+      return true;
+    }
     if (req.method !== 'POST') return false;
+    if (pathname === '/api/users/sign-out') {
+      const { name } = await parseJSONBody(req);
+      if (typeof name !== 'string' || !/^[a-z0-9][a-z0-9._-]{1,31}$/.test(name) || !AUTH.users.get(name)) return sendError(res, 400, 'No such user'), true;
+      AUTH.users.revokeSessions(name);
+      const ended = AUTH.sessions.destroyUser(name);
+      authLog('sessions-ended', name);
+      sendSuccess(res, { ended, signedOut: name === req.user.name }); return true;
+    }
     if (pathname === '/api/users') {
       const { name, role, password, sections } = await parseJSONBody(req);
       const u = await AUTH.users.create({ name, role, password, sections: sections || [] });
