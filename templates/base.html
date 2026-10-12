@@ -16,7 +16,7 @@
       // Web fonts: a stylesheet added by script does not hold back the first paint
       var fl = document.createElement('link');
       fl.rel = 'stylesheet';
-      fl.href = 'https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap';
+      fl.href = '{{baseUrl}}/vendor/fonts/fonts.css';
       document.head.appendChild(fl);
     })();
   </script>
@@ -37,10 +37,8 @@
   </style>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="description" content="{{description}}">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!-- Fonts are added by the script above, so they never block the first paint; without JavaScript this normal link is used -->
-  <noscript><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
+  <noscript><link href="{{baseUrl}}/vendor/fonts/fonts.css" rel="stylesheet"></noscript>
   <meta property="og:title" content="{{title}} | {{siteTitle}}">
   <meta property="og:description" content="{{description}}">
   <meta property="og:url" content="{{url}}">
@@ -192,12 +190,6 @@
 
   <script src="{{baseUrl}}/js/search-core.js?v=1"></script>
   <script src="{{baseUrl}}/js/app.js?v=17"></script>
-  <script type="module">
-    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-    mermaid.initialize({ 
-      startOnLoad: true,
-      theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
-    });
-  </script>
+  <script src="{{baseUrl}}/js/mermaid-loader.js" data-public="true"></script>
 </body>
 </html>

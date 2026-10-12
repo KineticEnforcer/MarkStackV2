@@ -54,7 +54,7 @@ Each alert type has a background, border and text variable: `--color-note-*`, `-
 
 The font size variables are set twice in the file. The second block, near the end of the file, is the one that applies, so edit that one.
 
-The IBM Plex fonts are loaded from Google Fonts by the template. To use another font, change `--font-sans` and the `<link>` in `templates/base.html`. To avoid contacting Google, remove the link and host the font files yourself with `@font-face`.
+IBM Plex Sans and Mono are served locally from `static/vendor/fonts/`, with unmodified font files and SIL Open Font License notices in `static/vendor/NOTICES.txt`. To use another font, change `--font-sans` and the local font stylesheet. Include the replacement font files and license notices too.
 
 ## Layout
 

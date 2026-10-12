@@ -21,7 +21,7 @@ MarkStack reads every Markdown file under `content/`, converts it to HTML, build
 npm run serve
 ```
 
-This serves `dist/` as a normal website. The first time you run it, npm may ask to download a small helper package called `serve`; answer yes. The terminal prints the address, usually `http://localhost:3000`. Open it in a browser.
+This serves `dist/` with the included Node.js preview server, without downloading a helper package. It binds only to your local machine and prints `http://127.0.0.1:3000`. Open it in a browser.
 
 You should see the home page, the sidebar on the left, the search box at the top and a light/dark toggle. Click through a few pages, press `Ctrl+K` (or `/`) to open search, and switch themes.
 

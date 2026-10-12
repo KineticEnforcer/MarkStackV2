@@ -124,7 +124,7 @@ CSS and JavaScript file names stay the same between builds, and the templates ad
 
 ## Third-party requests
 
-Pages load IBM Plex fonts from Google Fonts and Mermaid from jsDelivr. See [Security](/editing-and-admin/security/) for what that means and how to turn it off.
+All MarkStack browser libraries and IBM Plex fonts are pre-bundled in `vendor/` and served by your own host. Deploy the complete `dist/` directory, including `vendor/`. No external library or font downloads are needed at runtime. See [Security](/editing-and-admin/security/) for the separate remote-image and admin favicon-fetching cases.
 
 ## Checklist
 

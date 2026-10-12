@@ -175,19 +175,17 @@ test('editor page is served with a nonce CSP and no unpinned scripts', async () 
   assert.notEqual(second, nonce, 'nonce changes per response');
 });
 
-test('every external script is version-pinned, has integrity, and is allowed by hash in the CSP', async () => {
+test('editor runtime scripts are local and CSP allows no third-party font or script host', async () => {
   const r = await request('GET', '/');
-  const csp = r.headers['content-security-policy'];
-  const tags = r.body.match(/<script[^>]*\ssrc="https?:[^"]*"[^>]*>/g) || [];
-  assert.ok(tags.length >= 2);
-  for (const t of tags) {
-    assert.match(t, /@\d+\.\d+\.\d+\//, 'exact version in URL: ' + t);
-    const integrity = (t.match(/integrity="([^"]+)"/) || [])[1];
-    assert.ok(integrity && csp.includes(`'${integrity}'`), 'integrity hash allowed in CSP: ' + t);
+  assert.equal((r.body.match(/<script[^>]*\ssrc="https?:[^"]*"[^>]*>/g) || []).length, 0);
+  assert.doesNotMatch(r.headers['content-security-policy'], /googleapis|gstatic|jsdelivr|sha384/);
+  for (const asset of ['/vendor/mermaid.js', '/vendor/highlight.js', '/vendor/markdown-it.js', '/vendor/fonts/fonts.css']) {
+    const response = await request('GET', asset);
+    assert.equal(response.status, 200, asset);
   }
 });
 
-test('markdown-it is served from the installed package', async () => {
+test('markdown-it is served from the committed bundle', async () => {
   const r = await request('GET', '/vendor/markdown-it.js');
   assert.equal(r.status, 200);
   assert.match(r.headers['content-type'], /javascript/);

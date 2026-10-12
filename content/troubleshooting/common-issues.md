@@ -87,11 +87,11 @@ A cached file. Hard refresh the page, or raise the `?v=` number on the styleshee
 
 ### Diagrams show as text
 
-Mermaid is loaded from a CDN. If the reader's browser or network blocks that request, the diagram stays as its source. See [Security](/editing-and-admin/security/).
+Mermaid is served locally, only on pages with diagram blocks. Check that `vendor/mermaid.js` and `js/mermaid-loader.js` were deployed along with the HTML. A syntax error appears in the diagram block. See [Security](/editing-and-admin/security/).
 
 ### The font looks different from the screenshots
 
-The fonts come from Google Fonts. If they are blocked, the browser uses a system font.
+The fonts are local. Check that `vendor/fonts/fonts.css` and `vendor/fonts/files/` were deployed. If those files are missing or blocked, the browser uses a system font.
 
 ### Code is not highlighted
 

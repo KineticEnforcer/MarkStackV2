@@ -59,8 +59,8 @@ test('web fonts never block the first paint, and the page has its own background
   // no render-blocking fonts link and no inline event handler: the stylesheet is added by the head script
   assert.doesNotMatch(outsideNoscript, /<link[^>]+fonts\.googleapis\.com\/css2/);
   assert.doesNotMatch(html, /\sonload=/);
-  assert.match(html, /fl\.href = 'https:\/\/fonts\.googleapis\.com[^']+'/);
-  assert.match(html, /<noscript><link[^>]+fonts\.googleapis\.com[^>]+rel="stylesheet"/);
+  assert.match(html, /fl\.href = '\/vendor\/fonts\/fonts\.css'/);
+  assert.match(html, /<noscript><link[^>]+\/vendor\/fonts\/fonts\.css[^>]+rel="stylesheet"/);
   const main = html.indexOf('/css/main.css');
   for (const marker of ["cs.name = 'color-scheme'", 'fl.href =', ':where(html[data-theme="dark"])', ':where(html[data-theme="light"])']) {
     assert.ok(html.indexOf(marker) > 0 && html.indexOf(marker) < main, marker + ' comes before main.css');

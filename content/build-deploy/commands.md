@@ -78,7 +78,7 @@ Builds once, then rebuilds the whole site when a file changes, is added or is re
 npm run serve
 ```
 
-Runs `npx serve dist`. The first time, npx asks to download the `serve` package, so it needs network access once. It prints a local address to open in the browser.
+Runs the included Node.js preview server. No package download is needed. It serves `dist/` on `http://127.0.0.1:3000`, local only. Set `MARKSTACK_PREVIEW_PORT` if port 3000 is in use. This is a preview tool, not a production web server.
 
 Any static server works if you prefer another, for example `python3 -m http.server --directory dist`.
 
