@@ -70,6 +70,16 @@ Rename changes the file or folder name on disk. Delete asks for confirmation fir
 
 A section root, which is a top-level folder, can only be renamed or deleted by an administrator. An editor also cannot move a file into another section.
 
+## Unsaved drafts
+
+Leaving the editor for Admin or another page, or signing out, offers **Stay here**, **Keep draft and leave**, or **Save and leave** when there are unsaved edits. **Save and leave** waits for the server to confirm the save. A failed save keeps the editor open. Refreshing or closing the tab uses the browser's own warning.
+
+Returning to the editor reopens the last file if your account can still read it. **Recover draft** restores the browser-local text for review. It does not save or publish. **Use server text** opens the current saved content instead. If the saved file changed while you were away, the recovery message warns you. A confirmed save removes the draft.
+
+Drafts are separated by account name and file path on this browser profile. They stay after sign-out and are not encrypted, so do not use them for sensitive content on a shared browser. They are not a backup: browser-data cleanup or private-browsing cleanup can remove them. If browser storage is unavailable, **Keep draft and leave** is disabled. Save before leaving instead.
+
+Renaming the open file carries its unsaved draft to the new path. Confirmed deletion clears the open file and its draft.
+
 ## Save
 
 Press `Ctrl+S` (`Cmd+S` on macOS) or click **Save**. If you open another file with unsaved edits, the editor asks whether to keep or discard them. If a save fails, a banner stays on screen with **Retry** so your text is not lost.
