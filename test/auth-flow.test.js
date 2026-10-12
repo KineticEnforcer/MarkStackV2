@@ -437,3 +437,15 @@ test('top-level section rename updates assigned editors and ends their sessions'
  const e=await login('rename-test','rename test password');
  const r=await request('POST','/api/rename',{...a,body:{oldPath:'it',newName:'tech',isFolder:true}});assert.equal(r.status,200);assert.equal(r.json.newPath,'tech');assert.deepEqual(users.get('rename-test').sections,['tech']);assert.equal((await request('GET','/api/me',e)).status,401);assert.ok(fs.existsSync(path.join(CONFIG.contentDir,'tech/page.md')));
 });
+test('site settings are administrator-only, CSRF protected and ignore unsafe keys',async()=>{
+ const a=await login('ada',ADMIN_PW),e=await login('detail-reader','detail reader password');
+ assert.equal((await request('GET','/api/site-settings',e)).status,403);assert.equal((await request('GET','/api/site-settings')).status,401);
+ CONFIG.dataDir=path.join(tmp,'settings-data');
+ const get=await request('GET','/api/site-settings',a);assert.equal(get.status,200);assert.ok(!Object.hasOwn(get.json.settings,'allowRawHtml'));
+ const body={revision:get.json.revision,settings:{siteTitle:'Test site',showHero:false,allowRawHtml:true}};
+ assert.equal((await request('POST','/api/site-settings',{cookie:a.cookie,body})).status,403);assert.equal((await request('POST','/api/site-settings',{...e,body})).status,403);
+ const save=await request('POST','/api/site-settings',{...a,body});assert.equal(save.status,200);assert.equal(save.json.settings.siteTitle,'Test site');assert.equal(save.json.settings.showHero,false);assert.ok(!Object.hasOwn(save.json.settings,'allowRawHtml'));
+ assert.equal((await request('POST','/api/site-settings',{...a,body})).status,409);
+ assert.equal((await request('POST','/api/site-settings',{...a,body:{revision:save.json.revision,settings:{siteUrl:'javascript:alert(1)'}}})).status,400);
+ CONFIG.dataDir=undefined;
+});
