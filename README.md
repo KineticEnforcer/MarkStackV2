@@ -388,7 +388,7 @@ This project is licensed under the GPL-3.0 license. See [LICENSE](LICENSE) for t
 
 | Area | What you can do |
 |---|---|
-| Users | Search accounts, add a user, select a user, edit assigned sections, reset an editor password, disable or enable an account |
+| Users | Search accounts, add a user, set section access, inspect account details and last sign-in, reset an editor password, disable or enable an account, inspect sessions and recent events, sign out everywhere |
 | Header links | Add, edit, reorder, remove or hide a link; the server fetches its favicon |
 | Publish Changes | Build saved content with staged progress, keep the previous live site, and inspect failure details |
 
@@ -404,3 +404,17 @@ Before leaving the editor for Admin or another page, or signing out, unsaved Mar
 Unsaved drafts are kept in this browser's local storage, separated by account name and file path. Returning to the editor reopens the last file only if the current account can still read it, then offers **Recover draft** or **Use server text**. Recovery never saves or publishes automatically. If the server file changed, the editor warns before recovery. Saving clears the local draft. Renaming an open file carries its unsaved draft to the new path; confirmed deletion clears the open file and its draft.
 
 Drafts are a convenience, not a backup. They stay on this device after sign-out and are not encrypted; avoid storing sensitive Markdown on a shared browser profile. Clearing browser data, private-browsing cleanup, or unavailable storage can remove them. If storage fails, **Keep draft and leave** is disabled: save before leaving instead. No server data format, environment variable or deployment change is needed.
+
+
+### User details
+
+| Tab | Controls and limits |
+|---|---|
+| Access | Per-section create/edit/rename/delete access or hidden. Select all/none, Save changes, Discard. Unsaved changes are guarded when leaving. Saving access ends the user's sessions. |
+| Account | Read-only username and role, creation and last sign-in times, enable/disable, editor password reset with a temporary password shown once. You cannot disable yourself or the last active administrator. |
+| Sessions | Current active session times and Sign out everywhere, which also raises the account's access version. Choosing your own account ends your current session too. |
+| Activity | Up to 50 recent auth/management events for that user from the current server process. No passwords, tokens, CSRF values or IP addresses are shown. |
+
+Last sign-in is recorded in the existing owner-only user file on a successful sign-in. Older accounts show **Never** until their next sign-in. A password check for changing a password does not update that time. Sessions and recent events are kept in memory and reset when the server restarts; persistent audit history is part of the later System phase. Roles are read-only because the existing user store does not support changing roles.
+
+This phase adds no environment variables or ports. Access changes, account disabling, password resets and Sign out everywhere take effect immediately, without publishing. Browser drafts are not deleted by session revocation.
