@@ -182,6 +182,8 @@ The page title also becomes its web address, so renaming a title can break links
 | Publish | Administrators rebuild the live site |
 | Phones | Drawer navigation and Edit/Preview views |
 
+The preview is a writing aid, not an exact copy of the published page. Footnotes, task-list checkboxes and heading anchors are added by the build, not by the preview. Images can load when their URLs are reachable from the editor; remote images can contact other sites. Check the built page before publishing.
+
 Browser drafts are a convenience, not a backup. The editor is not a live collaboration tool or a Git history viewer.
 
 ## The Admin console

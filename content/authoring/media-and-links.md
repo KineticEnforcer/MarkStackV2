@@ -23,7 +23,9 @@ Everything in `static/` is copied into `dist/` as is, so `static/images/diagram.
 
 The visual editor edits Markdown files only. It does not upload images, so add image files to `static/` on the server or in your repository, then rebuild.
 
-The editor preview shows the text of an image reference, but the image itself appears on the published page.
+The editor preview renders image references as images; it does not suppress them. An image loads only if its URL is reachable from the editor page. Remote image URLs can contact their hosts from the preview as well as from the published page.
+
+The editor serves local assets under `/static/`, while the built site serves the contents of that folder at its root. A reader URL such as `/images/diagram.png` can therefore work in the built site but fail in the default editor preview. Keep the correct reader URL in your Markdown and verify the image on the built page; do not change it to `/static/images/diagram.png` just for the preview.
 
 ## Links between pages
 

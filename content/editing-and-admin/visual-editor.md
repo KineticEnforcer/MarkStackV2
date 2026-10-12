@@ -5,7 +5,7 @@ description: A tour of the MarkStack editor screen, with file management, live p
 
 # Visual Editor
 
-The editor shows your file tree on the left, the Markdown source in the middle and a live preview on the right. The preview uses the same stylesheet as the published site, so headings, tables, code blocks and alerts look the way readers will see them. Both themes are available, dark is the default.
+The editor shows your file tree on the left, the Markdown source in the middle and a live preview on the right. The preview loads the published site's stylesheet, but it does not reproduce every reader feature. Both themes are available, dark is the default.
 
 ![The editor with the file tree, Markdown source and live preview](/images/docs/editor-overview-light.png)
 
@@ -39,7 +39,9 @@ Use **Hide editor** above the source to collapse it and read only the preview. A
 
 ### Preview
 
-The right panel renders the page as you type, with a short delay so typing stays smooth. It supports everything the site supports: tables, task lists, footnotes, alerts, highlighted code and Mermaid diagrams. See [Markdown Features](/authoring-content/markdown-features/).
+The right panel renders the page as you type. It supports headings, emphasis, lists, tables, alerts, highlighted code and Mermaid diagrams. The published reader also adds footnotes, task-list checkboxes and heading anchors; those plugins are not installed in the preview. Check those features on a built page. See [Markdown Features](/authoring-content/markdown-features/).
+
+Images are not suppressed. An image can load if its URL is reachable from the editor page, and a remote image can contact its host. The editor serves local assets under `/static/`, so a reader path such as `/images/diagram.png` may fail in the preview even though it works in the built site. Do not change a correct reader path just to make the preview display it. See [Media and Links](/authoring-content/media-and-links/).
 
 ### Scroll sync
 

@@ -7,6 +7,8 @@ description: Every Markdown feature MarkStack supports, with the source and the 
 
 MarkStack uses the CommonMark flavor of Markdown with a few well-known additions. This page shows each feature as source followed by the result, so you can see both.
 
+These examples describe the built reader. The editor preview does not install the footnote, task-list or heading-anchor plugins, so check those features on the built page. See [Visual Editor](/editing-and-admin/visual-editor/).
+
 ## Headings
 
 ```markdown

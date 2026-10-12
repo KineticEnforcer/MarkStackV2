@@ -59,7 +59,7 @@ The editor has three areas:
 
 - **The file tree** on the left lists your content. Folders open and close, and the buttons above the tree create files and folders.
 - **The Markdown pane** in the middle is where you type.
-- **The preview** on the right shows the page as you type, using the same Markdown engine as the real site.
+- **The preview** on the right shows the page as you type, using `markdown-it` and the site stylesheet. It does not install the build's footnote, task-list or heading-anchor plugins. Images can load when their URLs are reachable from the editor. Check the built page for the final result. See [Visual Editor](/editing-and-admin/visual-editor/).
 
 The top bar has **Refresh** (reload the file tree), **Save**, **Publish Changes**, your account menu and the theme toggle.
 
