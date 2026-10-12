@@ -30,6 +30,7 @@ const linksStore = require('./lib/links-store');
 const favicon = require('./lib/favicon');
 const contentCatalog = require('./lib/content-catalog');
 const siteSettings = require('./lib/site-settings');
+const {AuditStore} = require('./lib/audit-store');
 
 // =============================================================================
 // Configuration
@@ -368,7 +369,7 @@ function editorCsp(nonce) {
 /** Serve editor.html with a fresh nonce and its CSP header. */
 function serveEditorPage(res) {
   const nonce = require('crypto').randomBytes(16).toString('base64');
-  const page = fs.readFileSync(path.join(__dirname, 'editor.html'), 'utf-8').replace(/__CSP_NONCE__/g, nonce).replace(/__ALLOW_RAW_HTML__/g, siteAllowsRawHtml() ? 'true' : 'false').replace('__PUBLISH_CONTROLLER__', () => fs.readFileSync(path.join(__dirname, 'static/js/publish-controller.js'), 'utf-8')).replace('__CONTENT_CONTROLLER__', () => fs.readFileSync(path.join(__dirname, 'static/js/content-controller.js'), 'utf-8')).replace('__SITE_CONTROLLER__', () => fs.readFileSync(path.join(__dirname, 'static/js/site-controller.js'), 'utf-8'));
+  const page = fs.readFileSync(path.join(__dirname, 'editor.html'), 'utf-8').replace(/__CSP_NONCE__/g, nonce).replace(/__ALLOW_RAW_HTML__/g, siteAllowsRawHtml() ? 'true' : 'false').replace('__PUBLISH_CONTROLLER__', () => fs.readFileSync(path.join(__dirname, 'static/js/publish-controller.js'), 'utf-8')).replace('__CONTENT_CONTROLLER__', () => fs.readFileSync(path.join(__dirname, 'static/js/content-controller.js'), 'utf-8')).replace('__SYSTEM_CONTROLLER__', () => fs.readFileSync(path.join(__dirname, 'static/js/system-controller.js'), 'utf-8')).replace('__SITE_CONTROLLER__', () => fs.readFileSync(path.join(__dirname, 'static/js/site-controller.js'), 'utf-8'));
   res.writeHead(200, {
     'Content-Type': 'text/html; charset=utf-8',
     'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -701,7 +702,7 @@ async function handleRename(req, res) {
       try {
         const changed = AUTH.users.renameSection(oldPath, newPath);
         changed.forEach(name => AUTH.sessions.destroyUser(name));
-        authLog('section-renamed', oldPath);
+        authLog('section-renamed', oldPath, req.user.name);
       } catch (err) { fs.renameSync(fullNewPath, fullOldPath); throw err; }
     }
     sendSuccess(res, { newPath });
@@ -784,7 +785,8 @@ function initAuth(opts = {}) {
 }
 
 /** Log an auth event. Never pass passwords, tokens or cookie values here. */
-function authLog(event, name) {
+function authLog(event, name, actor = null, publish = null) {
+  try { new AuditStore(dataDir()).append({event,target:name,actor,publish});AUTH.auditError=null; } catch(err) { AUTH.auditError='History could not be written. Check data-folder permissions or free space.'; console.error('Audit history write failed:',err.code||'storage error'); }
   AUTH.recentEvents.push({ event, target: typeof name === 'string' ? name.slice(0, 40) : null, at: new Date().toISOString() });
   if (AUTH.recentEvents.length > 500) AUTH.recentEvents.shift();
   console.log(`[auth] ${new Date().toISOString()} ${event}${name ? ` user=${String(name).slice(0, 40)}` : ''}`);
@@ -873,14 +875,14 @@ async function handleLogin(req, res) {
     if (!seen.includes(addr)) { seen.push(addr); if (seen.length > 5) seen.shift(); AUTH.known.set(user.name, seen); }
     AUTH.users.recordLogin(user.name, user.authVersion);
     const token = AUTH.sessions.create(user.name, user.authVersion);
-    authLog('login', user.name);
+    authLog('login', user.name, user.name);
     sendJSONWithCookie(res, 200, me(user, AUTH.sessions.get(token)), sessionCookieHeaders(token, CONFIG.sessionMaxMinutes * 60));
   } catch (err) { sendFailure(res, err); }
 }
 
 function handleLogout(req, res) {
   AUTH.sessions.destroy(req.sessionToken);
-  authLog('logout', req.user.name);
+  authLog('logout', req.user.name, req.user.name);
   sendJSONWithCookie(res, 200, { success: true }, sessionCookieHeaders('', 0));
 }
 
@@ -893,7 +895,7 @@ async function handleChangePassword(req, res) {
     await AUTH.users.setPassword(req.user.name, password, { mustChangePassword: false });
     AUTH.sessions.destroyUser(req.user.name);
     const token = AUTH.sessions.create(req.user.name, AUTH.users.get(req.user.name).authVersion);
-    authLog('password-changed', req.user.name);
+    authLog('password-changed', req.user.name, req.user.name);
     sendJSONWithCookie(res, 200, { success: true, ...me(AUTH.users.get(req.user.name), AUTH.sessions.get(token)) }, sessionCookieHeaders(token, CONFIG.sessionMaxMinutes * 60));
   } catch (err) { sendBadInput(res, err); }
 }
@@ -921,6 +923,7 @@ function getPublisher() {
     publisher = new Publisher({
       root: __dirname, contentDir: CONFIG.contentDir, staticDir: CONFIG.staticDir,
       templatesDir: path.join(__dirname, 'templates'), distDir: CONFIG.distDir,
+      onComplete: job => authLog(job.state==='done'?'publish-done':'publish-failed',job.by,job.by,job),
       buildScript: path.join(__dirname, 'build.js'), siteConfig: path.join(__dirname, 'siteconfig.json'),
       dataDir: dataDir(),
       stateFile: path.join(path.dirname(CONFIG.usersFile), 'publish-state.json')
@@ -936,7 +939,7 @@ function handlePublishAPI(req, res, pathname) {
   if (req.method === 'POST' && pathname === '/api/publish') {
     try {
       const id = getPublisher().start(req.user.name);
-      authLog('publish-started', req.user.name);
+      authLog('publish-started', req.user.name, req.user.name);
       sendSuccess(res, { id });
     } catch (err) {
       if (err.code === 'BUSY') sendError(res, 409, err.message); else sendFailure(res, err);
@@ -999,7 +1002,7 @@ async function handleLinksAPI(req, res, pathname) {
     if (req.method === 'POST' && pathname === '/api/links') {
       const body = await parseJSONBody(req);
       const out = await saveLinks(body && body.links);
-      authLog('links-saved', req.user.name);
+      authLog('links-saved', req.user.name, req.user.name);
       sendSuccess(res, out); return true;
     }
     const m = pathname.match(/^\/api\/links\/icon\/([a-f0-9]{12}\.(?:png|ico|gif|jpg|webp))$/);
@@ -1028,7 +1031,7 @@ async function handleAdminAPI(req, res, pathname) {
       if (!/^[a-z0-9][a-z0-9._-]{1,31}$/.test(name)) return sendError(res, 400, 'Invalid user name'), true;
       const user = AUTH.users.get(name);
       if (!user) return sendError(res, 404, 'No such user'), true;
-      sendJSON(res, 200, { user, sessions: AUTH.sessions.summary(name, user.authVersion), activity: AUTH.recentEvents.filter(e => e.target === name).slice(-50).reverse() });
+      sendJSON(res, 200, { user, sessions: AUTH.sessions.summary(name, user.authVersion), activity: new AuditStore(dataDir()).read({target:name,limit:50}).records });
       return true;
     }
     if (req.method !== 'POST') return false;
@@ -1037,20 +1040,20 @@ async function handleAdminAPI(req, res, pathname) {
       if (typeof name !== 'string' || !/^[a-z0-9][a-z0-9._-]{1,31}$/.test(name) || !AUTH.users.get(name)) return sendError(res, 400, 'No such user'), true;
       AUTH.users.revokeSessions(name);
       const ended = AUTH.sessions.destroyUser(name);
-      authLog('sessions-ended', name);
+      authLog('sessions-ended', name, req.user.name);
       sendSuccess(res, { ended, signedOut: name === req.user.name }); return true;
     }
   if (pathname === '/api/users') {
       const { name, role, password, sections } = await parseJSONBody(req);
       const u = await AUTH.users.create({ name, role, password, sections: sections || [] });
-      authLog('user-created', name);
+      authLog('user-created', name, req.user.name);
       sendSuccess(res, { user: u }); return true;
     }
     if (pathname === '/api/users/sections') {
       const { name, sections } = await parseJSONBody(req);
       AUTH.users.setSections(name, sections);
       AUTH.sessions.destroyUser(name);
-      authLog('sections-changed', name);
+      authLog('sections-changed', name, req.user.name);
       sendSuccess(res); return true;
     }
     if (pathname === '/api/users/disable') {
@@ -1058,7 +1061,7 @@ async function handleAdminAPI(req, res, pathname) {
       if (name === req.user.name && disabled) return sendError(res, 400, 'You cannot disable your own account'), true;
       AUTH.users.setDisabled(name, !!disabled);
       if (disabled) AUTH.sessions.destroyUser(name);
-      authLog(disabled ? 'user-disabled' : 'user-enabled', name);
+      authLog(disabled ? 'user-disabled' : 'user-enabled', name, req.user.name);
       sendSuccess(res); return true;
     }
     if (pathname === '/api/users/reset-password') {
@@ -1069,11 +1072,20 @@ async function handleAdminAPI(req, res, pathname) {
       const temp = temporaryPassword();
       await AUTH.users.setPassword(name, temp, { mustChangePassword: true });
       AUTH.sessions.destroyUser(name);
-      authLog('password-reset', name);
+      authLog('password-reset', name, req.user.name);
       sendSuccess(res, { temporaryPassword: temp }); return true;
     }
   } catch (err) { sendBadInput(res, err); return true; }
   return false;
+}
+
+async function handleSystemAPI(req,res,pathname,url) {
+ if(req.user.role!=='admin')return sendError(res,403,'Administrator only');
+ if(req.method!=='GET')return sendError(res,405,'Method not allowed');
+ try {
+  if(pathname==='/api/security')return sendJSON(res,200,{sessionIdleMinutes:CONFIG.sessionIdleMinutes,sessionMaxMinutes:CONFIG.sessionMaxMinutes,cookie:sessionCookieName(),secure:CONFIG.cookieSecure,rawHtmlEnabled:siteAllowsRawHtml(),auditError:AUTH.auditError||null,rateLimits:{accountAddress:AUTH.byAccount.summary(),address:AUTH.byAddress.summary(),accountAll:AUTH.byAccountAll.summary()}});
+  return sendJSON(res,200,new AuditStore(dataDir()).read({event:url.searchParams.get('event')||'',actor:url.searchParams.get('actor')||'',target:url.searchParams.get('target')||'',before:url.searchParams.get('before')||'',limit:url.searchParams.get('limit')||50,publishes:pathname==='/api/publish/history'}));
+ }catch(err){sendFailure(res,err);}
 }
 
 async function handleSiteSettingsAPI(req,res) {
@@ -1081,7 +1093,7 @@ async function handleSiteSettingsAPI(req,res) {
   try{
     const dir=dataDir(),base=JSON.parse(fs.readFileSync(path.join(__dirname,'siteconfig.json'),'utf8'));
     if(req.method==='GET')return sendJSON(res,200,{settings:siteSettings.effective(base,dir),revision:siteSettings.revision(dir),rawHtmlEnabled:base.allowRawHtml===true});
-    if(req.method==='POST'){const body=await parseJSONBody(req);const revision=siteSettings.write(dir,body.settings,body.revision);authLog('site-settings-saved',req.user.name);return sendSuccess(res,{settings:siteSettings.effective(base,dir),revision});}
+    if(req.method==='POST'){const body=await parseJSONBody(req);const revision=siteSettings.write(dir,body.settings,body.revision);authLog('site-settings-saved',req.user.name,req.user.name);return sendSuccess(res,{settings:siteSettings.effective(base,dir),revision});}
     return sendError(res,405,'Method not allowed');
   }catch(err){sendBadInput(res,err);}
 }
@@ -1102,7 +1114,7 @@ async function handleContentAdminAPI(req, res, pathname) {
       const updated = contentCatalog.updateSection(text, data);
       const tmp = full + '.' + crypto.randomBytes(8).toString('hex') + '.tmp';
       try { fs.writeFileSync(tmp, updated, { mode: 0o600 }); fs.renameSync(tmp, full); } finally { if(fs.existsSync(tmp))fs.unlinkSync(tmp); }
-      authLog('section-settings-saved', data.name);
+      authLog('section-settings-saved', data.name, req.user.name);
       return sendSuccess(res, { revision: contentCatalog.revision(updated) });
     }
     return sendError(res, 404, 'Not found');
@@ -1120,7 +1132,7 @@ function allowed(req, res, action, relPath, newRelPath) {
 
 function servePublicPage(res, file) {
   const nonce = crypto.randomBytes(16).toString('base64');
-  const page = fs.readFileSync(path.join(__dirname, file), 'utf-8').replace(/__CSP_NONCE__/g, nonce).replace('__PUBLISH_CONTROLLER__', () => fs.readFileSync(path.join(__dirname, 'static/js/publish-controller.js'), 'utf-8')).replace('__CONTENT_CONTROLLER__', () => fs.readFileSync(path.join(__dirname, 'static/js/content-controller.js'), 'utf-8')).replace('__SITE_CONTROLLER__', () => fs.readFileSync(path.join(__dirname, 'static/js/site-controller.js'), 'utf-8'));
+  const page = fs.readFileSync(path.join(__dirname, file), 'utf-8').replace(/__CSP_NONCE__/g, nonce).replace('__PUBLISH_CONTROLLER__', () => fs.readFileSync(path.join(__dirname, 'static/js/publish-controller.js'), 'utf-8')).replace('__CONTENT_CONTROLLER__', () => fs.readFileSync(path.join(__dirname, 'static/js/content-controller.js'), 'utf-8')).replace('__SYSTEM_CONTROLLER__', () => fs.readFileSync(path.join(__dirname, 'static/js/system-controller.js'), 'utf-8')).replace('__SITE_CONTROLLER__', () => fs.readFileSync(path.join(__dirname, 'static/js/site-controller.js'), 'utf-8'));
   res.writeHead(200, {
     'Content-Type': 'text/html; charset=utf-8',
     'Cache-Control': 'no-store',
@@ -1148,6 +1160,7 @@ function redirect(res, location) {
  * @param {URL} url - Parsed URL object
  */
 async function handleAPI(req, res, pathname, url) {
+  if (['/api/security','/api/activity','/api/publish/history'].includes(pathname)) return handleSystemAPI(req,res,pathname,url);
   if(pathname==='/api/site-settings')return handleSiteSettingsAPI(req,res);
   if (pathname === '/api/content-catalog' || pathname === '/api/sections/settings') return handleContentAdminAPI(req, res, pathname);
   if (req.method === 'GET' && pathname === '/api/me') return sendJSON(res, 200, me(req.user, req.session));
