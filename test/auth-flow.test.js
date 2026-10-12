@@ -414,3 +414,26 @@ test('sign out everywhere requires admin and CSRF, ends sessions and invalidates
   assert.equal((await request('GET', '/api/me', e)).status, 401);
   assert.equal((await request('GET', '/api/users/detail-test', a)).json.sessions.length, 0);
 });
+
+test('content catalog and metadata saving are admin-only, CSRF protected and revision checked', async () => {
+ const a=await login('ada',ADMIN_PW),e=await login('detail-reader','detail reader password');
+ assert.equal((await request('GET','/api/content-catalog',e)).status,403);
+ assert.equal((await request('GET','/api/content-catalog')).status,401);
+ const c=await request('GET','/api/content-catalog',a);assert.equal(c.status,200);
+ const sec=c.json.sections.find(s=>s.name==='it'),body={name:'it',title:'IT renamed title',order:5,hidden:true,revision:sec.revision};
+ assert.equal((await request('POST','/api/sections/settings',{cookie:a.cookie,body})).status,403);
+ assert.equal((await request('POST','/api/sections/settings',{...e,body})).status,403);
+ const original=fs.readFileSync(path.join(CONFIG.contentDir,'it/_index.md'),'utf8');
+ assert.equal((await request('POST','/api/sections/settings',{...a,body:{...body,revision:'stale'}})).status,409);
+ assert.equal(fs.readFileSync(path.join(CONFIG.contentDir,'it/_index.md'),'utf8'),original);
+ assert.equal((await request('POST','/api/sections/settings',{...a,body})).status,200);
+ assert.ok(fs.readFileSync(path.join(CONFIG.contentDir,'it/_index.md'),'utf8').includes('IT renamed title'));
+ assert.equal((await request('POST','/api/sections/settings',{...a,body})).status,409);
+});
+
+test('top-level section rename updates assigned editors and ends their sessions',async()=>{
+ const a=await login('ada',ADMIN_PW);
+ await users.create({name:'rename-test',role:'editor',password:'rename test password',sections:['it']});
+ const e=await login('rename-test','rename test password');
+ const r=await request('POST','/api/rename',{...a,body:{oldPath:'it',newName:'tech',isFolder:true}});assert.equal(r.status,200);assert.equal(r.json.newPath,'tech');assert.deepEqual(users.get('rename-test').sections,['tech']);assert.equal((await request('GET','/api/me',e)).status,401);assert.ok(fs.existsSync(path.join(CONFIG.contentDir,'tech/page.md')));
+});
