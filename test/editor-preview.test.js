@@ -26,7 +26,7 @@ test('rendered markdown is never written into the editor page itself', () => {
 
 test('mermaid fence content is escaped and mermaid runs in strict mode', () => {
   assert.ok(html.includes("md.utils.escapeHtml(str) + '</pre>'"));
-  assert.ok((html.match(/securityLevel: 'strict'/g) || []).length >= 2);
+  assert.ok((html.match(/securityLevel: 'strict'/g) || []).length >= 1);
 });
 
 test('preview frame carries a restrictive CSP', () => {

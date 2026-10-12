@@ -45,15 +45,16 @@ The editor uses the client address for the sign-in limits. It reads `X-Forwarded
 
 The editor sends `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy: no-referrer` and a Content-Security-Policy.
 
-Be aware of what browsers load from other hosts:
+All MarkStack browser assets are pre-bundled: IBM Plex Sans/Mono, markdown-it, highlight.js and Mermaid. They are served from your own host, not Google Fonts or a CDN. Mermaid loads only when a diagram is present, including in editor previews. Font and library licenses are shipped in `vendor/NOTICES.txt`; asset versions and SHA-256 hashes are in `vendor/manifest.json`.
 
-| Where | What | From |
-|-------|------|------|
-| Editor | highlight.js and Mermaid scripts, pinned with integrity hashes | cdn.jsdelivr.net |
-| Editor and public site | IBM Plex fonts | fonts.googleapis.com and fonts.gstatic.com |
-| Public site | Mermaid (version 11, not pinned by hash), requested on every page | cdn.jsdelivr.net |
+Build and runtime need no third-party asset downloads once Node.js and the npm dependencies are installed. A fresh source installation still downloads npm dependencies; this is not an offline installer. Maintainers can regenerate the committed assets with `npm run assets:bundle`. Keep the bundle and lockfile together when updating dependencies.
 
-If these requests are a problem for your visitors or your policy, you can block them. Pages still render with fallback fonts, and diagrams then appear as their source text. To remove the dependency completely, host the font and script files yourself and change the templates.
+Two intentional external-request cases remain:
+
+- Remote images or other remote media an author embeds in content load from their specified hosts. For an internet-isolated site, use local media instead. Turning on raw HTML can allow other external resources too.
+- Saving a new/changed header-link address or choosing Refresh icon makes the editor server fetch that site's favicon. Saved icons are served locally to readers. Use pre-existing icons or generic icons when outbound access is unavailable; failed fetching does not block saving a link.
+
+Mermaid 12 targets modern browsers, including Safari 17.4 or later. Test your supported browsers before deploying an upgrade.
 
 ## Raw HTML
 

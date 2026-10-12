@@ -344,19 +344,13 @@ const SECURITY_HEADERS = {
   'Cross-Origin-Resource-Policy': 'same-origin'
 };
 
-/** Pinned third-party scripts the editor page may load (integrity hashes must match editor.html). */
-const EDITOR_SCRIPT_HASHES = [
-  'sha384-wjfDDhOPPdjtva8vWBhWeVprSpmxisEu5aYT3q1JyACqXpdKpo3PWZTMVq24MBix',
-  'sha384-EOXBFmc3gx5mb+vn0vPvvGqACToJD24hhacX5Yx+8NUUQrHIle/Qi5Bg9o3zKwW2'
-];
-
 /** Content-Security-Policy for the editor page. Inline scripts need the per-response nonce. */
 function editorCsp(nonce) {
   return [
     "default-src 'none'",
-    `script-src 'self' 'nonce-${nonce}' ${EDITOR_SCRIPT_HASHES.map(h => `'${h}'`).join(' ')}`,
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "font-src https://fonts.gstatic.com data:",
+    `script-src 'self' 'nonce-${nonce}'`,
+    "style-src 'self' 'unsafe-inline'",
+    "font-src 'self' data:",
     "img-src 'self' data: blob: http: https:",
     "connect-src 'self'",
     "base-uri 'none'",
@@ -1136,7 +1130,7 @@ function servePublicPage(res, file) {
   res.writeHead(200, {
     'Content-Type': 'text/html; charset=utf-8',
     'Cache-Control': 'no-store',
-    'Content-Security-Policy': `default-src 'none'; script-src 'nonce-${nonce}'; style-src 'unsafe-inline'; img-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
+    'Content-Security-Policy': `default-src 'none'; script-src 'nonce-${nonce}'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
     ...SECURITY_HEADERS
   });
   res.end(page);
@@ -1330,12 +1324,11 @@ function requestHandler(req, res) {
     return serveEditorPage(res);
   }
 
-  // markdown-it browser build from the installed package (same version as the site build)
-  if (pathname === '/vendor/markdown-it.js') {
-    const p = require.resolve('markdown-it/package.json').replace(/package\.json$/, 'dist/browser/markdown-it.umd.min.js');
-    return serveStatic(res, p);
+  // Pre-bundled runtime libraries and fonts (also copied into public dist/).
+  if (pathname.startsWith('/vendor/')) {
+    return serveStatic(res, path.join(CONFIG.staticDir, pathname), CONFIG.staticDir);
   }
-  
+
   // 404 for everything else
   res.writeHead(404, { 'Content-Type': 'text/plain', ...SECURITY_HEADERS });
   res.end('Not found');

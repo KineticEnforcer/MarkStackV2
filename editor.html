@@ -3,10 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <script nonce="__CSP_NONCE__">
-    // If the CDN libraries did not load (offline, blocked), keep the editor
+    // If a local library failed to load, keep the editor
     // working without highlighting and diagrams instead of stopping at startup.
     window.hljs = window.hljs || { getLanguage: function () { return false; }, highlight: function () { return { value: '' }; } };
-    window.mermaid = window.mermaid || { initialize: function () {}, render: function () { return Promise.reject(new Error('Mermaid did not load')); } };
     (function() {
       const theme = localStorage.getItem('theme') || 'dark';
       document.documentElement.setAttribute('data-theme', theme);
@@ -99,9 +98,7 @@
   </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
   <title>MarkStack Editor</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="/vendor/fonts/fonts.css" rel="stylesheet">
   <link rel="stylesheet" href="/css/main.css">
   <link rel="stylesheet" href="/css/hljs-theme.css">
   <link rel="icon" href="/svg/logo.svg" type="image/svg+xml">
@@ -1541,12 +1538,10 @@
     </div>
   </div>
 
-  <!-- markdown-it is served from the installed package so the editor matches the build.
-       highlight.js and Mermaid load from pinned CDN versions with integrity hashes
-       (the same hashes are allowed in the page CSP, see editor-server.js). -->
+  <!-- Runtime libraries are shipped with MarkStack, never fetched from a CDN. -->
   <script src="/vendor/markdown-it.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.12.0/build/highlight.min.js" integrity="sha384-wjfDDhOPPdjtva8vWBhWeVprSpmxisEu5aYT3q1JyACqXpdKpo3PWZTMVq24MBix" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js" integrity="sha384-EOXBFmc3gx5mb+vn0vPvvGqACToJD24hhacX5Yx+8NUUQrHIle/Qi5Bg9o3zKwW2" crossorigin="anonymous"></script>
+  <script src="/vendor/highlight.js"></script>
+  <script src="/js/mermaid-loader.js"></script>
 
   <script nonce="__CSP_NONCE__">
     /**
@@ -1620,21 +1615,16 @@
       // =========================================================================
       
       /**
-       * Initialize Mermaid with theme-aware configuration.
-       */
-      mermaid.initialize({
-        startOnLoad: false,
-        securityLevel: 'strict',
-        theme: document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'default'
-      });
-      
-      /**
        * Render all Mermaid diagram blocks in the preview.
        * Converts fenced code blocks with mermaid language to SVG diagrams.
        */
       async function renderMermaid() {
         if (!previewOutput) return;
         const mermaidBlocks = previewOutput.querySelectorAll('pre.mermaid');
+        if (!mermaidBlocks.length) return;
+        const mermaid = await window.msLoadMermaid();
+        mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', fontFamily: 'IBM Plex Sans', theme: document.documentElement.dataset.theme === 'dark' ? 'dark' : 'default' });
+        await document.fonts.ready;
         for (const block of mermaidBlocks) {
           if (!block.dataset.code) block.dataset.code = block.textContent;
           const code = block.dataset.code;
@@ -1688,9 +1678,9 @@
         }
         return '<!DOCTYPE html><html><head><meta charset="utf-8">' +
           '<meta http-equiv="Content-Security-Policy" content="default-src \'none\'; ' +
-          'img-src data: blob: http: https:; style-src \'self\' \'unsafe-inline\' https://fonts.googleapis.com; ' +
-          'font-src https://fonts.gstatic.com data:">' +
-          '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">' +
+          'img-src data: blob: http: https:; style-src \'self\' \'unsafe-inline\'; ' +
+          'font-src \'self\' data:">' +
+          '<link rel="stylesheet" href="/vendor/fonts/fonts.css">' +
           '<link rel="stylesheet" href="/css/main.css"><link rel="stylesheet" href="/css/hljs-theme.css">' +
           '<style>html{scroll-behavior:auto;}.preview-article{overflow-wrap:anywhere;}.preview-article pre{overflow-wrap:normal;}html,body{margin:0;padding:0;height:auto;min-height:0;display:block;background:var(--color-bg-primary);}' +
           'body{padding:var(--space-xl);color:var(--color-text-primary);font-family:var(--font-sans);}' + rules + '</style>' +
@@ -1850,13 +1840,6 @@
       function setTheme(theme) {
         document.documentElement.setAttribute('data-theme', theme);
         localStorage.setItem('theme', theme);
-        
-        // Update Mermaid theme configuration
-        mermaid.initialize({
-          startOnLoad: false,
-          securityLevel: 'strict',
-          theme: theme === 'dark' ? 'dark' : 'default'
-        });
         
         if (previewOutput) previewOutput.ownerDocument.documentElement.setAttribute('data-theme', theme);
         // Re-render any visible Mermaid diagrams

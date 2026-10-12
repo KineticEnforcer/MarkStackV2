@@ -179,7 +179,7 @@ flowchart LR
   Write[Write Markdown] --> Build[Build] --> Publish[Static site]
 ```
 
-Flowcharts, sequence diagrams, state diagrams, Gantt charts and the other Mermaid types all work. Diagrams are drawn in the reader's browser and follow the theme. The Mermaid library is loaded from a public CDN, so a reader who is offline, or whose network blocks it, sees the diagram source as text instead. See [Security](/editing-and-admin/security) for what this means for strict content policies.
+Flowcharts, sequence diagrams, state diagrams, Gantt charts and the other Mermaid types all work. Diagrams are drawn in the reader's browser and follow the theme. Mermaid is pre-bundled locally and loads only when a page contains a diagram. No CDN download is needed. The reader still needs access to your host; remote images you add are separate requests. See [Security](/editing-and-admin/security) for what this means for strict content policies.
 
 ## Horizontal rules
 
