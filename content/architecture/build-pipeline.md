@@ -49,7 +49,9 @@ The build exits with a non-zero code on invalid frontmatter and duplicate URLs, 
 
 ## How Publish Changes uses it
 
-The editor does not have a second renderer. Publish copies your content into a snapshot, runs this same `build.js` against it with `--out` set to a temporary folder, checks the result, then swaps it into place. What you preview in the editor is the same stylesheet, and what you publish is the same build you would run by hand. See [Publishing](/editing-and-admin/publishing/).
+Publish copies your content into a snapshot, runs this same `build.js` against it with `--out` set to a temporary folder, checks the result, then swaps it into place. Publishing uses the same build you would run by hand.
+
+The live editor preview is a separate browser-side `markdown-it` renderer that loads the site stylesheet. It does not install the build's footnote, task-list or heading-anchor plugins, and image URLs resolve against the editor host. Use the built page to check the final reader result. See [Visual Editor](/editing-and-admin/visual-editor/) and [Publishing](/editing-and-admin/publishing/).
 
 ## Watch mode
 
