@@ -76,3 +76,8 @@ test('distinct titles build normally', () => {
     assert.ok(fs.existsSync(path.join(dir, 'dist', 'beta', 'page', 'index.html')));
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
+
+test('sidebar respects section order and hidden metadata without omitting hidden output',()=>{
+ const dir=scratchSite({'_index.md':page('Home','home'),'a/_index.md':'---\ntitle: Alpha\norder: 8\n---\n','b/_index.md':'---\ntitle: Beta\norder: 1\n---\n','c/_index.md':'---\ntitle: Concealed\nhidden: true\n---\n','c/p.md':page('Hidden page','body')});
+ try{const r=spawnSync(process.execPath,['build.js'],{cwd:dir,encoding:'utf8'});assert.equal(r.status,0,r.stderr);const html=fs.readFileSync(path.join(dir,'dist/index.html'),'utf8');assert.ok(html.indexOf('href="/beta/"')<html.indexOf('href="/alpha/"'));assert.ok(!html.includes('href="/concealed/"'));assert.ok(fs.existsSync(path.join(dir,'dist/concealed/hidden-page/index.html')));}finally{fs.rmSync(dir,{recursive:true,force:true});}
+});
