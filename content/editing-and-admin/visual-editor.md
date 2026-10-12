@@ -92,7 +92,15 @@ Administrators see a **Publish Changes** button. A small dot on it means there a
 
 The sun and moon button switches between dark and light, and the choice is remembered in your browser. The default is dark.
 
-The editor is designed for desktop screens, and that is the tested experience. Below 800px wide it switches to one pane at a time with an Edit and Preview switch, and the file tree becomes a drawer opened from the menu button. Treat that small-screen layout as basic.
+At 800px wide or less, the editor shows one full-width pane at a time. Use **Edit** and **Preview** to switch without losing your text. The files button opens a drawer with New File, New Folder, Refresh and Close controls. Select a page or use Close, Escape or the shaded background to return to the editor. Closed drawer controls are not part of the keyboard tab order.
+
+On narrow phones, Save and Publish Changes have their own row; account and theme controls stay in the header. Save still writes to the server. Publish Changes still rebuilds the saved site, including changes from other editors. Switching views or closing the file drawer does neither.
+
+Dialogs scroll within the visible screen when the keyboard leaves less space. Scroll the dialog to reach its actions. Inputs use phone-size text to avoid focus zoom. Unsaved text and local drafts keep the same safeguards as the desktop editor.
+
+The admin uses its own Menu drawer and full-width list/detail screens. Back to users, sections or pages returns to the list; account actions remain available from the header. Desktop retains the side-by-side layout.
+
+Responsive layout and keyboard-focus checks cover 1920px, 390px and 320px widths, including reduced-height and landscape states. Browser emulation does not replace a real phone check: test Safari with the keyboard open, rotation, Save, Preview, and admin dialogs on your device before relying on it.
 
 ## Shortcuts
 

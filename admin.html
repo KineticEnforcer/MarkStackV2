@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,interactive-widget=resizes-content" />
     <title>Admin - MarkStack</title>
     <script nonce="__CSP_NONCE__">
       try {
@@ -965,6 +965,26 @@
           margin: 12px 16px;
         }
       }
+      @media (max-width: 800px) {
+        header { min-width: 0; }
+        #accountMenu { flex: 0 1 80px; min-width: 44px; }
+        #accountMenu summary { min-height: 44px; max-width: 100%; padding: 10px 8px; }
+        #accountMenu > div { max-width: calc(100vw - 16px); overflow-wrap: anywhere; z-index: 30; }
+        #accountMenu > div a, #accountMenu > div button { display: block; min-height: 44px; }
+        #publish-btn, .menu-btn { min-height: 44px; flex-shrink: 0; }
+        header .brand { flex-shrink: 0; }
+        input[type="text"], input[type="password"], input:not([type]), select { font-size: 16px; min-height: 44px; }
+        .detail-tabs { flex-wrap: wrap; }
+        .detail-tabs button, .detail-footer button, .dlg-f button, .card-tools button { min-height: 44px; }
+        .dlg-f { flex-wrap: wrap; }
+        dialog, .modal-dialog { max-height: calc(var(--admin-vvh, 100dvh) - 24px); overflow: auto; }
+        .modal-overlay { height: var(--admin-vvh, 100dvh); bottom: auto; }
+        .console { height: calc(var(--admin-vvh, 100dvh) - 48px); }
+        .nav { max-height: calc(var(--admin-vvh, 100dvh) - 48px); }
+      }
+      .nav-backdrop { position: fixed; inset: 48px 0 0; background: #0008; z-index: 19; }
+      .nav-backdrop[hidden] { display: none; }
+      @media (max-width: 360px) { header .brand { display: none; } #accountMenu { flex: 1; } }
     </style>
   </head>
   <body>
@@ -973,6 +993,7 @@
         class="menu-btn"
         id="menuToggle"
         aria-label="Open admin navigation"
+        aria-controls="adminNav"
         aria-expanded="false"
       >
         Menu
@@ -996,6 +1017,7 @@
     </header>
     <div class="console">
       <nav class="nav" id="adminNav" aria-label="Admin areas">
+        <button type="button" id="navClose" class="menu-btn" aria-label="Close admin navigation">Close menu</button>
         <h2>People</h2>
         <a href="#/users" data-area="users"
           >Users <small id="usersCount"></small
@@ -1619,6 +1641,7 @@
           if (a.dataset.area === area) a.setAttribute("aria-current", "page");
           else a.removeAttribute("aria-current");
         });
+        window.msCloseAdminNav && window.msCloseAdminNav();
         document.getElementById("adminNav").classList.remove("open");
         document
           .getElementById("menuToggle")
@@ -2675,5 +2698,44 @@
       __CONTENT_CONTROLLER__;
       __PUBLISH_CONTROLLER__;
     </script>
+    <script nonce="__CSP_NONCE__">
+      (function () {
+        const nav = document.getElementById('adminNav'), toggle = document.getElementById('menuToggle');
+        const mobile = matchMedia('(max-width: 800px)');
+        const backdrop = document.createElement('div'); backdrop.className = 'nav-backdrop'; backdrop.hidden = true; nav.before(backdrop);
+        function sync() {
+          const open = mobile.matches && nav.classList.contains('open');
+          backdrop.hidden = !open;
+          nav.inert = mobile.matches && !open;
+          document.querySelectorAll('.area').forEach(e => e.inert = open);
+          document.querySelector('header').inert = open;
+          toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+          if(open) { nav.setAttribute('role', 'dialog'); nav.setAttribute('aria-modal', 'true'); }
+          else { nav.removeAttribute('role'); nav.removeAttribute('aria-modal'); }
+        }
+        window.msCloseAdminNav = function () { const open = nav.classList.contains('open'); nav.classList.remove('open'); sync(); if(open && mobile.matches) toggle.focus(); };
+        toggle.onclick = function () { nav.classList.add('open'); sync(); document.getElementById('navClose').focus(); };
+        document.getElementById('navClose').onclick = window.msCloseAdminNav;
+        backdrop.onclick = window.msCloseAdminNav;
+        nav.addEventListener('keydown', e => {
+          if(!mobile.matches || !nav.classList.contains('open')) return;
+          if(e.key === 'Escape') { e.preventDefault(); window.msCloseAdminNav(); }
+          if(e.key === 'Tab') { const items = Array.from(nav.querySelectorAll('button, a')).filter(e=>e.getClientRects().length); const first = items[0], last = items[items.length-1]; if(e.shiftKey && document.activeElement===first) { e.preventDefault(); last.focus(); } else if(!e.shiftKey && document.activeElement===last) { e.preventDefault(); first.focus(); } }
+        });
+        mobile.addEventListener('change', window.msCloseAdminNav);
+        const account = document.getElementById('accountMenu');
+        document.addEventListener('click', e=>{ if(account.open && !account.contains(e.target)) account.open=false; });
+        account.addEventListener('keydown', e=>{ if(e.key==='Escape') { account.open=false; account.querySelector('summary').focus(); } });
+        sync();
+        const vv = window.visualViewport;
+        function fit() {
+          if (window.innerWidth > 800) document.documentElement.style.removeProperty('--admin-vvh');
+          else document.documentElement.style.setProperty('--admin-vvh', Math.round(vv ? vv.height : window.innerHeight) + 'px');
+        }
+        if (vv) vv.addEventListener('resize', fit);
+        window.addEventListener('resize', fit);
+        fit();
+      })();
+    </script>
   </body>
-  </html>
+</html>

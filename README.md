@@ -131,7 +131,8 @@ npm run build
 
 ### Visual Editor
 
-- File tree, Markdown source and live preview with scroll sync, a Hide button for the source pane, and a mobile layout with a file drawer and an Edit and Preview switch
+- File tree, Markdown source and live preview with scroll sync and a Hide button for the source pane. On phones: a dismissible file drawer, full-width Edit/Preview, touch-size Save/Publish controls and scrolling dialogs that fit the visible screen.
+- Mobile admin navigation, full-width list/detail screens and an account menu that fits at 320px. Responsive and focus checks supplement, but do not replace, real-device Safari/keyboard testing. See [mobile editor use](content/editing-and-admin/visual-editor.md#theme-and-small-screens).
 - New files and folders can be placed in any folder at any depth with the Location drop-down
 - Accounts with two roles. Editors only see and change the sections assigned to them
 - **Publish Changes** (administrators) rebuilds the whole site beside the live one, checks it, switches it in only if the build succeeded, and shows live progress and a copyable error report if it fails
