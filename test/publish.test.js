@@ -169,3 +169,6 @@ test('site settings are snapshotted with a publish and late settings remain unpu
  const settings=path.join(data,'site-settings.json');fs.writeFileSync(settings,JSON.stringify({siteTitle:'Snapshot title'}));
  const {tmp,distDir,p}=setup({dataDir:data});try{p.start('admin');fs.writeFileSync(settings,JSON.stringify({siteTitle:'Late changed title'}));await p.finished();assert.equal(p.status().state,'done',p.status().error);const html=fs.readFileSync(path.join(distDir,'index.html'),'utf8');assert.ok(html.includes('Snapshot title'));assert.ok(!html.includes('Late changed title'));assert.equal(p.unpublished().unpublished,true);}finally{fs.rmSync(tmp,{recursive:true,force:true});fs.rmSync(data,{recursive:true,force:true});}
 });
+test('publish completion callback runs once for success and failure',async()=>{
+ for(const fail of [false,true]){const seen=[],{tmp,p}=setup({onComplete:s=>seen.push(s),...(fail?{buildScript:'/nonexistent/build.js'}:{})});try{p.start('admin');await p.finished();assert.equal(seen.length,1);assert.equal(seen[0].state,fail?'failed':'done');assert.equal(seen[0].by,'admin');}finally{fs.rmSync(tmp,{recursive:true,force:true});}}
+});
