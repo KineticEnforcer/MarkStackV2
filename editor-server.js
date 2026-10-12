@@ -366,7 +366,7 @@ function editorCsp(nonce) {
 /** Serve editor.html with a fresh nonce and its CSP header. */
 function serveEditorPage(res) {
   const nonce = require('crypto').randomBytes(16).toString('base64');
-  const page = fs.readFileSync(path.join(__dirname, 'editor.html'), 'utf-8').replace(/__CSP_NONCE__/g, nonce).replace(/__ALLOW_RAW_HTML__/g, siteAllowsRawHtml() ? 'true' : 'false');
+  const page = fs.readFileSync(path.join(__dirname, 'editor.html'), 'utf-8').replace(/__CSP_NONCE__/g, nonce).replace(/__ALLOW_RAW_HTML__/g, siteAllowsRawHtml() ? 'true' : 'false').replace('__PUBLISH_CONTROLLER__', () => fs.readFileSync(path.join(__dirname, 'static/js/publish-controller.js'), 'utf-8'));
   res.writeHead(200, {
     'Content-Type': 'text/html; charset=utf-8',
     'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -1057,7 +1057,7 @@ function allowed(req, res, action, relPath, newRelPath) {
 
 function servePublicPage(res, file) {
   const nonce = crypto.randomBytes(16).toString('base64');
-  const page = fs.readFileSync(path.join(__dirname, file), 'utf-8').replace(/__CSP_NONCE__/g, nonce);
+  const page = fs.readFileSync(path.join(__dirname, file), 'utf-8').replace(/__CSP_NONCE__/g, nonce).replace('__PUBLISH_CONTROLLER__', () => fs.readFileSync(path.join(__dirname, 'static/js/publish-controller.js'), 'utf-8'));
   res.writeHead(200, {
     'Content-Type': 'text/html; charset=utf-8',
     'Cache-Control': 'no-store',
@@ -1241,15 +1241,11 @@ function requestHandler(req, res) {
   }
   
   // Editor HTML for root and common paths
-  if (pathname === '/admin/users') {
+  if (pathname === '/admin' || pathname === '/admin/users' || pathname === '/admin/links') {
     if (!resolveSession(req)) return redirect(res, '/login');
     if (req.user.role !== 'admin') return sendError(res, 403, 'Administrator only');
-    return servePublicPage(res, 'admin-users.html');
-  }
-  if (pathname === '/admin/links') {
-    if (!resolveSession(req)) return redirect(res, '/login');
-    if (req.user.role !== 'admin') return sendError(res, 403, 'Administrator only');
-    return servePublicPage(res, 'admin-links.html');
+    if (pathname !== '/admin') return redirect(res, '/admin#/' + (pathname.endsWith('links') ? 'links' : 'users'));
+    return servePublicPage(res, 'admin.html');
   }
   if (pathname === '/' || pathname === '/editor' || pathname === '/editor.html') {
     if (!resolveSession(req)) return redirect(res, '/login');

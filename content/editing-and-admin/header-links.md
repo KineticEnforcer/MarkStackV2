@@ -7,11 +7,11 @@ description: Add links to the top right of every page, with automatic icons, fro
 
 The top bar of the public site has the logo and title on the left and the search box. Links you add here appear to the right of search. They are meant for a few destinations: a product site, a status page, a community, a code repository.
 
-![The Header links admin page](/images/docs/admin-links-light.png)
+Header links is a full-width settings area inside the Admin console.
 
 ## Manage the links
 
-An administrator opens the account menu in the editor and chooses **Header links**. Each link has:
+An administrator opens the account menu in the editor and chooses **Admin**, then **Header links**. Each link has:
 
 - **Title**, up to 40 characters. It is the label on the button.
 - **Address**, a full `http` or `https` address.

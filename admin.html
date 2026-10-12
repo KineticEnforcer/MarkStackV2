@@ -1,0 +1,1822 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Admin - MarkStack</title>
+    <script nonce="__CSP_NONCE__">
+      try {
+        document.documentElement.dataset.theme =
+          localStorage.getItem("theme") || "dark";
+      } catch (e) {
+        document.documentElement.dataset.theme = "dark";
+      }
+    </script>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0f1218;
+        --panel: #151922;
+        --raised: #1b2030;
+        --text: #e6e9f0;
+        --muted: #8b93a7;
+        --line: #262c3b;
+        --accent: #7b9bff;
+        --accent-soft: rgba(123, 155, 255, 0.14);
+        --on-accent: #0f1218;
+        --err: #ff8a80;
+        --ok: #6fd08c;
+        --hover: #1b2030;
+      }
+      :root[data-theme="light"] {
+        color-scheme: light;
+        --bg: #ffffff;
+        --panel: #f6f7f9;
+        --raised: #eef0f4;
+        --text: #1a1f2b;
+        --muted: #667085;
+        --line: #dfe3ea;
+        --accent: #2f5bea;
+        --accent-soft: rgba(47, 91, 234, 0.1);
+        --on-accent: #ffffff;
+        --err: #b3261e;
+        --ok: #1b7f3b;
+        --hover: #eef0f4;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font:
+          14px/1.5 "IBM Plex Sans",
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          sans-serif;
+      }
+      a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+      :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 600;
+        color: var(--text);
+      }
+      .brand img {
+        width: 22px;
+        height: 22px;
+      }
+      .brand span.sub {
+        font-weight: 400;
+        color: var(--muted);
+      }
+      label {
+        display: block;
+        margin: 14px 0 6px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted);
+      }
+      input[type="text"],
+      input[type="password"],
+      input:not([type]),
+      select {
+        width: 100%;
+        height: 36px;
+        padding: 0 12px;
+        font: inherit;
+        color: var(--text);
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+      }
+      input:focus,
+      select:focus {
+        outline: 2px solid var(--accent);
+        outline-offset: -1px;
+        border-color: var(--accent);
+      }
+      button {
+        height: 32px;
+        padding: 0 12px;
+        font: inherit;
+        color: var(--text);
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: var(--hover);
+      }
+      button.primary {
+        color: var(--on-accent);
+        background: var(--accent);
+        border-color: var(--accent);
+        font-weight: 600;
+      }
+      button:disabled {
+        opacity: 0.6;
+        cursor: default;
+      }
+      .err {
+        min-height: 1.4em;
+        margin-top: 12px;
+        color: var(--err);
+        font-size: 13px;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        height: 48px;
+        padding: 0 24px;
+        border-bottom: 1px solid var(--line);
+        background: var(--panel);
+      }
+      header .grow {
+        flex: 1;
+      }
+      main {
+        max-width: 980px;
+        margin: 28px auto;
+        padding: 0 16px;
+      }
+      .top {
+        display: flex;
+        align-items: flex-end;
+        gap: 16px;
+        margin-bottom: 16px;
+      }
+      .top > div {
+        flex: 1;
+        min-width: 0;
+      }
+      h1 {
+        margin: 0 0 2px;
+        font-size: 22px;
+        line-height: 1.3;
+      }
+      p.lead {
+        margin: 0;
+        color: var(--muted);
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        padding: 11px 14px;
+        text-align: left;
+        border-bottom: 1px solid var(--line);
+        vertical-align: middle;
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+      th {
+        font-size: 11px;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: var(--muted);
+        font-weight: 600;
+        background: var(--bg);
+      }
+      th.r,
+      td.actions {
+        text-align: right;
+        white-space: nowrap;
+      }
+      td.u {
+        font-weight: 600;
+      }
+      .pill {
+        display: inline-block;
+        margin-left: 6px;
+        padding: 0 8px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--muted);
+      }
+      .pill.warn {
+        color: var(--err);
+        border-color: var(--err);
+      }
+      .role {
+        color: var(--muted);
+        text-transform: capitalize;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+      .chip {
+        padding: 1px 8px;
+        font-size: 12px;
+        background: var(--accent-soft);
+        color: var(--accent);
+        border-radius: 10px;
+        max-width: 160px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .chip.more {
+        background: var(--raised);
+        color: var(--muted);
+      }
+      .muted {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .actions button {
+        margin-left: 6px;
+        min-width: 84px;
+      }
+      .actions button.danger:hover {
+        color: var(--err);
+        border-color: var(--err);
+      }
+      .msg {
+        min-height: 1.4em;
+        margin: 12px 2px 0;
+        font-size: 13px;
+      }
+      .msg.err {
+        color: var(--err);
+      }
+      .msg.ok {
+        color: var(--ok);
+      }
+      code {
+        padding: 2px 6px;
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        user-select: all;
+        font-family: "IBM Plex Mono", ui-monospace, monospace;
+      }
+      .secs {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 2px 12px;
+        max-height: 260px;
+        overflow: auto;
+      }
+      .secs label {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin: 0;
+        padding: 5px 0;
+        font-size: 13px;
+        font-weight: 400;
+        color: var(--text);
+      }
+      dialog {
+        width: min(440px, calc(100vw - 24px));
+        max-height: calc(100vh - 24px);
+        padding: 0;
+        color: var(--text);
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+        overflow: auto;
+      }
+      dialog::backdrop {
+        background: rgba(8, 10, 16, 0.55);
+      }
+      .dlg-h {
+        padding: 16px 20px 0;
+        font-size: 16px;
+        font-weight: 600;
+      }
+      .dlg-b {
+        padding: 4px 20px 8px;
+      }
+      .dlg-f {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 12px 20px 16px;
+      }
+      .dlg-b p {
+        margin: 10px 0 10px;
+      }
+      @media (max-width: 720px) {
+        header {
+          padding: 0 12px;
+        }
+        main {
+          margin: 16px auto;
+        }
+        .top {
+          flex-wrap: wrap;
+        }
+        table,
+        tbody,
+        tr,
+        td {
+          display: block;
+          width: 100%;
+        }
+        thead {
+          display: none;
+        }
+        tr {
+          display: grid;
+          grid-template-columns: 1fr auto;
+          gap: 6px 10px;
+          padding: 12px 14px;
+          border-bottom: 1px solid var(--line);
+        }
+        tr:last-child {
+          border-bottom: 0;
+        }
+        td {
+          padding: 0;
+          border: 0;
+        }
+        td.u {
+          grid-column: 1;
+        }
+        td.r2 {
+          grid-column: 2;
+          text-align: right;
+        }
+        td.sec {
+          grid-column: 1 / -1;
+        }
+        td.actions {
+          grid-column: 1 / -1;
+          text-align: left;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+        .actions button {
+          margin: 0;
+          flex: 1 1 auto;
+          min-width: 0;
+          padding: 0 12px;
+          height: 36px;
+          white-space: nowrap;
+        }
+        dialog button,
+        .top button {
+          height: 38px;
+        }
+      }
+
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+      }
+      button {
+        min-height: 36px;
+      }
+      header {
+        padding: 0 18px;
+        gap: 12px;
+      }
+      header a {
+        white-space: nowrap;
+      }
+      .header-btn {
+        display: inline-flex;
+        align-items: center;
+        min-height: 36px;
+        padding: 0 12px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        color: var(--text);
+      }
+      .console {
+        display: flex;
+        height: calc(100dvh - 48px);
+      }
+      .nav {
+        width: 226px;
+        flex: none;
+        padding: 20px 8px;
+        background: var(--panel);
+        border-right: 1px solid var(--line);
+        overflow: auto;
+      }
+      .nav h2 {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        margin: 8px 10px;
+      }
+      .nav a {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px;
+        border-radius: 6px;
+        color: var(--text);
+        margin-bottom: 22px;
+      }
+      .nav a.active {
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-weight: 600;
+      }
+      .nav small {
+        color: var(--muted);
+      }
+      .area {
+        flex: 1;
+        min-width: 0;
+        overflow: auto;
+      }
+      .users-view {
+        display: flex;
+        overflow: hidden;
+        position: relative;
+      }
+      #listMsg {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        left: 296px;
+        padding: 10px 18px;
+        margin: 0 !important;
+        background: var(--panel);
+      }
+      #listMsg:empty {
+        display: none;
+      }
+      .user-list {
+        width: 296px;
+        flex: none;
+        border-right: 1px solid var(--line);
+        overflow: auto;
+      }
+      .list-tools {
+        display: flex;
+        gap: 8px;
+        padding: 12px;
+        border-bottom: 1px solid var(--line);
+        position: sticky;
+        top: 0;
+        background: var(--bg);
+      }
+      .list-tools input {
+        min-width: 0;
+        flex: 1;
+      }
+      .list-tools button {
+        flex: none;
+        white-space: nowrap;
+      }
+      .user-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        height: auto;
+        min-height: 72px;
+        padding: 12px 16px;
+        text-align: left;
+        border: 0;
+        border-bottom: 1px solid var(--line);
+        border-radius: 0;
+        background: var(--bg);
+      }
+      .user-row.selected {
+        background: var(--accent-soft);
+        box-shadow: inset 3px 0 var(--accent);
+      }
+      .avatar {
+        display: grid;
+        place-items: center;
+        width: 30px;
+        height: 30px;
+        flex: none;
+        border-radius: 50%;
+        background: var(--raised);
+        color: var(--muted);
+        font-size: 11px;
+      }
+      .row-text {
+        min-width: 0;
+      }
+      .row-text strong,
+      .row-text > .muted {
+        display: block;
+        overflow-wrap: anywhere;
+      }
+      .user-detail {
+        flex: 1;
+        min-width: 0;
+        overflow: auto;
+      }
+      .detail-head {
+        padding: 24px 28px;
+        border-bottom: 1px solid var(--line);
+      }
+      .detail-head h1 {
+        overflow-wrap: anywhere;
+      }
+      .detail-body {
+        padding: 28px;
+      }
+      .detail-body .card {
+        margin-bottom: 20px;
+      }
+      .card h2 {
+        font-size: 14px;
+        margin: 0;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--line);
+      }
+      .card-content {
+        padding: 18px;
+      }
+      .user-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 20px;
+      }
+      .settings-view {
+        padding: 28px;
+      }
+      .settings-view .top,
+      .settings-view > .card,
+      .settings-view > .msg,
+      .settings-view > .notes {
+        max-width: 1000px;
+      }
+      .settings-view .card {
+        overflow: auto;
+      }
+      .empty {
+        padding: 28px 16px;
+        text-align: center;
+        color: var(--muted);
+      }
+      td.ico {
+        width: 36px;
+      }
+      td.ico img,
+      td.ico svg {
+        width: 18px;
+        height: 18px;
+      }
+      td.addr {
+        overflow-wrap: anywhere;
+      }
+      td.shown .chk {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin: 0;
+        font-weight: 400;
+        color: var(--text);
+      }
+      td.actions {
+        white-space: nowrap;
+      }
+      .notes {
+        color: var(--muted);
+      }
+      #listMsg {
+        margin: 12px 28px;
+      }
+      .menu-btn,
+      #listBack {
+        display: none;
+      }
+      #accountMenu {
+        position: relative;
+      }
+      #accountMenu summary {
+        cursor: pointer;
+        list-style: none;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 6px 12px;
+      }
+      #accountMenu > div {
+        position: absolute;
+        right: 0;
+        top: 40px;
+        z-index: 10;
+        background: var(--panel);
+        padding: 12px;
+        border: 1px solid var(--line);
+        min-width: 170px;
+      }
+      .modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(8, 10, 16, 0.6);
+        z-index: 40;
+        align-items: center;
+        justify-content: center;
+      }
+      .modal-overlay.visible {
+        display: flex;
+      }
+      .modal-dialog {
+        width: min(620px, calc(100vw - 24px));
+        max-height: calc(100dvh - 24px);
+        overflow: auto;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
+      .modal-header,
+      .modal-body,
+      .modal-footer {
+        padding: 16px 20px;
+      }
+      .modal-title {
+        margin: 0;
+      }
+      .modal-footer {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+      .publish-bar {
+        height: 6px;
+        background: var(--raised);
+      }
+      .publish-bar-fill {
+        height: 100%;
+        background: var(--accent);
+      }
+      .publish-steps {
+        list-style: none;
+        padding: 0;
+      }
+      .publish-steps li {
+        padding: 4px 0;
+        color: var(--muted);
+      }
+      .publish-steps li.running {
+        color: var(--accent);
+      }
+      .publish-steps li.failed,
+      .publish-warn {
+        color: var(--err);
+      }
+      .publish-pre {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        max-height: 200px;
+        overflow: auto;
+      }
+      .publish-dot {
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--accent);
+      }
+      * {
+        scrollbar-color: var(--muted) transparent;
+        scrollbar-width: thin;
+      }
+      @media (max-width: 800px) {
+        #listMsg {
+          left: 0;
+        }
+        header {
+          padding: 0 8px;
+          gap: 8px;
+        }
+        header .brand {
+          gap: 6px;
+        }
+        header .brand img,
+        header .brand > span:not(.sub),
+        header .header-btn {
+          display: none;
+        }
+        .menu-btn {
+          display: block;
+          padding: 0 10px;
+        }
+        #publish-btn {
+          margin-left: auto;
+          padding: 0 8px;
+          white-space: nowrap;
+          font-size: 12px;
+        }
+        .publish-dot {
+          vertical-align: middle;
+        }
+        header .grow {
+          display: none;
+        }
+        #accountMenu summary {
+          max-width: 95px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .nav {
+          display: none;
+          position: fixed;
+          top: 48px;
+          bottom: 0;
+          z-index: 20;
+          box-shadow: 12px 0 30px #0005;
+        }
+        .nav.open {
+          display: block;
+        }
+        .user-list {
+          width: 100%;
+          border: 0;
+        }
+        .user-detail {
+          display: none;
+        }
+        .detail-open .user-list {
+          display: none;
+        }
+        .detail-open .user-detail {
+          display: block;
+          width: 100%;
+        }
+        .detail-head {
+          padding: 16px;
+        }
+        .detail-body {
+          padding: 16px;
+        }
+        #listBack {
+          display: block;
+          margin-bottom: 12px;
+        }
+        .settings-view {
+          padding: 16px;
+        }
+        .settings-view table {
+          min-width: 0;
+        }
+        .settings-view tr {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+        .settings-view td {
+          flex: 1 1 100%;
+          border: 0;
+          padding: 0;
+        }
+        .settings-view td.ico {
+          flex: 0 0 20px;
+        }
+        .settings-view td.u {
+          flex: 1;
+        }
+        .settings-view thead {
+          display: none;
+        }
+        .settings-view td.addr {
+          white-space: normal;
+          overflow-wrap: anywhere;
+        }
+        .settings-view td.actions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+        }
+        #listMsg {
+          margin: 12px 16px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <button
+        class="menu-btn"
+        id="menuToggle"
+        aria-label="Open admin navigation"
+        aria-expanded="false"
+      >
+        Menu
+      </button>
+      <div class="brand">
+        <img src="/svg/logo.svg" alt="" /><span>MarkStack</span
+        ><span class="sub">Admin</span>
+      </div>
+      <span class="grow"></span><a class="header-btn" href="/">Back to editor</a
+      ><button class="primary" id="publish-btn" hidden>
+        Publish Changes
+        <span id="publish-dot" class="publish-dot" hidden></span>
+      </button>
+      <details id="accountMenu">
+        <summary><span id="accountName">Account</span> ▾</summary>
+        <div>
+          <p class="muted">Administrator</p>
+          <a href="/">Back to editor</a><button id="signOut">Sign out</button>
+        </div>
+      </details>
+    </header>
+    <div class="console">
+      <nav class="nav" id="adminNav" aria-label="Admin areas">
+        <h2>People</h2>
+        <a href="#/users" data-area="users"
+          >Users <small id="usersCount"></small
+        ></a>
+        <h2>Site</h2>
+        <a href="#/links" data-area="links"
+          >Header links <small id="linksCount"></small
+        ></a>
+      </nav>
+      <section id="usersView" class="area users-view">
+        <aside class="user-list" aria-label="Users">
+          <div class="list-tools">
+            <input
+              type="text"
+              id="userSearch"
+              placeholder="Search users"
+              aria-label="Search users"
+            /><button class="primary" id="addOpen">+ Add</button>
+          </div>
+          <div id="rows"></div>
+        </aside>
+        <div class="user-detail" id="userDetail" hidden>
+          <div class="detail-head">
+            <button id="listBack">Back to users</button>
+            <h1 id="userTitle"></h1>
+            <p class="lead" id="userMeta"></p>
+            <div id="userActions" class="user-actions"></div>
+          </div>
+          <div class="detail-body">
+            <div class="card">
+              <h2>Section access</h2>
+              <div class="card-content" id="userAccess"></div>
+            </div>
+            <p class="muted">
+              Editors can create, edit, rename and delete content only in
+              assigned sections. Administrators can change all content.
+            </p>
+          </div>
+        </div>
+        <div id="listMsg" class="msg" role="status"></div>
+      </section>
+      <section id="linksView" class="area settings-view" hidden>
+        <div class="top">
+          <div>
+            <h1>Header links</h1>
+            <p class="lead">
+              Links shown at the top right of the docs site. The site icon is
+              fetched when you add a link or change its address. Changes reach
+              the docs site after Publish Changes.
+            </p>
+          </div>
+          <button class="primary" id="links-addOpen">Add link</button>
+        </div>
+        <div class="card">
+          <table>
+            <thead>
+              <tr>
+                <th></th>
+                <th>Title</th>
+                <th>Address</th>
+                <th>Show on site</th>
+                <th class="r">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="links-rows"></tbody>
+          </table>
+          <div class="empty" id="links-empty" hidden>
+            No links yet. The header shows only the theme button.
+          </div>
+        </div>
+        <div class="msg" id="links-listMsg" role="status"></div>
+        <ul class="notes" id="links-notes"></ul>
+      </section>
+
+      <dialog id="links-dlg" aria-labelledby="links-dlgTitle">
+        <form method="dialog" id="links-form" novalidate>
+          <div class="dlg-h" id="links-dlgTitle">Add a link</div>
+          <div class="dlg-b">
+            <label for="links-fTitle">Title (shown on the button)</label>
+            <input
+              id="links-fTitle"
+              type="text"
+              maxlength="40"
+              autocomplete="off"
+            />
+            <label for="links-fUrl">Address (https://...)</label>
+            <input
+              id="links-fUrl"
+              type="text"
+              autocomplete="off"
+              inputmode="url"
+            />
+            <label class="chk"
+              ><input type="checkbox" id="links-fShow" checked /> Show in the
+              header</label
+            >
+            <label class="chk" id="links-fRefreshRow"
+              ><input type="checkbox" id="links-fRefresh" /> Fetch the icon
+              again</label
+            >
+            <div class="msg" id="links-fMsg" role="status"></div>
+          </div>
+          <div class="dlg-f">
+            <button type="button" id="links-fCancel">Cancel</button
+            ><button type="submit" class="primary" id="links-fSave">
+              Save
+            </button>
+          </div>
+        </form>
+      </dialog>
+    </div>
+    <dialog id="addDlg" aria-labelledby="addTitle">
+      <form method="dialog" id="addForm" novalidate>
+        <div class="dlg-h" id="addTitle">Add a user</div>
+        <div class="dlg-b">
+          <label for="newName"
+            >Username (lowercase letters, digits, . _ -)</label
+          >
+          <input id="newName" type="text" autocomplete="off" />
+          <label for="newRole">Role</label>
+          <select id="newRole">
+            <option value="editor">Editor</option>
+            <option value="admin">Administrator</option>
+          </select>
+          <label for="newPass">Initial password (at least 12 characters)</label>
+          <input id="newPass" type="password" autocomplete="new-password" />
+          <label id="newSecsLabel">Sections this editor may change</label>
+          <div class="secs" id="newSecs"></div>
+          <div class="msg" id="addMsg" role="status"></div>
+        </div>
+        <div class="dlg-f">
+          <button type="button" id="addCancel">Cancel</button
+          ><button type="submit" class="primary" id="addBtn">Add user</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="secDlg" aria-labelledby="secTitle">
+      <form method="dialog" id="secForm">
+        <div class="dlg-h" id="secTitle">Sections</div>
+        <div class="dlg-b">
+          <p class="muted" id="secHint">Saving ends this user's sessions.</p>
+          <div class="secs" id="secBox"></div>
+          <div class="msg" id="secMsg" role="status"></div>
+        </div>
+        <div class="dlg-f">
+          <button type="button" id="secCancel">Cancel</button
+          ><button type="submit" class="primary" id="secSave">
+            Save sections
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="rstDlg" aria-labelledby="rstTitle">
+      <form method="dialog" id="rstForm">
+        <div class="dlg-h" id="rstTitle">Reset password</div>
+        <div class="dlg-b">
+          <p id="rstText"></p>
+          <div class="msg" id="rstMsg" role="status"></div>
+        </div>
+        <div class="dlg-f">
+          <button type="button" id="rstCancel">Cancel</button
+          ><button type="submit" class="primary" id="rstGo">
+            Reset password
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <div class="modal-overlay" id="publish-modal-overlay">
+      <div
+        class="modal-dialog publish-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="publish-title"
+      >
+        <div class="modal-header">
+          <h3 class="modal-title" id="publish-title">Publish changes</h3>
+        </div>
+        <div class="modal-body">
+          <p id="publish-intro" class="confirm-modal-message"></p>
+          <p id="publish-warn" class="publish-warn" hidden></p>
+          <div id="publish-progress" hidden>
+            <div
+              class="publish-bar"
+              role="progressbar"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuenow="0"
+              id="publish-bar"
+            >
+              <div class="publish-bar-fill" id="publish-bar-fill"></div>
+            </div>
+            <p class="publish-detail" id="publish-detail"></p>
+            <ol class="publish-steps" id="publish-steps"></ol>
+          </div>
+          <div id="publish-result" hidden>
+            <p id="publish-result-title" class="publish-result-title"></p>
+            <p id="publish-live" class="publish-live"></p>
+            <pre id="publish-error" class="publish-pre" hidden></pre>
+            <details id="publish-log-wrap" hidden>
+              <summary>Build log</summary>
+              <pre id="publish-log" class="publish-pre"></pre>
+            </details>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="editor-btn" id="publish-copy" hidden>
+            Copy diagnostics
+          </button>
+          <button class="editor-btn" id="publish-cancel">Cancel</button>
+          <button class="editor-btn primary" id="publish-confirm">
+            Publish Changes
+          </button>
+        </div>
+      </div>
+    </div>
+    <dialog id="askDlg" aria-labelledby="askTitle">
+      <div class="dlg-h" id="askTitle">Confirm change</div>
+      <div class="dlg-b"><p id="askText"></p></div>
+      <div class="dlg-f">
+        <button id="askCancel">Cancel</button
+        ><button class="primary" id="askGo">Remove</button>
+      </div>
+    </dialog>
+    <script nonce="__CSP_NONCE__">
+      window.msAsk = function (text, fn) {
+        document.getElementById("askGo").textContent = "Remove";
+        document.getElementById("askText").textContent = text;
+        document.getElementById("askGo").onclick = function () {
+          document.getElementById("askDlg").close();
+          fn();
+        };
+        document.getElementById("askDlg").showModal();
+      };
+      document.getElementById("askCancel").onclick = function () {
+        document.getElementById("askDlg").close();
+      };
+      var currentArea = "users",
+        acceptedHash = location.hash,
+        formDirty = false;
+      document.querySelectorAll("dialog form").forEach(function (f) {
+        f.addEventListener("input", function () {
+          formDirty = true;
+        });
+        f.addEventListener("submit", function () {
+          formDirty = false;
+        });
+      });
+      document.querySelectorAll("dialog").forEach(function (d) {
+        d.addEventListener("close", function () {
+          formDirty = false;
+        });
+      });
+      window.addEventListener("beforeunload", function (e) {
+        if (formDirty) {
+          e.preventDefault();
+          e.returnValue = "";
+        }
+      });
+      function route() {
+        var area = location.hash.split("/")[1] === "links" ? "links" : "users";
+        document.getElementById("usersView").hidden = area !== "users";
+        document.getElementById("linksView").hidden = area !== "links";
+        document.querySelectorAll("[data-area]").forEach(function (a) {
+          a.classList.toggle("active", a.dataset.area === area);
+          if (a.dataset.area === area) a.setAttribute("aria-current", "page");
+          else a.removeAttribute("aria-current");
+        });
+        document.getElementById("adminNav").classList.remove("open");
+        document
+          .getElementById("menuToggle")
+          .setAttribute("aria-expanded", "false");
+      }
+      window.addEventListener("hashchange", function () {
+        if (formDirty) {
+          var target = location.hash;
+          history.replaceState(null, "", acceptedHash || "#/users");
+          window.msAsk(
+            "Discard the edits in this form and leave this area?",
+            function () {
+              formDirty = false;
+              document.querySelectorAll("dialog[open]").forEach(function (d) {
+                d.close();
+              });
+              location.hash = target;
+            },
+          );
+          document.getElementById("askGo").textContent = "Discard";
+          return;
+        }
+        acceptedHash = location.hash;
+        route();
+      });
+      route();
+      document.getElementById("menuToggle").onclick = function () {
+        var on = document.getElementById("adminNav").classList.toggle("open");
+        this.setAttribute("aria-expanded", String(on));
+      };
+      document.getElementById("signOut").onclick = function () {
+        fetch("/api/logout", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "X-CSRF-Token": window.msCsrfToken },
+        })
+          .then(function (r) {
+            if (!r.ok) throw Error("Sign out failed");
+            location.href = "/login";
+          })
+          .catch(function (e) {
+            document.getElementById("listMsg").textContent = e.message;
+          });
+      };
+
+      (function () {
+        var csrf = null,
+          sections = [],
+          me = null,
+          allUsers = [],
+          selectedName = null;
+        function api(method, url, body) {
+          var h = {};
+          if (body !== undefined) h["Content-Type"] = "application/json";
+          if (method !== "GET") h["X-CSRF-Token"] = csrf;
+          return fetch(url, {
+            method: method,
+            headers: h,
+            credentials: "same-origin",
+            body: body === undefined ? undefined : JSON.stringify(body),
+          }).then(function (r) {
+            if (r.status === 401) {
+              location.href = "/login";
+              return Promise.reject(new Error("signed out"));
+            }
+            return r
+              .json()
+              .catch(function () {
+                return {};
+              })
+              .then(function (d) {
+                if (!r.ok) throw new Error(d.error || "Request failed");
+                return d;
+              });
+          });
+        }
+        function el(tag, attrs, kids) {
+          var n = document.createElement(tag);
+          Object.keys(attrs || {}).forEach(function (k) {
+            if (k === "text") n.textContent = attrs[k];
+            else n.setAttribute(k, attrs[k]);
+          });
+          (kids || []).forEach(function (c) {
+            n.appendChild(c);
+          });
+          return n;
+        }
+        function $(id) {
+          return document.getElementById(id);
+        }
+        function checks(box, selected) {
+          box.textContent = "";
+          if (!sections.length)
+            box.appendChild(
+              el("span", {
+                class: "muted",
+                text: "No section folders exist yet.",
+              }),
+            );
+          sections.forEach(function (s) {
+            var cb = el("input", { type: "checkbox", value: s });
+            cb.checked = selected.indexOf(s) !== -1;
+            box.appendChild(el("label", {}, [cb, document.createTextNode(s)]));
+          });
+        }
+        function picked(box) {
+          return Array.prototype.slice
+            .call(box.querySelectorAll("input:checked"))
+            .map(function (i) {
+              return i.value;
+            });
+        }
+        function msg(id, text, ok) {
+          var m = $(id);
+          m.textContent = text || "";
+          m.className = "msg " + (text ? (ok ? "ok" : "err") : "");
+        }
+        function open(d) {
+          if (d.showModal) d.showModal();
+          else d.setAttribute("open", "");
+        }
+        function close(d) {
+          if (d.close) d.close();
+          else d.removeAttribute("open");
+        }
+        function summary(u) {
+          var td = el("td", { class: "sec" });
+          if (u.role === "admin") {
+            td.appendChild(
+              el("span", { class: "muted", text: "All sections" }),
+            );
+            return td;
+          }
+          if (!u.sections.length) {
+            td.appendChild(el("span", { class: "muted", text: "No sections" }));
+            return td;
+          }
+          var box = el("div", { class: "chips" });
+          u.sections.slice(0, 3).forEach(function (s) {
+            box.appendChild(el("span", { class: "chip", title: s, text: s }));
+          });
+          if (u.sections.length > 3)
+            box.appendChild(
+              el("span", {
+                class: "chip more",
+                title: u.sections.slice(3).join(", "),
+                text: "+" + (u.sections.length - 3),
+              }),
+            );
+          td.appendChild(box);
+          return td;
+        }
+
+        var secUser = null,
+          rstUser = null;
+        function selectUser(u) {
+          selectedName = u.name;
+          renderList();
+          $("userTitle").textContent = u.name;
+          $("userMeta").textContent =
+            (u.role === "admin" ? "Administrator" : "Editor") +
+            (u.disabled ? " · Disabled" : "");
+          $("userAccess").textContent = "";
+          $("userActions").textContent = "";
+          summary(u).childNodes.forEach(function (n) {
+            $("userAccess").appendChild(n.cloneNode(true));
+          });
+          function button(text, fn, disabled) {
+            var b = el("button", { type: "button", text: text });
+            b.disabled = !!disabled;
+            b.addEventListener("click", fn);
+            $("userActions").appendChild(b);
+          }
+          if (u.role === "editor") {
+            button("Edit sections", function () {
+              secUser = u;
+              $("secTitle").textContent = "Sections for " + u.name;
+              checks($("secBox"), u.sections);
+              msg("secMsg", "");
+              open($("secDlg"));
+            });
+            button("Reset password", function () {
+              rstUser = u;
+              $("rstText").textContent =
+                "Reset the password for " +
+                u.name +
+                "? Their sessions end and the new password is shown once.";
+              msg("rstMsg", "");
+              $("rstGo").hidden = false;
+              $("rstCancel").textContent = "Cancel";
+              open($("rstDlg"));
+            });
+          }
+          button(
+            u.disabled ? "Enable" : "Disable",
+            function () {
+              msg("listMsg", "Saving...", true);
+              api("POST", "/api/users/disable", {
+                name: u.name,
+                disabled: !u.disabled,
+              })
+                .then(function () {
+                  msg(
+                    "listMsg",
+                    u.disabled
+                      ? "User enabled."
+                      : "User disabled. Their sessions were ended.",
+                    true,
+                  );
+                  return load(true);
+                })
+                .catch(function (e) {
+                  msg("listMsg", e.message);
+                });
+            },
+            me && me.name === u.name,
+          );
+          $("userDetail").hidden = false;
+          document.body.classList.add("detail-open");
+        }
+        function renderList() {
+          var rows = $("rows");
+          rows.textContent = "";
+          var query = $("userSearch").value.toLowerCase();
+          allUsers
+            .filter(function (u) {
+              return u.name.toLowerCase().includes(query);
+            })
+            .forEach(function (u) {
+              var row = el("button", {
+                type: "button",
+                class:
+                  "user-row" + (u.name === selectedName ? " selected" : ""),
+                "aria-pressed": String(u.name === selectedName),
+              });
+              row.appendChild(
+                el("span", {
+                  class: "avatar",
+                  text: u.name.slice(0, 2).toUpperCase(),
+                }),
+              );
+              var text = el("span", { class: "row-text" });
+              text.appendChild(el("strong", { text: u.name }));
+              text.appendChild(
+                el("span", {
+                  class: "muted",
+                  text:
+                    u.role === "admin"
+                      ? "Administrator"
+                      : "Editor · " + u.sections.length + (u.sections.length === 1 ? " section" : " sections"),
+                }),
+              );
+              if (u.disabled)
+                text.appendChild(
+                  el("span", { class: "pill warn", text: "disabled" }),
+                );
+              if (u.mustChangePassword)
+                text.appendChild(
+                  el("span", { class: "pill", text: "must change password" }),
+                );
+              row.appendChild(text);
+              row.addEventListener("click", function () {
+                selectUser(u);
+              });
+              rows.appendChild(row);
+            });
+          if (!rows.childNodes.length)
+            rows.appendChild(
+              el("p", { class: "empty", text: "No users match your search." }),
+            );
+          $("usersCount").textContent = allUsers.length;
+        }
+        function render(users) {
+          allUsers = users;
+          renderList();
+          var u =
+            users.find(function (u) {
+              return u.name === selectedName;
+            }) || users[0];
+          if (u) {
+            var wasOpen = document.body.classList.contains("detail-open");
+            selectUser(u);
+            if (!wasOpen) document.body.classList.remove("detail-open");
+          }
+        }
+        $("userSearch").addEventListener("input", renderList);
+        $("listBack").addEventListener("click", function () {
+          document.body.classList.remove("detail-open");
+        });
+        function load(keepMsg) {
+          return api("GET", "/api/users")
+            .then(function (d) {
+              sections = d.sections;
+              render(d.users);
+              if (keepMsg !== true) msg("listMsg", "");
+            })
+            .catch(function (e) {
+              msg("listMsg", e.message);
+            });
+        }
+
+        $("secCancel").addEventListener("click", function () {
+          close($("secDlg"));
+        });
+        $("secForm").addEventListener("submit", function (ev) {
+          ev.preventDefault();
+          var u = secUser;
+          if (!u) return;
+          api("POST", "/api/users/sections", {
+            name: u.name,
+            sections: picked($("secBox")),
+          })
+            .then(function () {
+              close($("secDlg"));
+              msg(
+                "listMsg",
+                "Sections saved for " + u.name + ". Their sessions were ended.",
+                true,
+              );
+              return load(true);
+            })
+            .catch(function (e) {
+              msg("secMsg", e.message);
+            });
+        });
+
+        $("rstCancel").addEventListener("click", function () {
+          close($("rstDlg"));
+        });
+        $("rstForm").addEventListener("submit", function (ev) {
+          ev.preventDefault();
+          var u = rstUser;
+          if (!u || $("rstGo").hidden) return;
+          api("POST", "/api/users/reset-password", { name: u.name })
+            .then(function (d) {
+              $("rstText").textContent =
+                "Temporary password for " +
+                u.name +
+                " (shown once, copy it now):";
+              var m = $("rstMsg");
+              m.className = "msg ok";
+              m.textContent = "";
+              m.appendChild(el("code", { text: d.temporaryPassword }));
+              $("rstGo").hidden = true;
+              $("rstCancel").textContent = "Done";
+              return load(true);
+            })
+            .catch(function (e) {
+              msg("rstMsg", e.message);
+            });
+        });
+
+        function syncNew() {
+          $("newSecs").hidden = $("newSecsLabel").hidden =
+            $("newRole").value === "admin";
+        }
+        $("newRole").addEventListener("change", syncNew);
+        $("addOpen").addEventListener("click", function () {
+          $("newName").value = "";
+          $("newPass").value = "";
+          $("newRole").value = "editor";
+          checks($("newSecs"), []);
+          syncNew();
+          msg("addMsg", "");
+          open($("addDlg"));
+          $("newName").focus();
+        });
+        $("addCancel").addEventListener("click", function () {
+          close($("addDlg"));
+        });
+        $("addForm").addEventListener("submit", function (ev) {
+          ev.preventDefault();
+          var role = $("newRole").value;
+          api("POST", "/api/users", {
+            name: $("newName").value.trim().toLowerCase(),
+            role: role,
+            password: $("newPass").value,
+            sections: role === "editor" ? picked($("newSecs")) : [],
+          })
+            .then(function () {
+              $("newName").value = "";
+              $("newPass").value = "";
+              close($("addDlg"));
+              msg("listMsg", "User added.", true);
+              return load(true);
+            })
+            .catch(function (e) {
+              msg("addMsg", e.message);
+            });
+        });
+        api("GET", "/api/me").then(function (d) {
+          csrf = d.csrf;
+          window.msCsrfToken = csrf;
+          me = d.user;
+          if (me.mustChangePassword) {
+            location.href = "/login";
+            return;
+          }
+          $("accountName").textContent = me.name;
+          return load();
+        });
+      })();
+
+      (function () {
+        var csrf = null,
+          links = [],
+          max = 30,
+          editing = null,
+          busy = false;
+        function api(method, url, body) {
+          var h = {};
+          if (body !== undefined) h["Content-Type"] = "application/json";
+          if (method !== "GET") h["X-CSRF-Token"] = csrf;
+          return fetch(url, {
+            method: method,
+            headers: h,
+            credentials: "same-origin",
+            body: body === undefined ? undefined : JSON.stringify(body),
+          }).then(function (r) {
+            if (r.status === 401) {
+              location.href = "/login";
+              return Promise.reject(new Error("signed out"));
+            }
+            return r
+              .json()
+              .catch(function () {
+                return {};
+              })
+              .then(function (d) {
+                if (!r.ok) throw new Error(d.error || "Request failed");
+                return d;
+              });
+          });
+        }
+        function el(tag, attrs, kids) {
+          var n = document.createElement(tag);
+          Object.keys(attrs || {}).forEach(function (k) {
+            if (k === "text") n.textContent = attrs[k];
+            else n.setAttribute(k, attrs[k]);
+          });
+          (kids || []).forEach(function (c) {
+            n.appendChild(c);
+          });
+          return n;
+        }
+        function $(id) {
+          return document.getElementById(id);
+        }
+        function msg(id, text, ok) {
+          var m = $(id);
+          m.textContent = text || "";
+          m.className = "msg " + (text ? (ok ? "ok" : "err") : "");
+        }
+        function open(d) {
+          if (d.showModal) d.showModal();
+          else d.setAttribute("open", "");
+        }
+        function close(d) {
+          if (d.close) d.close();
+          else d.removeAttribute("open");
+        }
+        var GLOBE =
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
+        function iconCell(l) {
+          var td = el("td", { class: "ico" });
+          if (l.favicon)
+            td.appendChild(
+              el("img", {
+                src: "/api/links/icon/" + l.favicon,
+                alt: "",
+                width: "18",
+                height: "18",
+              }),
+            );
+          else td.innerHTML = GLOBE;
+          return td;
+        }
+        function plain(l, extra) {
+          var o = { id: l.id, title: l.title, url: l.url, show: l.show };
+          if (extra)
+            Object.keys(extra).forEach(function (k) {
+              o[k] = extra[k];
+            });
+          return o;
+        }
+        function send(list, okText) {
+          if (busy) return Promise.resolve();
+          busy = true;
+          msg("links-listMsg", "Saving...", true);
+          return api("POST", "/api/links", { links: list })
+            .then(function (d) {
+              links = d.links;
+              window.msPublishState();
+              render();
+              msg(
+                "links-listMsg",
+                okText || "Saved. Publish Changes to update the docs site.",
+                true,
+              );
+              var ul = $("links-notes");
+              ul.textContent = "";
+              (d.notes || []).forEach(function (n) {
+                if (n.icon !== "found")
+                  ul.appendChild(el("li", { text: n.title + ": " + n.reason }));
+              });
+              busy = false;
+              $("linksCount").textContent = links.length;
+            })
+            .catch(function (e) {
+              busy = false;
+              msg("links-listMsg", "Not saved: " + e.message);
+              throw e;
+            });
+        }
+        function render() {
+          var rows = $("links-rows");
+          rows.textContent = "";
+          $("links-empty").hidden = links.length > 0;
+          $("links-addOpen").disabled = links.length >= max;
+          links.forEach(function (l, i) {
+            var tr = el("tr", { class: l.show ? "" : "off" });
+            tr.appendChild(iconCell(l));
+            var t = el("td", { class: "u", title: l.title, text: l.title });
+            tr.appendChild(t);
+            tr.appendChild(
+              el("td", { class: "addr", title: l.url, text: l.url }),
+            );
+            var shownTd = el("td", { class: "shown" });
+            var cb = el("input", {
+              type: "checkbox",
+              "aria-label": "Show " + l.title + " on the site",
+            });
+            cb.checked = l.show;
+            cb.addEventListener("change", function () {
+              var a = links.map(function (x) {
+                return plain(x);
+              });
+              a[i].show = cb.checked;
+              send(
+                a,
+                cb.checked
+                  ? "Now shown. Publish Changes to update the docs site."
+                  : "Now hidden. Publish Changes to update the docs site.",
+              ).catch(function () {
+                render();
+              });
+            });
+            shownTd.appendChild(
+              el("label", { class: "chk" }, [
+                cb,
+                document.createTextNode("Show on site"),
+              ]),
+            );
+            tr.appendChild(shownTd);
+            var act = el("td", { class: "actions" });
+            function btn(text, label, cls, fn) {
+              var b = el("button", {
+                type: "button",
+                class: cls || "",
+                text: text,
+                "aria-label": label,
+              });
+              b.addEventListener("click", fn);
+              act.appendChild(b);
+              return b;
+            }
+            var up = btn(
+              "\u2191",
+              "Move " + l.title + " up",
+              "sq",
+              function () {
+                var a = links.map(function (x) {
+                  return plain(x);
+                });
+                a.splice(i - 1, 0, a.splice(i, 1)[0]);
+                send(a, "Order saved.").catch(function () {});
+              },
+            );
+            var dn = btn(
+              "\u2193",
+              "Move " + l.title + " down",
+              "sq",
+              function () {
+                var a = links.map(function (x) {
+                  return plain(x);
+                });
+                a.splice(i + 1, 0, a.splice(i, 1)[0]);
+                send(a, "Order saved.").catch(function () {});
+              },
+            );
+            up.disabled = i === 0;
+            dn.disabled = i === links.length - 1;
+            btn("Edit", "Edit " + l.title, "", function () {
+              editing = l;
+              $("links-dlgTitle").textContent = "Edit link";
+              $("links-fTitle").value = l.title;
+              $("links-fUrl").value = l.url;
+              $("links-fShow").checked = l.show;
+              $("links-fRefresh").checked = false;
+              $("links-fRefreshRow").hidden = false;
+              msg("links-fMsg", "");
+              open($("links-dlg"));
+              $("links-fTitle").focus();
+            });
+            btn("Remove", "Remove " + l.title, "danger", function () {
+              window.msAsk(
+                "Remove " + l.title + " from the header?",
+                function () {
+                  send(
+                    links
+                      .filter(function (_, j) {
+                        return j !== i;
+                      })
+                      .map(function (x) {
+                        return plain(x);
+                      }),
+                    "Link removed. Publish Changes to update the docs site.",
+                  ).catch(function () {});
+                },
+              );
+            });
+            tr.appendChild(act);
+            rows.appendChild(tr);
+          });
+        }
+        $("links-addOpen").addEventListener("click", function () {
+          editing = null;
+          $("links-dlgTitle").textContent = "Add a link";
+          $("links-fTitle").value = "";
+          $("links-fUrl").value = "https://";
+          $("links-fShow").checked = true;
+          $("links-fRefreshRow").hidden = true;
+          msg("links-fMsg", "");
+          open($("links-dlg"));
+          $("links-fTitle").focus();
+        });
+        $("links-fCancel").addEventListener("click", function () {
+          close($("links-dlg"));
+        });
+        $("links-form").addEventListener("submit", function (ev) {
+          ev.preventDefault();
+          var title = $("links-fTitle").value.trim(),
+            url = $("links-fUrl").value.trim();
+          if (!title) return msg("links-fMsg", "Enter a title.");
+          if (!/^https?:\/\/[^\s/]+/i.test(url))
+            return msg(
+              "links-fMsg",
+              "Enter a full address that starts with http:// or https://",
+            );
+          var a = links.map(function (x) {
+            return plain(x);
+          });
+          if (editing) {
+            var i = links.indexOf(editing);
+            a[i].title = title;
+            a[i].url = url;
+            a[i].show = $("links-fShow").checked;
+            if ($("links-fRefresh").checked) a[i].refresh = true;
+          } else
+            a.push({ title: title, url: url, show: $("links-fShow").checked });
+          $("links-fSave").disabled = true;
+          msg("links-fMsg", "Saving and fetching the icon...", true);
+          send(
+            a,
+            editing
+              ? "Link saved. Publish Changes to update the docs site."
+              : "Link added. Publish Changes to show it on the docs site.",
+          )
+            .then(function () {
+              close($("links-dlg"));
+            })
+            .catch(function (e) {
+              msg("links-fMsg", e.message);
+            })
+            .then(function () {
+              $("links-fSave").disabled = false;
+            });
+        });
+        api("GET", "/api/me")
+          .then(function (d) {
+            csrf = d.csrf;
+            return api("GET", "/api/links");
+          })
+          .then(function (d) {
+            links = d.links;
+            max = d.max;
+            $("linksCount").textContent = links.length;
+            render();
+          })
+          .catch(function (e) {
+            msg("links-listMsg", e.message);
+          });
+      })();
+      __PUBLISH_CONTROLLER__;
+    </script>
+  </body>
+            </html>

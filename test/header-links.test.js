@@ -140,7 +140,10 @@ test('api: only a signed-in administrator can read or change links, with a valid
   assert.equal((await post([{ title: 'x', url: 'https://x.example' }], { csrf: 'wrong' })).status, 403);
   assert.equal((await request('GET', '/admin/links', { tok: edTok, csrf: edCsrf })).status, 403);
   assert.equal((await request('GET', '/admin/links', { anon: true })).status, 302);
-  const page = await request('GET', '/admin/links');
+  const old = await request('GET', '/admin/links');
+  assert.equal(old.status, 302);
+  assert.equal(old.headers.location, '/admin#/links');
+  const page = await request('GET', '/admin');
   assert.equal(page.status, 200);
   assert.match(page.headers['content-security-policy'], /script-src 'nonce-/);
   assert.ok(!page.body.includes('__CSP_NONCE__'));

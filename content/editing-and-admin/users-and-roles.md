@@ -34,9 +34,9 @@ The password is typed at a hidden prompt. It is never a command line argument, s
 
 ## Add and manage people
 
-Open the account menu at the top right of the editor and choose **Users and sections**.
+Open the account menu at the top right of the editor and choose **Admin**, then **Users**.
 
-![The Users and sections page](/images/docs/admin-users-light.png)
+Users has a searchable account list beside the selected account. On mobile, select an account to open its detail screen and use **Back to users** to return.
 
 From there an administrator can:
 

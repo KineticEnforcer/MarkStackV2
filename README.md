@@ -135,6 +135,7 @@ npm run build
 - New files and folders can be placed in any folder at any depth with the Location drop-down
 - Accounts with two roles. Editors only see and change the sections assigned to them
 - **Publish Changes** (administrators) rebuilds the whole site beside the live one, checks it, switches it in only if the build succeeded, and shows live progress and a copyable error report if it fails
+- Full-screen Admin console with left navigation, a searchable user list and a user detail pane
 - Header links managed by an administrator, with favicons fetched safely by the server
 
 ### Reading Experience
@@ -215,7 +216,8 @@ markstack/
 ├── editor.html           # Editor page
 ├── login.html            # Sign-in page
 ├── admin-users.html      # User management page
-├── admin-links.html      # Header links page
+├── admin.html            # Full-screen administrator console
+├── admin-links.html      # Legacy header links source (route redirects to /admin)
 ├── lib/                  # Accounts, sessions, section access, publishing, header links
 ├── scripts/              # create-admin and reset-admin commands
 ├── siteconfig.json       # Site settings
@@ -379,3 +381,17 @@ This project is licensed under the GPL-3.0 license. See [LICENSE](LICENSE) for t
 <p align="center">
   <sub>Built for people who value simplicity and performance.</sub>
 </p>
+
+### Administrator console
+
+**Only administrators can open `/admin`. Editors cannot use its routes or management APIs.** Open the editor account menu and choose **Admin**. Users and Header links share the same full-screen console; switching areas does not reload the page or reset the theme.
+
+| Area | What you can do |
+|---|---|
+| Users | Search accounts, add a user, select a user, edit assigned sections, reset an editor password, disable or enable an account |
+| Header links | Add, edit, reorder, remove or hide a link; the server fetches its favicon |
+| Publish Changes | Build saved content with staged progress, keep the previous live site, and inspect failure details |
+
+Desktop uses navigation, list and detail columns for Users. On a small screen, **Menu** opens navigation and **Back to users** returns from a detail view to the list. Settings pages use the full remaining width. Old `/admin/users` and `/admin/links` bookmarks redirect to the matching console area.
+
+User changes apply immediately. Header link changes reach the public docs only after **Publish Changes**. The shell uses the existing management APIs and data files; no new environment variables, ports or storage migration are required.
