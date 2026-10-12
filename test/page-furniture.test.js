@@ -4,13 +4,20 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { execFileSync } = require('child_process');
 
 const root = path.join(__dirname, '..');
 
-test('doc pages have breadcrumb, rail and prev/next; the homepage and 404 have no breadcrumb or prev/next and no hero banner styling', () => {
-  execFileSync(process.execPath, [path.join(root, 'build.js')], { cwd: root, stdio: 'ignore' });
-  const dist = path.join(root, 'dist');
+function buildForTest(t) {
+  const dist = fs.mkdtempSync(path.join(os.tmpdir(), 'markstack-page-furniture-'));
+  t.after(() => fs.rmSync(dist, { recursive: true, force: true }));
+  execFileSync(process.execPath, [path.join(root, 'build.js'), '--out', dist], { cwd: root, stdio: 'ignore' });
+  return dist;
+}
+
+test('doc pages have breadcrumb, rail and prev/next; the homepage and 404 have no breadcrumb or prev/next and no hero banner styling', (t) => {
+  const dist = buildForTest(t);
   const page = fs.readFileSync(path.join(dist, 'getting-started', 'quickstart', 'index.html'), 'utf-8');
   assert.match(page, /class="page-breadcrumb"/);
   assert.match(page, /class="toc-rail"/);
@@ -31,9 +38,9 @@ test('doc pages have breadcrumb, rail and prev/next; the homepage and 404 have n
   assert.doesNotMatch(page, /editor\.html|\/editor/);
 });
 
-test('the sidebar position is settled by the inline script before the article, and the app.js fallback only scrolls a row that is really out of view', () => {
-  execFileSync(process.execPath, [path.join(root, 'build.js')], { cwd: root, stdio: 'ignore' });
-  const html = fs.readFileSync(path.join(root, 'dist', 'getting-started', 'quickstart', 'index.html'), 'utf-8');
+test('the sidebar position is settled by the inline script before the article, and the app.js fallback only scrolls a row that is really out of view', (t) => {
+  const dist = buildForTest(t);
+  const html = fs.readFileSync(path.join(dist, 'getting-started', 'quickstart', 'index.html'), 'utf-8');
   const script = html.indexOf('sidebar-scroll:');
   const into = html.indexOf('cb.top < sb.top || cb.bottom > sb.bottom');
   const article = html.indexOf('<main class="content">');
@@ -52,9 +59,9 @@ test('the sidebar position is settled by the inline script before the article, a
   assert.doesNotMatch(css, /\n\.sidebar-children \{[^}]*transition/);
 });
 
-test('web fonts never block the first paint, and the page has its own background and colour scheme before the stylesheets', () => {
-  execFileSync(process.execPath, [path.join(root, 'build.js')], { cwd: root, stdio: 'ignore' });
-  const html = fs.readFileSync(path.join(root, 'dist', 'getting-started', 'quickstart', 'index.html'), 'utf-8');
+test('web fonts never block the first paint, and the page has its own background and colour scheme before the stylesheets', (t) => {
+  const dist = buildForTest(t);
+  const html = fs.readFileSync(path.join(dist, 'getting-started', 'quickstart', 'index.html'), 'utf-8');
   const outsideNoscript = html.replace(/<noscript>[\s\S]*?<\/noscript>/g, '');
   // no render-blocking fonts link and no inline event handler: the stylesheet is added by the head script
   assert.doesNotMatch(outsideNoscript, /<link[^>]+fonts\.googleapis\.com\/css2/);

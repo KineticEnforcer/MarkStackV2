@@ -4,13 +4,20 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const { execFileSync } = require('child_process');
 
 const root = path.join(__dirname, '..');
 
-test('search index entries link to real pages and heading anchors', () => {
-  execFileSync(process.execPath, [path.join(root, 'build.js')], { cwd: root, stdio: 'ignore' });
-  const dist = path.join(root, 'dist');
+function buildForTest(t) {
+  const dist = fs.mkdtempSync(path.join(os.tmpdir(), 'markstack-search-index-'));
+  t.after(() => fs.rmSync(dist, { recursive: true, force: true }));
+  execFileSync(process.execPath, [path.join(root, 'build.js'), '--out', dist], { cwd: root, stdio: 'ignore' });
+  return dist;
+}
+
+test('search index entries link to real pages and heading anchors', (t) => {
+  const dist = buildForTest(t);
   const index = JSON.parse(fs.readFileSync(path.join(dist, 'search-index.json'), 'utf-8'));
   assert.ok(index.some(e => e.type === 'page'));
   assert.ok(index.some(e => e.type === 'section'));
