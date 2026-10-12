@@ -265,7 +265,7 @@ test('with the user file locked by another process, a password change fails clos
 
 test('admin manages users; reset gives a one-time password, ends sessions and forces a change', async () => {
   const admin = await login('ada', ADMIN_PW);
-  const ed = await login('ian', EDITOR_PW);
+  const ed = await login('console-editor', EDITOR_PW);
   const list = await request('GET', '/api/users', { cookie: admin.cookie });
   assert.deepEqual(list.json.sections.sort(), ['it', 'marketing']);
   assert.ok(!JSON.stringify(list.json).includes('scrypt'));
@@ -360,4 +360,25 @@ test('over plain HTTP the unprefixed cookie name still works', async () => {
   assert.equal(s.r.headers['set-cookie'].length, 1);
   assert.equal((await request('GET', '/api/me', { cookie: s.cookie })).status, 200);
   assert.equal((await request('GET', '/api/me', { cookie: s.cookie.replace('ms_session', '__Host-ms_session') })).status, 401);
+});
+
+test('admin console and legacy URLs enforce the administrator role', async () => {
+  await users.create({name:'console-admin',role:'admin',password:ADMIN_PW});
+  await users.create({name:'console-editor',role:'editor',password:EDITOR_PW,sections:[]});
+  for (const route of ['/admin', '/admin/users', '/admin/links']) {
+    assert.equal((await request('GET', route)).status, 302);
+    const ed = await login('console-editor', EDITOR_PW);
+    assert.equal((await request('GET', route, {cookie: ed.cookie})).status, 403);
+  }
+  const admin = await login('console-admin', ADMIN_PW);
+  const page = await request('GET', '/admin', {cookie: admin.cookie});
+  assert.equal(page.status, 200);
+  assert.equal(page.headers['cache-control'], 'no-store');
+  assert.ok(!page.body.includes('__PUBLISH_CONTROLLER__'));
+  assert.match(page.body, /Build published/);
+  for (const area of ['users', 'links']) {
+    const old = await request('GET', '/admin/' + area, {cookie: admin.cookie});
+    assert.equal(old.status, 302);
+    assert.equal(old.headers.location, '/admin#/' + area);
+  }
 });
