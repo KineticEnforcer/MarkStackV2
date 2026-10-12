@@ -28,6 +28,10 @@ The build is one Node.js process and the output is a folder of files. Readers ne
 
 **Keep the private data folder private and backed up.** It holds password hashes, settings and history. Never commit it, upload it with `dist/` or serve the project root.
 
+**The editor server fetches header-link icons.** When an administrator adds or refreshes a header link, the server contacts that address to download its icon, so the editor host needs outbound internet access for this. Readers do not contact those sites to see the icon; only clicking the link does.
+
+**Remote images contact other sites.** If a page points to an image hosted elsewhere, the reader's browser requests it from that site, which can see the reader's IP address. Keep images in `static/images/` to avoid this.
+
 **Fonts and diagrams load from Google Fonts and jsDelivr by default.** Self-host them for a stricter or offline setup. For a team editor, use HTTPS behind a reverse proxy.
 
 ## At a glance
