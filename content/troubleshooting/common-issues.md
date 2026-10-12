@@ -73,7 +73,7 @@ The build does not check links, so a link can point to an address that no longer
 - The file is not in `static/`. Images are served from there. See [Media and Links](/authoring-content/media-and-links/).
 - The path is wrong. A file at `static/images/a.png` is `/images/a.png`.
 - The site is in a sub-folder. Include the `baseUrl` prefix in image paths you write in Markdown.
-- You are looking at the editor preview, which shows the image reference but not the image. Check the published page.
+- The image works on the built site but not in the editor preview. The preview does not suppress images, but the default editor server does not serve reader paths such as `/images/a.png`; it serves local assets under `/static/`. Keep the correct reader path and check the built page. Remote images also require the editor browser to reach their hosts. See [Media and Links](/authoring-content/media-and-links/).
 
 ## Appearance
 
