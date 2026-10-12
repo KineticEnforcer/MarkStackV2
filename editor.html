@@ -26,7 +26,7 @@
         csrf = d.csrf; window.msCsrfToken = csrf;
         window.__markstackUser = d.user;
         if (d.user.mustChangePassword) { location.href = '/login'; return; }
-        document.addEventListener('DOMContentLoaded', () => {
+        const mountAccountMenu = () => {
           const slot = document.querySelector('.editor-actions');
           if (!slot) return;
           const mk = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text !== undefined) n.textContent = text; return n; };
@@ -79,7 +79,9 @@
           wrap.appendChild(btn);
           wrap.appendChild(panel);
           slot.insertBefore(wrap, slot.firstChild);
-        });
+        };
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mountAccountMenu, { once: true });
+        else mountAccountMenu();
       });
       window.__markstackReady = ready.then(() => window.__markstackUser || null);
       window.fetch = async function(input, init) {
@@ -1208,6 +1210,7 @@
     @media (hover: none) { .tree-more { opacity: .7; } }
     .tree-overlay { display: none; }
     .view-switch { display: none; }
+    .drawer-close { display: none; }
     @media (prefers-reduced-motion: reduce) { .tree-marker, .tree-children, .tree-chevron { transition: none; } }
 
     /* ============================================
@@ -1218,6 +1221,17 @@
       html, body { height: var(--vvh, 100%); }
       .editor-header { padding: 0 var(--space-sm); }
       .editor-menu-btn { display: flex; }
+      .drawer-close { display: flex; }
+      .editor-menu-btn, .file-tree-btn, .tree-more, .user-btn, .theme-toggle, .view-switch button, .user-item { min-height: 44px; min-width: 44px; }
+      .tree-item-header { min-height: 44px; }
+      .file-tree-header, .editor-toolbar { min-height: 48px; height: auto; }
+      .user-panel { position: fixed; top: var(--editor-header-height, 48px); left: 8px; right: 8px; min-width: 0; max-height: calc(var(--vvh, 100dvh) - var(--editor-header-height, 48px) - 16px); overflow: auto; }
+      #departure-dialog { top: calc(var(--vvh, 100dvh) / 2) !important; max-height: calc(var(--vvh, 100dvh) - 24px) !important; }
+      .modal-overlay { height: var(--vvh, 100dvh); bottom: auto; padding: 12px; }
+      .modal-dialog { max-width: 100%; max-height: calc(var(--vvh, 100dvh) - 24px); overflow: auto; overscroll-behavior: contain; }
+      .modal-footer { flex-wrap: wrap; }
+      .modal-input { font-size: 16px; min-height: 44px; }
+      .modal-footer .editor-btn, .save-error .editor-btn, #departure-dialog .editor-btn { min-height: 44px; }
       .editor-logo { min-width: 0; }
       .editor-logo .editor-title-text { display: none; }
       .editor-btn { padding: 0 10px; }
@@ -1230,9 +1244,9 @@
       .line-numbers { display: none; }
       .user-menu { margin-right: 0; }
 
-      .file-tree-panel { position: fixed; z-index: 40; top: 48px; bottom: 0; left: 0; width: min(300px, 86vw); transform: translateX(-102%); transition: transform 220ms ease; box-shadow: none; }
+      .file-tree-panel { position: fixed; z-index: 40; top: var(--editor-header-height, 48px); bottom: 0; left: 0; width: min(320px, 92vw); transform: translateX(-102%); transition: transform 220ms ease; box-shadow: none; }
       body.tree-drawer-open .file-tree-panel { transform: none; box-shadow: 0 0 0 100vmax rgba(0,0,0,.4); }
-      .tree-overlay { position: fixed; z-index: 30; inset: 48px 0 0 0; }
+      .tree-overlay { position: fixed; z-index: 30; inset: var(--editor-header-height, 48px) 0 0 0; }
       body.tree-drawer-open .tree-overlay { display: block; }
 
       .editor-toolbar { padding: 0 var(--space-sm); gap: var(--space-sm); }
@@ -1253,12 +1267,31 @@
       .status-right { display: none; }
       body { padding-bottom: env(safe-area-inset-bottom); }
     }
+    @media (max-width: 480px) {
+      :root { --editor-header-height: 104px; }
+      .editor-header { height: var(--editor-header-height); display: grid; grid-template-columns: 44px minmax(0, 1fr) 132px; grid-template-rows: 44px 44px; gap: 4px 8px; padding: 6px 8px; }
+      .editor-logo { margin: 0; }
+      .editor-actions { display: contents; }
+      #tree-toggle { grid-row: 1; grid-column: 1; width: 44px; }
+      .editor-logo { grid-row: 1; grid-column: 2; }
+      .editor-logo span { display: inline; }
+      .editor-logo .editor-title-text { display: none; }
+      #theme-toggle { grid-row: 1; grid-column: 3; justify-self: end; width: 44px; height: 44px; }
+      .user-menu { grid-row: 2; grid-column: 1; }
+      #refresh-tree { display: none; }
+      #save-btn { grid-row: 2; grid-column: 2; height: 44px; }
+      #publish-btn { grid-row: 2; grid-column: 3; height: 44px; padding: 0 8px; }
+      #publish-btn svg, #publish-dot { flex-shrink: 0; }
+      #publish-btn .publish-label { display: inline; font-size: 12px; }
+      .editor-toolbar { padding: 4px 8px; flex-wrap: wrap; }
+      .view-switch button { padding: 5px 8px; }
+    }
   </style>
 </head>
 <body>
   <!-- Header -->
   <header class="editor-header">
-    <button class="editor-menu-btn" id="tree-toggle" type="button" aria-label="Open files" aria-expanded="false">
+    <button class="editor-menu-btn" id="tree-toggle" type="button" aria-label="Open files" aria-controls="file-drawer" aria-expanded="false">
       <svg viewBox="0 0 16 16" width="18" height="18" fill="currentColor"><path d="M1 2.75A.75.75 0 0 1 1.75 2h12.5a.75.75 0 0 1 0 1.5H1.75A.75.75 0 0 1 1 2.75Zm0 5A.75.75 0 0 1 1.75 7h12.5a.75.75 0 0 1 0 1.5H1.75A.75.75 0 0 1 1 7.75ZM1.75 12h12.5a.75.75 0 0 1 0 1.5H1.75a.75.75 0 0 1 0-1.5Z"/></svg>
     </button>
     <div class="editor-logo">
@@ -1302,17 +1335,19 @@
   <!-- Main Editor Area -->
   <div class="editor-main">
     <!-- File Tree Panel -->
-    <div class="file-tree-panel">
+    <div class="file-tree-panel" id="file-drawer" aria-label="Files">
       <div class="file-tree-header">
         <span class="file-tree-title">Content</span>
         <div class="file-tree-actions">
-          <button class="file-tree-btn" id="new-file-root" title="New File">
+          <button type="button" class="file-tree-btn drawer-close" id="drawer-refresh" title="Refresh files" aria-label="Refresh files">↻</button>
+          <button type="button" class="file-tree-btn drawer-close" id="drawer-close" aria-label="Close files">✕</button>
+          <button class="file-tree-btn" id="new-file-root" title="New File" aria-label="New file">
             <svg viewBox="0 0 16 16" fill="currentColor">
               <path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0 1 13.25 16h-9.5A1.75 1.75 0 0 1 2 14.25Zm1.75-.25a.25.25 0 0 0-.25.25v12.5c0 .138.112.25.25.25h9.5a.25.25 0 0 0 .25-.25V6h-2.75A1.75 1.75 0 0 1 9 4.25V1.5Zm6.75.062V4.25c0 .138.112.25.25.25h2.688l-.011-.013-2.914-2.914-.013-.011Z"/>
               <path d="M8 7a.5.5 0 0 1 .5.5V10H11a.5.5 0 0 1 0 1H8.5v2.5a.5.5 0 0 1-1 0V11H5a.5.5 0 0 1 0-1h2.5V7.5A.5.5 0 0 1 8 7Z"/>
             </svg>
           </button>
-          <button class="file-tree-btn" id="new-folder-root" title="New Folder">
+          <button class="file-tree-btn" id="new-folder-root" title="New Folder" aria-label="New folder">
             <svg viewBox="0 0 16 16" fill="currentColor">
               <path d="M1.75 1A1.75 1.75 0 0 0 0 2.75v10.5C0 14.216.784 15 1.75 15h12.5A1.75 1.75 0 0 0 16 13.25v-8.5A1.75 1.75 0 0 0 14.25 3H7.5a.25.25 0 0 1-.2-.1l-.9-1.2C6.07 1.26 5.55 1 5 1H1.75Zm6.25 6a.5.5 0 0 1 .5.5V9H10a.5.5 0 0 1 0 1H8.5v1.5a.5.5 0 0 1-1 0V10H6a.5.5 0 0 1 0-1h1.5V7.5a.5.5 0 0 1 .5-.5Z"/>
             </svg>
@@ -1444,7 +1479,7 @@
   
   <!-- Modal Dialog -->
   <div class="modal-overlay" id="modal-overlay">
-    <div class="modal-dialog">
+    <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div class="modal-header">
         <h3 class="modal-title" id="modal-title">Dialog</h3>
       </div>
@@ -1492,7 +1527,7 @@
   </div>
 
   <div class="modal-overlay" id="confirm-modal-overlay">
-    <div class="modal-dialog">
+    <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
       <div class="modal-header">
         <h3 class="modal-title" id="confirm-modal-title">Confirm</h3>
       </div>
@@ -1657,7 +1692,7 @@
           'font-src https://fonts.gstatic.com data:">' +
           '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">' +
           '<link rel="stylesheet" href="/css/main.css"><link rel="stylesheet" href="/css/hljs-theme.css">' +
-          '<style>html{scroll-behavior:auto;}html,body{margin:0;padding:0;height:auto;min-height:0;display:block;background:var(--color-bg-primary);}' +
+          '<style>html{scroll-behavior:auto;}.preview-article{overflow-wrap:anywhere;}.preview-article pre{overflow-wrap:normal;}html,body{margin:0;padding:0;height:auto;min-height:0;display:block;background:var(--color-bg-primary);}' +
           'body{padding:var(--space-xl);color:var(--color-text-primary);font-family:var(--font-sans);}' + rules + '</style>' +
           '</head><body><article class="preview-article" id="preview-output"></article></body></html>';
       }
@@ -2065,20 +2100,46 @@
       // ---- Mobile: the file tree is a drawer ----
       const treeToggleBtn = document.getElementById('tree-toggle');
       const treeOverlay = document.getElementById('tree-overlay');
+      const fileDrawer = document.getElementById('file-drawer');
+      const phoneLayout = window.matchMedia('(max-width: 800px)');
+      const drawerClose = document.getElementById('drawer-close');
+      document.getElementById('drawer-refresh').addEventListener('click', () => document.getElementById('refresh-tree').click());
+      function syncDrawer() {
+        const open = phoneLayout.matches && document.body.classList.contains('tree-drawer-open');
+        fileDrawer.inert = phoneLayout.matches && !open;
+        document.querySelector('.editor-panel').inert = open;
+        document.querySelector('.editor-header').inert = open;
+        treeToggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (open) { fileDrawer.setAttribute('role', 'dialog'); fileDrawer.setAttribute('aria-modal', 'true'); }
+        else { fileDrawer.removeAttribute('role'); fileDrawer.removeAttribute('aria-modal'); }
+      }
       function openTreeDrawer() {
         document.body.classList.add('tree-drawer-open');
-        treeToggleBtn.setAttribute('aria-expanded', 'true');
+        syncDrawer();
+        drawerClose.focus();
         followMarker(300);
       }
       function closeTreeDrawer() {
+        const wasOpen = document.body.classList.contains('tree-drawer-open');
         document.body.classList.remove('tree-drawer-open');
-        treeToggleBtn.setAttribute('aria-expanded', 'false');
+        syncDrawer();
+        if (wasOpen && phoneLayout.matches) treeToggleBtn.focus();
       }
-      treeToggleBtn.addEventListener('click', function() {
-        if (document.body.classList.contains('tree-drawer-open')) closeTreeDrawer(); else openTreeDrawer();
-      });
+      treeToggleBtn.addEventListener('click', openTreeDrawer);
+      drawerClose.addEventListener('click', closeTreeDrawer);
       treeOverlay.addEventListener('click', closeTreeDrawer);
-      document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeTreeDrawer(); });
+      phoneLayout.addEventListener('change', () => { document.body.classList.remove('tree-drawer-open'); syncDrawer(); });
+      syncDrawer();
+      document.addEventListener('keydown', function(e) {
+        if (!phoneLayout.matches || !document.body.classList.contains('tree-drawer-open') || document.querySelector('.modal-overlay.visible, dialog[open], .context-menu.visible')) return;
+        if (e.key === 'Escape') { e.preventDefault(); closeTreeDrawer(); }
+        if (e.key === 'Tab') {
+          const items = Array.from(fileDrawer.querySelectorAll('button, [tabindex="0"]')).filter(x => !x.disabled && x.getClientRects().length && !x.closest('.tree-children:not(.expanded)'));
+          const first = items[0], last = items[items.length - 1];
+          if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+          else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        }
+      });
 
       // ---- Mobile: one pane at a time (Edit or Preview) ----
       const viewSwitch = document.getElementById('view-switch');
@@ -2091,6 +2152,14 @@
           x.classList.toggle('active', on);
           x.setAttribute('aria-selected', on ? 'true' : 'false');
         });
+      });
+      viewSwitch.addEventListener('keydown', function(e) {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+        e.preventDefault();
+        const buttons = Array.from(viewSwitch.querySelectorAll('button'));
+        const i = buttons.indexOf(document.activeElement);
+        const next = e.key === 'Home' ? 0 : e.key === 'End' ? buttons.length - 1 : (i + 1) % buttons.length;
+        buttons[next].click(); buttons[next].focus();
       });
       fileTreeEl.addEventListener('scroll', function() { placeMarker(false); }, { passive: true });
       window.addEventListener('resize', function() { placeMarker(false); });
@@ -2768,7 +2837,9 @@
         modalInput.select();
       }
 
+      let modalReturnFocus = null;
       function showModal(title, placeholder, defaultValue, hint, callback) {
+        modalReturnFocus = document.activeElement;
         modalLocation.hidden = true;
         modalNameLabel.hidden = true;
         modalTitle.textContent = title;
@@ -2787,10 +2858,12 @@
       function hideModal() {
         modalOverlay.classList.remove('visible');
         modalCallback = null;
+        if (modalReturnFocus && !modalReturnFocus.closest('[inert]')) modalReturnFocus.focus();
       }
       
       /** @type {Function|null} Resolve function for confirm modal promise */
       let confirmModalResolve = null;
+      let confirmReturnFocus = null;
       
       /**
        * Show a confirmation modal dialog.
@@ -2802,6 +2875,7 @@
        * @returns {Promise<boolean>} Resolves true if confirmed, false if cancelled
        */
       function showConfirmModal(title, message, confirmText = 'Confirm') {
+        confirmReturnFocus = document.activeElement;
         confirmModalTitle.textContent = title;
         confirmModalMessage.textContent = message;
         confirmModalConfirm.textContent = confirmText;
@@ -2820,6 +2894,7 @@
        */
       function hideConfirmModal(result) {
         confirmModalOverlay.classList.remove('visible');
+        if (confirmReturnFocus && !confirmReturnFocus.closest('[inert]')) confirmReturnFocus.focus();
         if (confirmModalResolve) {
           confirmModalResolve(result);
           confirmModalResolve = null;
@@ -2844,6 +2919,16 @@
         }
       });
       
+      document.addEventListener('keydown', function(e) {
+        if (e.key !== 'Tab') return;
+        const overlay = document.querySelector('.modal-overlay.visible');
+        if (!overlay) return;
+        const items = Array.from(overlay.querySelectorAll('button, input, select, [tabindex="0"]')).filter(x => !x.disabled && x.getClientRects().length);
+        if (!items.length) return;
+        const first = items[0], last = items[items.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      });
       // Modal button handlers
       modalCancel.addEventListener('click', hideModal);
       
