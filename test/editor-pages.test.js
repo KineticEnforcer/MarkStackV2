@@ -3,7 +3,7 @@ const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
 
-const pages = ['editor.html', 'login.html', 'admin-users.html'];
+const pages = ['editor.html', 'login.html', 'admin-users.html', 'admin-links.html', 'admin.html'];
 
 for (const file of pages) {
   test(`${file}: every inline script carries the CSP nonce placeholder`, () => {
