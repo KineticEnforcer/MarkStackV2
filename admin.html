@@ -541,6 +541,15 @@
       .detail-footer {
         flex-shrink: 0;
       }
+      input[type="number"] {
+        width: 100%;
+        height: 36px;
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 0 12px;
+      }
       .detail-tabs {
         display: flex;
         gap: 8px;
@@ -711,7 +720,9 @@
         margin: 12px 28px;
       }
       .menu-btn,
-      #listBack {
+      #listBack,
+      #sectionBack,
+      #pageBack {
         display: none;
       }
       #accountMenu {
@@ -876,7 +887,9 @@
         .detail-body {
           padding: 16px;
         }
-        #listBack {
+        #listBack,
+        #sectionBack,
+        #pageBack {
           display: block;
           margin-bottom: 12px;
         }
@@ -953,6 +966,13 @@
         <a href="#/users" data-area="users"
           >Users <small id="usersCount"></small
         ></a>
+        <h2>Content</h2>
+        <a href="#/sections" data-area="sections"
+          >Sections <small id="sectionsCount"></small
+        ></a>
+        <a href="#/pages" data-area="pages"
+          >Pages <small id="pagesCount"></small
+        ></a>
         <h2>Site</h2>
         <a href="#/links" data-area="links"
           >Header links <small id="linksCount"></small
@@ -1008,6 +1028,100 @@
           </div>
         </div>
         <div id="listMsg" class="msg" role="status"></div>
+      </section>
+      <section id="sectionsView" class="area users-view" hidden>
+        <aside class="user-list">
+          <div class="list-tools">
+            <input
+              id="sectionSearch"
+              placeholder="Search sections"
+              aria-label="Search sections"
+            /><button class="primary" id="sectionNew">+ New</button>
+          </div>
+          <div id="sectionRows"></div>
+        </aside>
+        <div class="user-detail" id="sectionDetail">
+          <div class="detail-head">
+            <button id="sectionBack">Back to sections</button>
+            <h1 id="sectionTitle"></h1>
+            <p class="lead" id="sectionMeta"></p>
+          </div>
+          <nav class="detail-tabs" aria-label="Section details">
+            <button data-section-tab="settings" class="active">Settings</button
+            ><button data-section-tab="editors">Editors</button
+            ><button data-section-tab="pages">Pages</button>
+          </nav>
+          <div class="detail-body">
+            <div id="sectionSettings">
+              <div class="card">
+                <h2>Section settings</h2>
+                <div class="card-content">
+                  <label for="sectionDisplayTitle">Display title</label
+                  ><input id="sectionDisplayTitle" maxlength="120" /><label
+                    for="sectionFolder"
+                    >Folder name</label
+                  ><input id="sectionFolder" />
+                  <p class="muted">
+                    Changing the title can change public URLs. Renaming the
+                    folder updates editor assignments and ends their sessions.
+                    Browser drafts keep their original paths.
+                  </p>
+                  <label for="sectionOrder">Position in sidebar</label
+                  ><input
+                    id="sectionOrder"
+                    type="number"
+                    min="-10000"
+                    max="10000"
+                    step="1"
+                  /><label class="chk"
+                    ><input id="sectionHidden" type="checkbox" /> Hide from
+                    sidebar</label
+                  >
+                  <p class="muted">
+                    Hidden sections still build and remain reachable by their
+                    URL. Publish Changes applies sidebar settings.
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div id="sectionEditors" hidden></div>
+            <div id="sectionPages" hidden></div>
+          </div>
+          <div class="detail-footer" id="sectionFooter">
+            <button class="primary" id="sectionSave" disabled>
+              Save changes</button
+            ><button id="sectionDiscard" disabled>Discard</button
+            ><span id="sectionStatus" class="muted" role="status"></span>
+          </div>
+        </div>
+      </section>
+      <section id="pagesView" class="area users-view" hidden>
+        <aside class="user-list">
+          <div class="list-tools">
+            <input
+              id="pageSearch"
+              placeholder="Search pages"
+              aria-label="Search pages"
+            /><button class="primary" id="pageNew">+ New</button>
+          </div>
+          <div id="pageRows"></div>
+        </aside>
+        <div id="pageDetail" class="user-detail">
+          <div class="detail-head">
+            <button id="pageBack">Back to pages</button>
+            <h1 id="pageTitle"></h1>
+            <p class="lead" id="pageMeta"></p>
+            <div class="user-actions">
+              <a class="header-btn" id="pageOpen" href="/">Open in editor</a
+              ><button id="pageRename">Rename file</button
+              ><button class="danger" id="pageDelete">Delete page</button>
+            </div>
+          </div>
+          <div class="detail-body">
+            <div class="card" id="pageInfo"></div>
+            <p id="pageStatus" class="msg" role="status"></p>
+          </div>
+        </div>
       </section>
       <section id="linksView" class="area settings-view" hidden>
         <div class="top">
@@ -1169,6 +1283,27 @@
         </div>
       </div>
     </div>
+    <dialog id="contentInputDlg">
+      <form id="contentInputForm">
+        <div class="dlg-h"><h2 id="contentInputTitle"></h2></div>
+        <div class="dlg-b">
+          <label for="contentInputName">Name</label
+          ><input id="contentInputName" required />
+          <div id="contentParentRow">
+            <label for="contentParent">Section</label
+            ><select id="contentParent"></select>
+          </div>
+          <p class="muted" id="contentInputHint"></p>
+          <p id="contentInputStatus" class="msg" role="status"></p>
+        </div>
+        <div class="dlg-f">
+          <button type="button" id="contentInputCancel">Cancel</button
+          ><button class="primary" id="contentInputGo" type="submit">
+            Create
+          </button>
+        </div>
+      </form>
+    </dialog>
     <dialog id="askDlg" aria-labelledby="askTitle">
       <div class="dlg-h" id="askTitle">Confirm change</div>
       <div class="dlg-b"><p id="askText"></p></div>
@@ -1190,6 +1325,34 @@
       document.getElementById("askCancel").onclick = function () {
         document.getElementById("askDlg").close();
       };
+      document.addEventListener(
+        "click",
+        function (e) {
+          const a = e.target.closest('a[href="/"]'),
+            out = e.target.closest("#signOut");
+          if (!(a || out)) return;
+          if (window.msContentSaving || window.msUserSaving) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            return;
+          }
+          if (window.msContentDirty || (a && window.msUserDirty)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            window.msAsk(
+              "Discard unsaved section changes and leave?",
+              function () {
+                if (window.msDiscardContent) window.msDiscardContent();
+                if (window.msDiscardUser) window.msDiscardUser();
+                if (out) out.click();
+                else location.href = "/";
+              },
+            );
+            document.getElementById("askGo").textContent = "Discard";
+          }
+        },
+        true,
+      );
       var currentArea = "users",
         acceptedHash = location.hash,
         formDirty = false;
@@ -1207,15 +1370,26 @@
         });
       });
       window.addEventListener("beforeunload", function (e) {
-        if (formDirty || window.msUserDirty || window.msUserSaving) {
+        if (
+          formDirty ||
+          window.msUserDirty ||
+          window.msUserSaving ||
+          window.msContentDirty ||
+          window.msContentSaving
+        ) {
           e.preventDefault();
           e.returnValue = "";
         }
       });
       function route() {
-        var area = location.hash.split("/")[1] === "links" ? "links" : "users";
-        document.getElementById("usersView").hidden = area !== "users";
-        document.getElementById("linksView").hidden = area !== "links";
+        var requested = location.hash.split("/")[1];
+        var area = ["users", "links", "sections", "pages"].includes(requested)
+          ? requested
+          : "users";
+        ["users", "links", "sections", "pages"].forEach(function (name) {
+          document.getElementById(name + "View").hidden = name !== area;
+        });
+        if (window.msContentRoute) window.msContentRoute(area);
         document.querySelectorAll("[data-area]").forEach(function (a) {
           a.classList.toggle("active", a.dataset.area === area);
           if (a.dataset.area === area) a.setAttribute("aria-current", "page");
@@ -1227,15 +1401,22 @@
           .setAttribute("aria-expanded", "false");
       }
       window.addEventListener("hashchange", function () {
-        if (formDirty || window.msUserDirty || window.msUserSaving) {
+        if (
+          formDirty ||
+          window.msUserDirty ||
+          window.msUserSaving ||
+          window.msContentDirty ||
+          window.msContentSaving
+        ) {
           var target = location.hash;
           history.replaceState(null, "", acceptedHash || "#/users");
-          if (window.msUserSaving) return;
+          if (window.msUserSaving || window.msContentSaving) return;
           window.msAsk(
             "Discard the edits in this form and leave this area?",
             function () {
               formDirty = false;
               if (window.msDiscardUser) window.msDiscardUser();
+              if (window.msDiscardContent) window.msDiscardContent();
               document.querySelectorAll("dialog[open]").forEach(function (d) {
                 d.close();
               });
@@ -1273,7 +1454,7 @@
           }
         });
       document.getElementById("signOut").onclick = function () {
-        if (window.msUserSaving) return;
+        if (window.msUserSaving || window.msContentSaving) return;
         if (window.msUserDirty) {
           window.msAsk(
             "Discard unsaved access changes and sign out?",
@@ -1832,7 +2013,7 @@
         }
         $("userSearch").addEventListener("input", renderList);
         $("listBack").addEventListener("click", function () {
-          if (window.msUserSaving) return;
+          if (window.msUserSaving || window.msContentSaving) return;
           if (window.msUserDirty) {
             window.msAsk(
               "Discard unsaved access changes and return to users?",
@@ -2241,6 +2422,7 @@
             msg("links-listMsg", e.message);
           });
       })();
+      __CONTENT_CONTROLLER__;
       __PUBLISH_CONTROLLER__;
     </script>
   </body>
