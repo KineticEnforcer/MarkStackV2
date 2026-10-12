@@ -32,7 +32,7 @@ The build is one Node.js process and the output is a folder of files. Readers ne
 
 **Remote images contact other sites.** If a page points to an image hosted elsewhere, the reader's browser requests it from that site, which can see the reader's IP address. Keep images in `static/images/` to avoid this.
 
-**Fonts and diagrams load from Google Fonts and jsDelivr by default.** Self-host them for a stricter or offline setup. For a team editor, use HTTPS behind a reverse proxy.
+**Fonts and diagrams are bundled.** IBM Plex, Mermaid and the other browser libraries ship with MarkStack and are served from your own host, so reader pages make no requests to Google Fonts or a CDN. A fresh install from source still downloads npm dependencies. The two cases above (header-link icons and remote images) are the exceptions. For a team editor, use HTTPS behind a reverse proxy.
 
 ## At a glance
 
