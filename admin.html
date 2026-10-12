@@ -680,10 +680,12 @@
       .settings-view .top,
       .settings-view > .card,
       .settings-view > .msg,
-      .settings-view > .notes {
+      .settings-view > .notes,
+      .settings-view > form {
         max-width: 1000px;
       }
       .settings-view .card {
+        margin-bottom: 20px;
         overflow: auto;
       }
       #generalView:not([hidden]),
@@ -918,6 +920,13 @@
           display: block;
           margin-bottom: 12px;
         }
+        .settings-view .top {
+          flex-wrap: wrap;
+          gap: 12px;
+        }
+        .settings-view .top > div {
+          flex-basis: 100%;
+        }
         .settings-view {
           padding: 16px;
         }
@@ -1004,6 +1013,10 @@
         <a href="#/links" data-area="links"
           >Header links <small id="linksCount"></small
         ></a>
+        <h2>System</h2>
+        <a href="#/security" data-area="security">Security</a>
+        <a href="#/publishes" data-area="publishes">Publish &amp; history</a>
+        <a href="#/activity" data-area="activity">Activity log</a>
       </nav>
       <section id="usersView" class="area users-view">
         <aside class="user-list" aria-label="Users">
@@ -1206,6 +1219,109 @@
           ><button id="appearanceDiscard" disabled>Discard</button
           ><span id="appearanceStatus" class="muted" role="status"></span>
         </div>
+      </section>
+      <section id="securityView" class="area settings-view" hidden>
+        <div class="top">
+          <div>
+            <h1>Security</h1>
+            <p class="lead">
+              Current server policy. Changing your password ends your other
+              sessions.
+            </p>
+          </div>
+          <button id="securityReload">Refresh</button>
+        </div>
+        <div class="card">
+          <h2>Policies and sign-in limits</h2>
+          <div class="card-content" id="securityPolicy"></div>
+        </div>
+        <div class="card">
+          <h2>Change your administrator password</h2>
+          <form id="adminPasswordForm" class="card-content">
+            <label for="adminCurrentPassword">Current password</label
+            ><input
+              id="adminCurrentPassword"
+              type="password"
+              autocomplete="current-password"
+              required
+            />
+            <label for="adminNewPassword">New password</label
+            ><input
+              id="adminNewPassword"
+              type="password"
+              autocomplete="new-password"
+              required
+              minlength="12"
+              maxlength="256"
+            />
+            <label for="adminRepeatPassword">Repeat new password</label
+            ><input
+              id="adminRepeatPassword"
+              type="password"
+              autocomplete="new-password"
+              required
+            />
+            <p class="muted">
+              At least 12 characters. Choose a long, unique password.
+            </p>
+            <button class="primary" id="adminPasswordSave" type="submit">
+              Change password
+            </button>
+            <p id="securityStatus" class="msg" role="status"></p>
+          </form>
+        </div>
+      </section>
+      <section id="publishesView" class="area settings-view" hidden>
+        <div class="top">
+          <div>
+            <h1>Publish &amp; history</h1>
+            <p class="lead">
+              Saved content and settings only. History survives server restart.
+            </p>
+          </div>
+          <button id="historyReload">Refresh</button
+          ><button class="primary" id="historyPublish">Publish Changes</button>
+        </div>
+        <div class="card">
+          <h2>Current publish</h2>
+          <div class="card-content" id="systemPublishState"></div>
+        </div>
+        <div class="card">
+          <h2>Recent publishes</h2>
+          <div id="publishHistory"></div>
+        </div>
+        <button id="publishMore" hidden>Load more</button>
+        <p id="historyStatus" class="msg" role="status"></p>
+      </section>
+      <section id="activityView" class="area settings-view" hidden>
+        <div class="top">
+          <div>
+            <h1>Activity log</h1>
+            <p class="lead">
+              Local operational history. No passwords, tokens or client
+              addresses. Not tamper-proof.
+            </p>
+          </div>
+        </div>
+        <form id="activityFilter" class="card-content">
+          <label for="activityEvent">Event</label
+          ><select id="activityEvent">
+            <option value="">All events</option></select
+          ><label for="activityActor">Actor</label
+          ><input id="activityActor" placeholder="Exact account name" /><label
+            for="activityTarget"
+            >Target</label
+          ><input
+            id="activityTarget"
+            placeholder="Exact account or section"
+          /><button type="submit">Apply filters</button>
+        </form>
+        <div class="card">
+          <h2>Events</h2>
+          <div id="activityRows"></div>
+        </div>
+        <button id="activityMore" hidden>Load more</button>
+        <p id="activityStatus" class="msg" role="status"></p>
       </section>
       <section id="linksView" class="area settings-view" hidden>
         <div class="top">
@@ -1426,6 +1542,7 @@
             window.msAsk("Discard unsaved changes and leave?", function () {
               if (window.msDiscardContent) window.msDiscardContent();
               if (window.msDiscardSite) window.msDiscardSite();
+              if (window.msDiscardSystem) window.msDiscardSystem();
               if (window.msDiscardUser) window.msDiscardUser();
               if (out) out.click();
               else location.href = "/";
@@ -1459,7 +1576,9 @@
           window.msContentDirty ||
           window.msContentSaving ||
           window.msSiteDirty ||
-          window.msSiteSaving
+          window.msSiteSaving ||
+          window.msSystemDirty ||
+          window.msSystemSaving
         ) {
           e.preventDefault();
           e.returnValue = "";
@@ -1474,6 +1593,9 @@
           "pages",
           "general",
           "appearance",
+          "security",
+          "publishes",
+          "activity",
         ].includes(requested)
           ? requested
           : "users";
@@ -1484,9 +1606,13 @@
           "pages",
           "general",
           "appearance",
+          "security",
+          "publishes",
+          "activity",
         ].forEach(function (name) {
           document.getElementById(name + "View").hidden = name !== area;
         });
+        if (window.msSystemRoute) window.msSystemRoute(area);
         if (window.msContentRoute) window.msContentRoute(area);
         document.querySelectorAll("[data-area]").forEach(function (a) {
           a.classList.toggle("active", a.dataset.area === area);
@@ -1506,14 +1632,17 @@
           window.msContentDirty ||
           window.msContentSaving ||
           window.msSiteDirty ||
-          window.msSiteSaving
+          window.msSiteSaving ||
+          window.msSystemDirty ||
+          window.msSystemSaving
         ) {
           var target = location.hash;
           history.replaceState(null, "", acceptedHash || "#/users");
           if (
             window.msUserSaving ||
             window.msContentSaving ||
-            window.msSiteSaving
+            window.msSiteSaving ||
+            window.msSystemSaving
           )
             return;
           window.msAsk(
@@ -1523,6 +1652,7 @@
               if (window.msDiscardUser) window.msDiscardUser();
               if (window.msDiscardContent) window.msDiscardContent();
               if (window.msDiscardSite) window.msDiscardSite();
+              if (window.msDiscardSystem) window.msDiscardSystem();
               document.querySelectorAll("dialog[open]").forEach(function (d) {
                 d.close();
               });
@@ -1563,7 +1693,8 @@
         if (
           window.msUserSaving ||
           window.msContentSaving ||
-          window.msSiteSaving
+          window.msSiteSaving ||
+          window.msSystemSaving
         )
           return;
         if (window.msUserDirty) {
@@ -1600,7 +1731,7 @@
         function api(method, url, body) {
           var h = {};
           if (body !== undefined) h["Content-Type"] = "application/json";
-          if (method !== "GET") h["X-CSRF-Token"] = csrf;
+          if (method !== "GET") h["X-CSRF-Token"] = window.msCsrfToken || csrf;
           return fetch(url, {
             method: method,
             headers: h,
@@ -2015,7 +2146,7 @@
               activity.appendChild(
                 el("p", {
                   class: "muted",
-                  text: "Shows up to 50 recent events from this server process. Persistent activity history follows in the System phase.",
+                  text: "Shows up to 50 recorded events for this user. History is kept in the data folder with bounded rotation.",
                 }),
               );
             })
@@ -2127,7 +2258,8 @@
           if (
             window.msUserSaving ||
             window.msContentSaving ||
-            window.msSiteSaving
+            window.msSiteSaving ||
+            window.msSystemSaving
           )
             return;
           if (window.msUserDirty) {
@@ -2257,7 +2389,7 @@
         function api(method, url, body) {
           var h = {};
           if (body !== undefined) h["Content-Type"] = "application/json";
-          if (method !== "GET") h["X-CSRF-Token"] = csrf;
+          if (method !== "GET") h["X-CSRF-Token"] = window.msCsrfToken || csrf;
           return fetch(url, {
             method: method,
             headers: h,
@@ -2538,6 +2670,7 @@
             msg("links-listMsg", e.message);
           });
       })();
+      __SYSTEM_CONTROLLER__;
       __SITE_CONTROLLER__;
       __CONTENT_CONTROLLER__;
       __PUBLISH_CONTROLLER__;

@@ -417,9 +417,9 @@ Drafts are a convenience, not a backup. They stay on this device after sign-out 
 | Access | Per-section create/edit/rename/delete access or hidden. Select all/none, Save changes, Discard. Unsaved changes are guarded when leaving. Saving access ends the user's sessions. |
 | Account | Read-only username and role, creation and last sign-in times, enable/disable, editor password reset with a temporary password shown once. You cannot disable yourself or the last active administrator. |
 | Sessions | Current active session times and Sign out everywhere, which also raises the account's access version. Choosing your own account ends your current session too. |
-| Activity | Up to 50 recent auth/management events for that user from the current server process. No passwords, tokens, CSRF values or IP addresses are shown. |
+| Activity | Up to 50 recorded auth/management events for that user from persistent bounded history. No passwords, tokens, CSRF values or IP addresses are shown. |
 
-Last sign-in is recorded in the existing owner-only user file on a successful sign-in. Older accounts show **Never** until their next sign-in. A password check for changing a password does not update that time. Sessions and recent events are kept in memory and reset when the server restarts; persistent audit history is part of the later System phase. Roles are read-only because the existing user store does not support changing roles.
+Last sign-in is recorded in the existing owner-only user file on a successful sign-in. Older accounts show **Never** until their next sign-in. A password check for changing a password does not update that time. Sessions stay in memory and reset when the server restarts; recorded activity is now persisted with bounded rotation in the System areas. Roles are read-only because the existing user store does not support changing roles.
 
 This phase adds no environment variables or ports. Access changes, account disabling, password resets and Sign out everywhere take effect immediately, without publishing. Browser drafts are not deleted by session revocation.
 
@@ -442,3 +442,17 @@ The Editors tab changes assignments immediately with confirmation and ends that 
 Save writes an allowlisted override file, `site-settings.json`, in the existing data folder. The build overlays it on `siteconfig.json`; unknown/unsafe keys are ignored. Strings and URLs are validated, output is escaped, writes are atomic with mode 0640, and a revision check prevents stale settings saves. Invalid or damaged override files stop the build rather than enable unsafe options. The publisher snapshots this file and includes it in unpublished-change detection, so saves during a build remain unpublished for the next run. **Publish Changes** applies settings to the public site.
 
 These settings have Save/Discard and unsaved-change guards. A save error keeps the form values. No new dependency, port or environment variable is needed. Back up `site-settings.json` alongside users, links and content. Site URL may be blank; a value must be full HTTP/HTTPS without credentials, query or fragment.
+
+### System areas
+
+**Security, Activity log and Publish & history are administrator-only. History contains no passwords, tokens, CSRF values or client IP addresses. It is a local operational record, not tamper-proof evidence.**
+
+| Area | What it shows or changes |
+|---|---|
+| Security | Current session idle/maximum limits, actual cookie mode, raw-HTML state, sign-in failure thresholds and blocked-group counts. Change your own password with the existing server validation; other sessions end. |
+| Activity log | Persistent auth and management events, with time, actor and target. Exact event/actor/target filters, newest-first pagination. |
+| Publish & history | Current publish state and saved-change indicator, completed/failed publish summaries, page counts and failed stage. Publish opens the shared staged-progress dialog. |
+
+The history file is `audit.jsonl` in the existing data directory, mode 0600. It appends records and rotates at 1 MiB, retaining three archives (`audit.jsonl.1` through `.3`). Retention is size-based, not a fixed number of days. Publish history is a filtered view of the same bounded file. Back up the files with your runtime data. Earlier in-memory activity is not backfilled. Accounts/sessions/rate limits keep their existing behavior; session and rate-limit state still resets on restart, history does not.
+
+History captures successful/failed/blocked sign-ins, sign-out, password changes, user creation/enable/disable/reset, section access/settings/rename, links/settings saves and publish start/completion/failure. Failed sign-ins have no verified actor. Completed publish summaries omit build logs and errors to avoid persisting private paths or secrets; the current publish dialog still has the detailed failure report. Unexpected termination may leave a start event without a completion event. A storage failure does not undo the underlying action; Security shows a history-storage warning and the server logs the failure. No new environment variable, dependency or port.

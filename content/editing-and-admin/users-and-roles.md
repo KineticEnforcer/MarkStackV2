@@ -79,7 +79,7 @@ Select an account in **Admin > Users** to open its detail pane. On a phone, **Ba
 | Access | Switch individual sections between **Can create, edit, rename, delete** and **Hidden**. Use **Select all** or **Select none**, then **Save changes**. **Discard** restores the saved assignments. |
 | Account | Read the username, role, status, creation time and last sign-in. Enable or disable an account, or reset an editor password. |
 | Sessions | See active session sign-in and last-active times. **Sign out everywhere** ends every session for the selected user. |
-| Activity | See up to 50 recent events for this account from the current server process. |
+| Activity | See up to 50 retained events for this account from persistent bounded history. |
 
 ### Save section access
 
@@ -95,6 +95,6 @@ An editor password reset ends their sessions and shows a one-time temporary pass
 
 ### Times and recent activity
 
-Last sign-in is stored in the existing owner-only user file after a successful sign-in. Existing accounts show **Never** until they sign in again. Checking a password during a password change does not count as a sign-in. Active sessions and recent events are in memory, reset on server restart, and are refreshed when you select the account again.
+Last sign-in is stored in the existing owner-only user file after a successful sign-in. Existing accounts show **Never** until they sign in again. Checking a password during a password change does not count as a sign-in. Active sessions are in memory and reset on server restart. Recorded activity persists with size-capped rotation; select the account again to refresh it.
 
-Recent activity contains event names, account targets and times, without passwords, session tokens, CSRF values or IP addresses. This tab is a bounded view of this server process, not a permanent audit record. Persistent history is added in the System phase.
+Recent activity contains event names, account targets and times, without passwords, session tokens, CSRF values or IP addresses. This tab is a bounded view of retained audit history. System > Activity log supports filters and pagination. History is local, size-limited and not tamper-proof.
