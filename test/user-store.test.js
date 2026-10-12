@@ -121,3 +121,6 @@ test('successful sign-in time is persisted without changing access version; revo
     assert.equal(fs.statSync(file).mode & 0o777, 0o600);
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
+test('renaming a section preserves other assignments and revokes affected users only',async()=>{
+ const {dir,store}=tmpStore();try{await store.create({name:'it-guy',role:'editor',password:'a long editor password',sections:['it','marketing']});await store.create({name:'qa-temp',role:'editor',password:'a long editor password',sections:['marketing']});assert.deepEqual(store.renameSection('it','tech'),['it-guy']);assert.deepEqual(store.get('it-guy').sections,['tech','marketing']);assert.equal(store.get('it-guy').authVersion,1);assert.equal(store.get('qa-temp').authVersion,0);assert.throws(()=>store.renameSection('tech','../outside'),/Invalid/);}finally{fs.rmSync(dir,{recursive:true,force:true});}
+});
