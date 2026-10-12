@@ -52,6 +52,8 @@
           }
           const out = mk('button', 'user-item', 'Sign out'); out.type = 'button'; out.setAttribute('role', 'menuitem');
           out.addEventListener('click', async () => {
+            if (window.msGuardDeparture && !(await window.msGuardDeparture())) return;
+            window.msAllowDeparture = true;
             try { Object.keys(sessionStorage).filter(k => k.indexOf('editor-tree-open:') === 0).forEach(k => sessionStorage.removeItem(k)); } catch (err) {}
             try { await nativeFetch('/api/logout', { method: 'POST', headers: { 'X-CSRF-Token': csrf, 'Content-Type': 'application/json' }, body: '{}', credentials: 'same-origin' }); } catch (err) {}
             location.href = '/login';
@@ -1395,6 +1397,10 @@
     </div>
   </div>
   
+  <dialog id="departure-dialog" aria-labelledby="departure-title" style="color:var(--color-text-primary);background:var(--color-bg-primary);border:1px solid var(--color-border);border-radius:8px;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);margin:0;width:min(520px,calc(100vw - 32px));max-height:calc(100dvh - 32px);overflow:auto;padding:24px">
+    <h3 id="departure-title">Unsaved changes</h3><p id="departure-hint"></p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="editor-btn" id="departure-stay">Stay here</button><button class="editor-btn" id="departure-keep">Keep draft and leave</button><button class="editor-btn primary" id="departure-save">Save and leave</button></div>
+  </dialog>
   <!-- Status Bar -->
   <div class="status-bar">
     <div class="status-left">
@@ -2122,6 +2128,7 @@
           if (!confirmed) {
             return;
           }
+          drafts.remove(currentFilePath);
         }
         
         try {
@@ -2133,9 +2140,24 @@
             return;
           }
           
+          const draft = drafts.get(filePath);
           currentFilePath = filePath;
           markdownInput.value = data.content;
+          draftBase = data.content;
           saver.load(filePath, data.content);
+          drafts.remember(filePath);
+          if (draft && draft.text !== data.content) {
+            const changed = draft.base !== data.content;
+            confirmModalCancel.textContent='Use server text';
+            confirmModalConfirm.style.background='var(--color-accent)';
+            confirmModalConfirm.style.borderColor='var(--color-accent)';
+            const recover = await showConfirmModal('Recover unsaved draft', changed ? 'The server file changed since this draft started. Recover your local draft for review? Nothing is saved to the server until you press Save.' : 'There is an unsaved draft from this browser. Recover it? Nothing is saved to the server until you press Save.', 'Recover draft');
+            confirmModalCancel.textContent='Cancel';
+            confirmModalConfirm.style.removeProperty('background');
+            confirmModalConfirm.style.removeProperty('border-color');
+            if (recover) { markdownInput.value = draft.text; saver.input(); }
+            // Choosing server text leaves the draft available until a deliberate save or edit.
+          } else if (draft) drafts.remove(filePath);
           
           // Reset scroll positions to top
           markdownInput.scrollTop = 0;
@@ -2223,6 +2245,7 @@
           try { data = await res.json(); } catch (e) { /* not JSON */ }
           if (res.status === 401) return { ok: false, error: 'Your session expired. Sign in again; your text is still in the editor.' };
           if (!res.ok || !data || data.error || data.success !== true) return { ok: false, error: (data && data.error) || ('The server answered ' + res.status + '.') };
+          if (currentFilePath === path) draftBase = content;
           return { ok: true };
         } catch (err) {
           console.error('Failed to save file:', err);
@@ -2230,11 +2253,56 @@
         }
       }
 
+      // <draft-store>
+      function createDraftStore(storage, account) {
+        const prefix='markstack-draft:'+encodeURIComponent(account)+':';
+        const lastKey=prefix+'last';
+        function read(key) { try { return storage.getItem(key); } catch { return null; } }
+        return {
+          get: function(path) { try { const d=JSON.parse(read(prefix+encodeURIComponent(path)));return d && typeof d.text==='string' && typeof d.base==='string' ? d : null; } catch { return null; } },
+          put: function(path,text,base) { try { storage.setItem(prefix+encodeURIComponent(path),JSON.stringify({text,base,time:Date.now()}));return true; } catch { return false; } },
+          remove: function(path) { try { storage.removeItem(prefix+encodeURIComponent(path)); } catch {} },
+          remember: function(path) { try { storage.setItem(lastKey,path); } catch {} },
+          last: function() { return read(lastKey); }
+        };
+      }
+      // </draft-store>
+      const unavailableStorage={getItem(){return null;},setItem(){throw Error('Browser storage unavailable');},removeItem(){}};
+      let draftBase='', drafts=createDraftStore(unavailableStorage,'pending');
+      window.__markstackReady.then(function(u){ if(u) {let storage=unavailableStorage;try{storage=localStorage;}catch{}drafts=createDraftStore(storage,u.name);} });
+      let departureResolve=null;
+      const departureDlg=document.getElementById('departure-dialog');
+      window.msGuardDeparture=function(){
+        if(!hasUnsavedChanges) return Promise.resolve(true);
+        const kept=drafts.put(currentFilePath,markdownInput.value,draftBase);
+        document.getElementById('departure-hint').textContent=kept ? 'Your draft is stored in this browser only. It is not saved to the server or published.' : 'This browser could not store the draft. Save to the server before leaving.';
+        document.getElementById('departure-keep').disabled=!kept;
+        const panel=document.querySelector('.user-panel');if(panel)panel.hidden=true;
+        document.querySelector('.user-btn')?.setAttribute('aria-expanded','false');
+        departureDlg.showModal();return new Promise(resolve=>departureResolve=resolve);
+      };
+      function finishDeparture(go){departureDlg.close();if(departureResolve){departureResolve(go);departureResolve=null;}}
+      departureDlg.addEventListener('cancel',function(e){e.preventDefault();finishDeparture(false);});
+      document.getElementById('departure-stay').onclick=function(){finishDeparture(false);};
+      document.getElementById('departure-keep').onclick=function(){finishDeparture(true);};
+      document.getElementById('departure-save').onclick=async function(){
+        const b=this;b.disabled=true;await saveFile();b.disabled=false;
+        if(!hasUnsavedChanges)finishDeparture(true);else document.getElementById('departure-hint').textContent=saver.view().error||'There are still unsaved edits. Save them before leaving.';
+      };
+      document.addEventListener('click',async function(e){
+        const a=e.target.closest('a[href]');if(!a || e.defaultPrevented || a.target==='_blank' || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey)return;
+        const url=new URL(a.href,location.href);if(url.href===location.href || (url.pathname===location.pathname && url.hash))return;
+        if(hasUnsavedChanges){e.preventDefault();if(await window.msGuardDeparture()){window.msAllowDeparture=true;location.href=a.href;}}
+      });
+      window.addEventListener('beforeunload',function(e){
+        if(hasUnsavedChanges&&!window.msAllowDeparture){drafts.put(currentFilePath,markdownInput.value,draftBase);e.preventDefault();e.returnValue='';}
+      });
       let publishNote = '';
       const saver = createSaveController({
         getText: function () { return markdownInput.value; },
         post: postFile,
         onChange: function (v) {
+          if(v.state === 'saved') draftBase=markdownInput.value;
           const was = hasUnsavedChanges;
           hasUnsavedChanges = v.dirty;
           saveBtn.setAttribute('aria-busy', v.state === 'saving' ? 'true' : 'false');
@@ -2245,6 +2313,7 @@
               if (saver.view().state === 'saved' && saver.view().path === forPath) { publishNote = u === true ? ' (not published yet)' : ''; renderSaveStatus(); }
             }).catch(function () {});
           } else if (v.state !== 'saved') publishNote = '';
+          if (v.path) { if(v.dirty) drafts.put(v.path, markdownInput.value, draftBase); else if(v.state === 'saved') drafts.remove(v.path); }
           renderSaveStatus();
         }
       });
@@ -2871,6 +2940,8 @@
        * @param {boolean} isFolder - Whether the item is a folder
        */
       async function renameItem(oldPath, newName, isFolder) {
+        const affectsOpen=currentFilePath === oldPath || (isFolder && currentFilePath?.startsWith(oldPath + '/'));
+        if(affectsOpen && !(await window.msGuardDeparture())) return;
         try {
           const res = await fetch('/api/rename', {
             method: 'POST',
@@ -2884,8 +2955,14 @@
             return;
           }
           
-          if (currentFilePath === oldPath) {
-            currentFilePath = data.newPath;
+          if (affectsOpen) {
+            const prior=currentFilePath, text=markdownInput.value;
+            currentFilePath = data.newPath + prior.slice(oldPath.length);
+            drafts.remove(prior);
+            drafts.remember(currentFilePath);
+            saver.load(currentFilePath,draftBase);
+            markdownInput.value=text;
+            saver.input();
             updateFilePath();
           }
           
@@ -2903,6 +2980,8 @@
        * @param {string} filePath - Path to delete
        */
       async function deleteItem(filePath) {
+        const affectsOpen=currentFilePath === filePath || currentFilePath?.startsWith(filePath + '/');
+        if(affectsOpen && !(await window.msGuardDeparture())) return;
         try {
           const res = await fetch('/api/delete?path=' + encodeURIComponent(filePath), {
             method: 'DELETE'
@@ -2915,8 +2994,11 @@
           }
           
           if (currentFilePath === filePath || currentFilePath?.startsWith(filePath + '/')) {
+            drafts.remove(currentFilePath);
             currentFilePath = null;
             markdownInput.value = '';
+            draftBase='';
+            saver.load(null,'');
             if (previewOutput) previewOutput.innerHTML = '';
             emptyState.style.display = 'flex';
             splitEditor.style.display = 'none';
@@ -2936,8 +3018,13 @@
       // Application Initialization
       // =========================================================================
       
-      // Load file tree on startup
-      loadFileTree();
+      // Reopen only a path the current account can still read.
+      loadFileTree().then(async function () {
+        const last = drafts.last();
+        if (!last) return;
+        function contains(items) { return items.some(i => i.type === 'file' ? i.path === last : contains(i.children || [])); }
+        if (contains(lastTree)) await loadFile(last);
+      });
       
     })();
   </script>
@@ -2956,4 +3043,4 @@
   })();
 </script>
 </body>
-</html>
+              </html>
