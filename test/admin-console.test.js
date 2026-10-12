@@ -49,3 +49,7 @@ test('section and page areas inject the content client and retain controlled sav
  const s=fs.readFileSync(require('node:path').join(__dirname,'../static/js/content-controller.js'),'utf8');
  for(const t of ['/api/content-catalog','/api/sections/settings','revision','X-CSRF-Token','Open','/api/rename','/api/delete']){if(t!=='Open')assert.ok(s.includes(t),t);}
 });
+test('site settings areas inject nonce-owned controller, save/discard and server-only raw HTML state',()=>{
+ for(const t of ['id="generalView"','id="appearanceView"','__SITE_CONTROLLER__','msSiteDirty','msSiteSaving','id="rawHtmlState"'])assert.ok(html.includes(t),t);
+ const s=fs.readFileSync(require('node:path').join(__dirname,'../static/js/site-controller.js'),'utf8');for(const t of ['/api/site-settings','X-CSRF-Token','revision','Not saved:'])assert.ok(s.includes(t),t);
+});

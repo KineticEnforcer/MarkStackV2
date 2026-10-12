@@ -391,6 +391,8 @@ This project is licensed under the GPL-3.0 license. See [LICENSE](LICENSE) for t
 | Users | Search accounts, add a user, set section access, inspect account details and last sign-in, reset an editor password, disable or enable an account, inspect sessions and recent events, sign out everywhere |
 | Sections | Edit section title, sidebar position/visibility, folder name and assigned editors; inspect its pages |
 | Pages | Search all Markdown pages, inspect paths/URLs/times, open in editor, create, rename or delete |
+| General | Site title, header title, subtitle, default description and site URL |
+| Appearance | Show home hero; read-only server raw-HTML state |
 | Header links | Add, edit, reorder, remove or hide a link; the server fetches its favicon |
 | Publish Changes | Build saved content with staged progress, keep the previous live site, and inspect failure details |
 
@@ -431,3 +433,12 @@ Section settings live in the section's `_index.md` frontmatter (`title`, integer
 Changing a section title can change public URLs. Renaming its folder updates assigned editors and ends their sessions. Folder rename and metadata save are separate steps; if rename fails after metadata saved, the console reports that partial result and keeps the rename available to retry. Browser-local drafts for other tabs keep their old paths, so recover and save them before renaming.
 
 The Editors tab changes assignments immediately with confirmation and ends that editor's sessions. Pages shows source path, planned public URL, section and modification time; Open in editor selects that file only if it is in the current account's authorized tree. New section creates a top-level folder and `_index.md`; New page asks for its section. Page rename/delete reuse the existing safe APIs. Delete cannot be undone in the console. Duplicate public URLs still stop the build rather than overwrite output. No new data file, dependency, environment variable or port is required.
+
+
+### Administrator site settings
+
+**General and Appearance are administrator-only. Raw HTML stays server-only and cannot be changed by these settings.** General edits the site title, header title, subtitle, default description and site URL. Appearance exposes the existing home-hero switch. No footer control is offered because the current template does not render one; no default-theme control is offered because no such build setting exists.
+
+Save writes an allowlisted override file, `site-settings.json`, in the existing data folder. The build overlays it on `siteconfig.json`; unknown/unsafe keys are ignored. Strings and URLs are validated, output is escaped, writes are atomic with mode 0640, and a revision check prevents stale settings saves. Invalid or damaged override files stop the build rather than enable unsafe options. The publisher snapshots this file and includes it in unpublished-change detection, so saves during a build remain unpublished for the next run. **Publish Changes** applies settings to the public site.
+
+These settings have Save/Discard and unsaved-change guards. A save error keeps the form values. No new dependency, port or environment variable is needed. Back up `site-settings.json` alongside users, links and content. Site URL may be blank; a value must be full HTTP/HTTPS without credentials, query or fragment.

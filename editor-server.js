@@ -29,6 +29,7 @@ const { hashPassword, checkPasswordPolicy } = require('./lib/passwords');
 const linksStore = require('./lib/links-store');
 const favicon = require('./lib/favicon');
 const contentCatalog = require('./lib/content-catalog');
+const siteSettings = require('./lib/site-settings');
 
 // =============================================================================
 // Configuration
@@ -367,7 +368,7 @@ function editorCsp(nonce) {
 /** Serve editor.html with a fresh nonce and its CSP header. */
 function serveEditorPage(res) {
   const nonce = require('crypto').randomBytes(16).toString('base64');
-  const page = fs.readFileSync(path.join(__dirname, 'editor.html'), 'utf-8').replace(/__CSP_NONCE__/g, nonce).replace(/__ALLOW_RAW_HTML__/g, siteAllowsRawHtml() ? 'true' : 'false').replace('__PUBLISH_CONTROLLER__', () => fs.readFileSync(path.join(__dirname, 'static/js/publish-controller.js'), 'utf-8')).replace('__CONTENT_CONTROLLER__', () => fs.readFileSync(path.join(__dirname, 'static/js/content-controller.js'), 'utf-8'));
+  const page = fs.readFileSync(path.join(__dirname, 'editor.html'), 'utf-8').replace(/__CSP_NONCE__/g, nonce).replace(/__ALLOW_RAW_HTML__/g, siteAllowsRawHtml() ? 'true' : 'false').replace('__PUBLISH_CONTROLLER__', () => fs.readFileSync(path.join(__dirname, 'static/js/publish-controller.js'), 'utf-8')).replace('__CONTENT_CONTROLLER__', () => fs.readFileSync(path.join(__dirname, 'static/js/content-controller.js'), 'utf-8')).replace('__SITE_CONTROLLER__', () => fs.readFileSync(path.join(__dirname, 'static/js/site-controller.js'), 'utf-8'));
   res.writeHead(200, {
     'Content-Type': 'text/html; charset=utf-8',
     'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -921,7 +922,7 @@ function getPublisher() {
       root: __dirname, contentDir: CONFIG.contentDir, staticDir: CONFIG.staticDir,
       templatesDir: path.join(__dirname, 'templates'), distDir: CONFIG.distDir,
       buildScript: path.join(__dirname, 'build.js'), siteConfig: path.join(__dirname, 'siteconfig.json'),
-      dataDir: path.dirname(CONFIG.usersFile),
+      dataDir: dataDir(),
       stateFile: path.join(path.dirname(CONFIG.usersFile), 'publish-state.json')
     });
   }
@@ -1075,6 +1076,16 @@ async function handleAdminAPI(req, res, pathname) {
   return false;
 }
 
+async function handleSiteSettingsAPI(req,res) {
+  if(req.user.role!=='admin')return sendError(res,403,'Administrator only');
+  try{
+    const dir=dataDir(),base=JSON.parse(fs.readFileSync(path.join(__dirname,'siteconfig.json'),'utf8'));
+    if(req.method==='GET')return sendJSON(res,200,{settings:siteSettings.effective(base,dir),revision:siteSettings.revision(dir),rawHtmlEnabled:base.allowRawHtml===true});
+    if(req.method==='POST'){const body=await parseJSONBody(req);const revision=siteSettings.write(dir,body.settings,body.revision);authLog('site-settings-saved',req.user.name);return sendSuccess(res,{settings:siteSettings.effective(base,dir),revision});}
+    return sendError(res,405,'Method not allowed');
+  }catch(err){sendBadInput(res,err);}
+}
+
 /** Administrator-only content metadata. Existing file APIs still own create/rename/delete. */
 async function handleContentAdminAPI(req, res, pathname) {
   if (req.user.role !== 'admin') return sendError(res, 403, 'Administrator only');
@@ -1109,7 +1120,7 @@ function allowed(req, res, action, relPath, newRelPath) {
 
 function servePublicPage(res, file) {
   const nonce = crypto.randomBytes(16).toString('base64');
-  const page = fs.readFileSync(path.join(__dirname, file), 'utf-8').replace(/__CSP_NONCE__/g, nonce).replace('__PUBLISH_CONTROLLER__', () => fs.readFileSync(path.join(__dirname, 'static/js/publish-controller.js'), 'utf-8')).replace('__CONTENT_CONTROLLER__', () => fs.readFileSync(path.join(__dirname, 'static/js/content-controller.js'), 'utf-8'));
+  const page = fs.readFileSync(path.join(__dirname, file), 'utf-8').replace(/__CSP_NONCE__/g, nonce).replace('__PUBLISH_CONTROLLER__', () => fs.readFileSync(path.join(__dirname, 'static/js/publish-controller.js'), 'utf-8')).replace('__CONTENT_CONTROLLER__', () => fs.readFileSync(path.join(__dirname, 'static/js/content-controller.js'), 'utf-8')).replace('__SITE_CONTROLLER__', () => fs.readFileSync(path.join(__dirname, 'static/js/site-controller.js'), 'utf-8'));
   res.writeHead(200, {
     'Content-Type': 'text/html; charset=utf-8',
     'Cache-Control': 'no-store',
@@ -1137,6 +1148,7 @@ function redirect(res, location) {
  * @param {URL} url - Parsed URL object
  */
 async function handleAPI(req, res, pathname, url) {
+  if(pathname==='/api/site-settings')return handleSiteSettingsAPI(req,res);
   if (pathname === '/api/content-catalog' || pathname === '/api/sections/settings') return handleContentAdminAPI(req, res, pathname);
   if (req.method === 'GET' && pathname === '/api/me') return sendJSON(res, 200, me(req.user, req.session));
   if (req.method === 'POST' && pathname === '/api/logout') return handleLogout(req, res);
