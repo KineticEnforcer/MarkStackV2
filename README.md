@@ -395,3 +395,12 @@ This project is licensed under the GPL-3.0 license. See [LICENSE](LICENSE) for t
 Desktop uses navigation, list and detail columns for Users. On a small screen, **Menu** opens navigation and **Back to users** returns from a detail view to the list. Settings pages use the full remaining width. Old `/admin/users` and `/admin/links` bookmarks redirect to the matching console area.
 
 User changes apply immediately. Header link changes reach the public docs only after **Publish Changes**. The shell uses the existing management APIs and data files; no new environment variables, ports or storage migration are required.
+
+
+### Unsaved editor drafts
+
+Before leaving the editor for Admin or another page, or signing out, unsaved Markdown offers **Stay here**, **Keep draft and leave**, or **Save and leave**. Save and leave waits for a confirmed save; an error keeps the editor open. Refreshing or closing the tab uses the browser's own unsaved-changes warning.
+
+Unsaved drafts are kept in this browser's local storage, separated by account name and file path. Returning to the editor reopens the last file only if the current account can still read it, then offers **Recover draft** or **Use server text**. Recovery never saves or publishes automatically. If the server file changed, the editor warns before recovery. Saving clears the local draft. Renaming an open file carries its unsaved draft to the new path; confirmed deletion clears the open file and its draft.
+
+Drafts are a convenience, not a backup. They stay on this device after sign-out and are not encrypted; avoid storing sensitive Markdown on a shared browser profile. Clearing browser data, private-browsing cleanup, or unavailable storage can remove them. If storage fails, **Keep draft and leave** is disabled: save before leaving instead. No server data format, environment variable or deployment change is needed.
