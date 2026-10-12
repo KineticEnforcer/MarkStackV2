@@ -26,3 +26,4 @@ test('old failures fall out of the window and clear resets', () => {
   l.clear('a');
   assert.equal(l.isBlocked('a'), false);
 });
+test('rate-limit summary counts groups without revealing keys and expires old entries',()=>{let now=0;const f=new FailureLimiter({maxFailures:2,windowMs:100,blockMs:200,now:()=>now});f.fail('private-address');f.fail('private-address');assert.equal(f.summary().blocked,1);assert.ok(!JSON.stringify(f.summary()).includes('private-address'));now=201;assert.equal(f.summary().tracked,0);});
