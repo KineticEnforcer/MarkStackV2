@@ -141,7 +141,7 @@ Changes to the editor's server code need the restart. Restarting signs everyone 
 Back up these before you change anything on the server:
 
 - `content/`, unless it lives in Git
-- the data folder: `users.json`, `links.json` and `favicons/`
+- the data folder: `users.json`, `links.json`, `favicons/`, `site-settings.json`, `audit.jsonl` and its rotated archives
 - `siteconfig.json`, and `static/` or `templates/` if you changed them
 
 `dist/` can always be rebuilt, and Publish keeps one previous copy as `dist.previous`.

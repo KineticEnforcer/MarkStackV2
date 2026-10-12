@@ -53,7 +53,7 @@ Yes, to any depth.
 
 ### How do I control the order in the sidebar?
 
-The sidebar is sorted by title, folders first. There is no order setting. Pick titles that sort as you want.
+Folders come first. Section `_index.md` supports integer `order` (lower first, ties by title); ordinary pages sort by title. Admin > Sections manages section position and visibility. Hidden sidebar sections remain built and searchable.
 
 ### How do I add images?
 
@@ -107,7 +107,7 @@ The build writes an index, and the browser matches against it. See [Search and I
 
 ### Can I exclude a page from search?
 
-Not at the moment.
+Not with a frontmatter exclusion flag. A dot-prefixed file/folder is excluded from the build and search. Hiding a section from the sidebar does not exclude it from search.
 
 ## Performance
 
@@ -131,7 +131,7 @@ No. The public site is static. Use an external service if you need comments.
 
 ### A blog?
 
-It is made for documentation. There is no feed, tags or date ordering, and the sidebar is sorted by title.
+It is made for documentation. There is no feed, tags or date ordering. Section position is configurable; ordinary pages sort by title.
 
 ### Version history for pages?
 
