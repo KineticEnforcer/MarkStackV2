@@ -686,6 +686,31 @@
       .settings-view .card {
         overflow: auto;
       }
+      #generalView:not([hidden]),
+      #appearanceView:not([hidden]) {
+        display: flex;
+        flex-direction: column;
+      }
+      #generalView > .card,
+      #appearanceView > .card {
+        flex-shrink: 0;
+        margin-bottom: 20px;
+      }
+      #generalView > .detail-footer,
+      #appearanceView > .detail-footer {
+        position: sticky;
+        bottom: -28px;
+        margin: auto -28px -28px;
+      }
+      @media (max-width: 800px) {
+        #generalView > .detail-footer,
+        #appearanceView > .detail-footer {
+          bottom: -16px;
+          margin-left: -16px;
+          margin-right: -16px;
+          margin-bottom: -16px;
+        }
+      }
       .empty {
         padding: 28px 16px;
         text-align: center;
@@ -974,6 +999,8 @@
           >Pages <small id="pagesCount"></small
         ></a>
         <h2>Site</h2>
+        <a href="#/general" data-area="general">General</a>
+        <a href="#/appearance" data-area="appearance">Appearance</a>
         <a href="#/links" data-area="links"
           >Header links <small id="linksCount"></small
         ></a>
@@ -1121,6 +1148,63 @@
             <div class="card" id="pageInfo"></div>
             <p id="pageStatus" class="msg" role="status"></p>
           </div>
+        </div>
+      </section>
+      <section id="generalView" class="area settings-view" hidden>
+        <div class="top">
+          <div>
+            <h1>General</h1>
+            <p class="lead">
+              Site identity and metadata. Save, then Publish Changes.
+            </p>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Site identity</h2>
+          <div class="card-content" id="siteFields"></div>
+        </div>
+        <div class="detail-footer">
+          <button class="primary" id="siteSave" disabled>Save changes</button
+          ><button id="siteDiscard" disabled>Discard</button
+          ><span id="siteStatus" class="muted" role="status"></span>
+        </div>
+      </section>
+      <section id="appearanceView" class="area settings-view" hidden>
+        <div class="top">
+          <div>
+            <h1>Appearance</h1>
+            <p class="lead">
+              Existing build options only. Save, then Publish Changes.
+            </p>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Home page</h2>
+          <div class="card-content">
+            <label class="chk"
+              ><input id="siteHero" type="checkbox" /> Show home hero</label
+            >
+            <p class="muted">
+              Show the site title and subtitle above the home page content.
+            </p>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Server policy</h2>
+          <div class="card-content">
+            <p id="rawHtmlState"></p>
+            <p class="muted">
+              Read-only. Raw HTML is controlled on the server, not by browser
+              settings. The current template has no footer field or configurable
+              default theme.
+            </p>
+          </div>
+        </div>
+        <div class="detail-footer">
+          <button class="primary" id="appearanceSave" disabled>
+            Save changes</button
+          ><button id="appearanceDiscard" disabled>Discard</button
+          ><span id="appearanceStatus" class="muted" role="status"></span>
         </div>
       </section>
       <section id="linksView" class="area settings-view" hidden>
@@ -1339,15 +1423,13 @@
           if (window.msContentDirty || (a && window.msUserDirty)) {
             e.preventDefault();
             e.stopImmediatePropagation();
-            window.msAsk(
-              "Discard unsaved section changes and leave?",
-              function () {
-                if (window.msDiscardContent) window.msDiscardContent();
-                if (window.msDiscardUser) window.msDiscardUser();
-                if (out) out.click();
-                else location.href = "/";
-              },
-            );
+            window.msAsk("Discard unsaved changes and leave?", function () {
+              if (window.msDiscardContent) window.msDiscardContent();
+              if (window.msDiscardSite) window.msDiscardSite();
+              if (window.msDiscardUser) window.msDiscardUser();
+              if (out) out.click();
+              else location.href = "/";
+            });
             document.getElementById("askGo").textContent = "Discard";
           }
         },
@@ -1375,7 +1457,9 @@
           window.msUserDirty ||
           window.msUserSaving ||
           window.msContentDirty ||
-          window.msContentSaving
+          window.msContentSaving ||
+          window.msSiteDirty ||
+          window.msSiteSaving
         ) {
           e.preventDefault();
           e.returnValue = "";
@@ -1383,10 +1467,24 @@
       });
       function route() {
         var requested = location.hash.split("/")[1];
-        var area = ["users", "links", "sections", "pages"].includes(requested)
+        var area = [
+          "users",
+          "links",
+          "sections",
+          "pages",
+          "general",
+          "appearance",
+        ].includes(requested)
           ? requested
           : "users";
-        ["users", "links", "sections", "pages"].forEach(function (name) {
+        [
+          "users",
+          "links",
+          "sections",
+          "pages",
+          "general",
+          "appearance",
+        ].forEach(function (name) {
           document.getElementById(name + "View").hidden = name !== area;
         });
         if (window.msContentRoute) window.msContentRoute(area);
@@ -1406,17 +1504,25 @@
           window.msUserDirty ||
           window.msUserSaving ||
           window.msContentDirty ||
-          window.msContentSaving
+          window.msContentSaving ||
+          window.msSiteDirty ||
+          window.msSiteSaving
         ) {
           var target = location.hash;
           history.replaceState(null, "", acceptedHash || "#/users");
-          if (window.msUserSaving || window.msContentSaving) return;
+          if (
+            window.msUserSaving ||
+            window.msContentSaving ||
+            window.msSiteSaving
+          )
+            return;
           window.msAsk(
             "Discard the edits in this form and leave this area?",
             function () {
               formDirty = false;
               if (window.msDiscardUser) window.msDiscardUser();
               if (window.msDiscardContent) window.msDiscardContent();
+              if (window.msDiscardSite) window.msDiscardSite();
               document.querySelectorAll("dialog[open]").forEach(function (d) {
                 d.close();
               });
@@ -1454,7 +1560,12 @@
           }
         });
       document.getElementById("signOut").onclick = function () {
-        if (window.msUserSaving || window.msContentSaving) return;
+        if (
+          window.msUserSaving ||
+          window.msContentSaving ||
+          window.msSiteSaving
+        )
+          return;
         if (window.msUserDirty) {
           window.msAsk(
             "Discard unsaved access changes and sign out?",
@@ -2013,7 +2124,12 @@
         }
         $("userSearch").addEventListener("input", renderList);
         $("listBack").addEventListener("click", function () {
-          if (window.msUserSaving || window.msContentSaving) return;
+          if (
+            window.msUserSaving ||
+            window.msContentSaving ||
+            window.msSiteSaving
+          )
+            return;
           if (window.msUserDirty) {
             window.msAsk(
               "Discard unsaved access changes and return to users?",
@@ -2422,6 +2538,7 @@
             msg("links-listMsg", e.message);
           });
       })();
+      __SITE_CONTROLLER__;
       __CONTENT_CONTROLLER__;
       __PUBLISH_CONTROLLER__;
     </script>
