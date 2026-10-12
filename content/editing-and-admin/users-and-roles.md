@@ -68,3 +68,33 @@ It asks for the new password, re-enables the account if it was disabled and ends
 ## Where accounts are stored
 
 Accounts are in `users.json` inside the data folder, `.markstack/` by default. Set `MARKSTACK_USERS_FILE` to use another path. The file is created readable only by its owner and holds salted password hashes, never passwords. Back it up with the rest of the data folder. See [Security](/editing-and-admin/security/).
+
+
+## User detail tabs
+
+Select an account in **Admin > Users** to open its detail pane. On a phone, **Back to users** returns to the account list. Search and the selected account stay in the console.
+
+| Tab | Use it for |
+|---|---|
+| Access | Switch individual sections between **Can create, edit, rename, delete** and **Hidden**. Use **Select all** or **Select none**, then **Save changes**. **Discard** restores the saved assignments. |
+| Account | Read the username, role, status, creation time and last sign-in. Enable or disable an account, or reset an editor password. |
+| Sessions | See active session sign-in and last-active times. **Sign out everywhere** ends every session for the selected user. |
+| Activity | See up to 50 recent events for this account from the current server process. |
+
+### Save section access
+
+Section toggles are a draft until you click **Save changes**. Saving shows **Saving...**, then **Saved. Sessions ended.** A real server error leaves your changes in the pane so you can retry. Switching accounts or areas, returning to the editor, signing out or using the mobile back control asks before discarding changes. Refreshing or closing the page uses the browser's unsaved-changes warning.
+
+Saving section access ends the user's sessions, so they must sign in again. Administrators have access to every section and do not have editable section toggles. A missing assigned folder is labelled **folder not found** so you can remove an old assignment without losing it silently.
+
+### Account and session actions
+
+An editor password reset ends their sessions and shows a one-time temporary password. They must change it when they next sign in. An administrator cannot disable their own account, and the server refuses to disable the last active administrator. Role and username are read-only; changing roles is not supported by the user store.
+
+**Sign out everywhere** asks for confirmation and invalidates the account's current access version as well as ending the server's sessions. If you select your own account, your current session ends too and you return to sign-in. Browser-local Markdown drafts are not deleted by this action.
+
+### Times and recent activity
+
+Last sign-in is stored in the existing owner-only user file after a successful sign-in. Existing accounts show **Never** until they sign in again. Checking a password during a password change does not count as a sign-in. Active sessions and recent events are in memory, reset on server restart, and are refreshed when you select the account again.
+
+Recent activity contains event names, account targets and times, without passwords, session tokens, CSRF values or IP addresses. This tab is a bounded view of this server process, not a permanent audit record. Persistent history is added in the System phase.

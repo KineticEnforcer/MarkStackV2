@@ -61,3 +61,16 @@ test('tokens are not stored in clear', () => {
   const tok = s.create('ada');
   assert.ok(![...s.byHash.keys()].includes(tok));
 });
+
+test('session summaries omit secrets, do not refresh idle time and filter obsolete access versions', () => {
+  let now = 100000;
+  const s = new SessionStore({ idleMs: 1000, maxMs: 5000, now: () => now });
+  const token = s.create('qa-temp', 1); s.create('qa-temp', 0); s.create('other', 1);
+  now += 900;
+  const summary = s.summary('qa-temp', 1);
+  assert.equal(summary.length, 1);
+  assert.deepEqual(Object.keys(summary[0]).sort(), ['createdAt', 'lastActiveAt']);
+  assert.ok(!JSON.stringify(summary).includes(token));
+  now += 101;
+  assert.equal(s.summary('qa-temp', 1).length, 0);
+});

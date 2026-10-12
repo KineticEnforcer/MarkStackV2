@@ -382,3 +382,35 @@ test('admin console and legacy URLs enforce the administrator role', async () =>
     assert.equal(old.headers.location, '/admin#/' + area);
   }
 });
+
+test('admin user detail reports safe session/activity data and persisted sign-in time', async () => {
+  const a = await login('ada', ADMIN_PW);
+  const r = await request('GET', '/api/users/ada', a);
+  assert.equal(r.status, 200);
+  assert.ok(Date.parse(r.json.user.lastLoginAt));
+  assert.ok(r.json.sessions.length > 0);
+  assert.deepEqual(Object.keys(r.json.sessions[0]).sort(), ['createdAt', 'lastActiveAt']);
+  assert.ok(r.json.activity.some(e => e.event === 'login'));
+  for (const secret of ['passwordHash', 'csrf', 'byHash']) assert.ok(!r.body.includes(secret));
+  assert.equal((await request('GET', '/api/users/missing-user', a)).status, 404);
+  assert.equal((await request('GET', '/api/users/bad%2Fname', a)).status, 400);
+  assert.equal((await request('GET', '/api/users/ada')).status, 401);
+  await users.create({ name: 'detail-reader', role: 'editor', password: 'detail reader password', sections: ['it'] });
+  const editorUser = await login('detail-reader', 'detail reader password');
+  assert.equal((await request('GET', '/api/users/ada', editorUser)).status, 403);
+});
+
+test('sign out everywhere requires admin and CSRF, ends sessions and invalidates other process sessions', async () => {
+  const a = await login('ada', ADMIN_PW);
+  await users.create({ name: 'detail-test', role: 'editor', password: 'detail test password', sections: ['it'] });
+  const e = await login('detail-test', 'detail test password');
+  assert.equal((await request('POST', '/api/users/sign-out', { cookie: a.cookie, body: { name: 'detail-test' } })).status, 403);
+  assert.equal((await request('POST', '/api/users/sign-out', { ...e, body: { name: 'ada' } })).status, 403);
+  assert.equal((await request('POST', '/api/users/sign-out', { ...a, body: { name: 'missing-user' } })).status, 400);
+  const prior = users.get('detail-test').authVersion;
+  const r = await request('POST', '/api/users/sign-out', { ...a, body: { name: 'detail-test' } });
+  assert.equal(r.status, 200); assert.equal(r.json.ended, 1);
+  assert.equal(users.get('detail-test').authVersion, prior + 1);
+  assert.equal((await request('GET', '/api/me', e)).status, 401);
+  assert.equal((await request('GET', '/api/users/detail-test', a)).json.sessions.length, 0);
+});

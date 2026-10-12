@@ -41,3 +41,6 @@ test("editor and console use the same nonce-injected publish controller", () => 
   ])
     assert.ok(p.includes(t));
 });
+test('user detail tabs expose scoped access, session and activity controls with a dirty guard',()=>{
+  for(const t of ['data-user-tab="access"','data-user-tab="account"','data-user-tab="sessions"','data-user-tab="activity"','id="accessSave"','id="accessDiscard"','msUserDirty','msUserSaving','/api/users/sign-out','Last sign-in','Select all','Select none'])assert.ok(html.includes(t),t);
+});

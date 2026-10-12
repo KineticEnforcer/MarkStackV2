@@ -536,7 +536,102 @@
         display: block;
         overflow-wrap: anywhere;
       }
+      .detail-head,
+      .detail-tabs,
+      .detail-footer {
+        flex-shrink: 0;
+      }
+      .detail-tabs {
+        display: flex;
+        gap: 8px;
+        padding: 0 28px;
+        border-bottom: 1px solid var(--line);
+        flex-wrap: wrap;
+      }
+      .detail-tabs button {
+        background: transparent;
+        border: 0;
+        border-radius: 0;
+        height: 42px;
+        color: var(--muted);
+      }
+      .detail-tabs button.active {
+        color: var(--accent);
+        box-shadow: inset 0 -2px var(--accent);
+      }
+      .detail-footer {
+        position: sticky;
+        bottom: 0;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 14px 28px;
+        border-top: 1px solid var(--line);
+        background: var(--panel);
+        flex-wrap: wrap;
+      }
+      .access-row,
+      .info-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--line);
+      }
+      .access-row:last-child,
+      .info-row:last-child {
+        border-bottom: 0;
+      }
+      .access-row label {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--text);
+        font-size: 14px;
+        margin: 0;
+        flex: 1;
+        cursor: pointer;
+      }
+      .access-row input {
+        width: 18px;
+        height: 18px;
+        accent-color: var(--accent);
+      }
+      .access-row .muted {
+        font-size: 12px;
+        text-align: right;
+      }
+      .info-row span {
+        overflow-wrap: anywhere;
+        min-width: 0;
+      }
+      .card-tools {
+        padding: 12px 18px;
+        display: flex;
+        gap: 8px;
+      }
+      .detail-tabs button,
+      .detail-footer button,
+      .card-tools button {
+        min-height: 36px;
+      }
+      @media (max-width: 800px) {
+        .access-row,
+        .info-row {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 6px;
+        }
+        .detail-tabs,
+        .detail-footer {
+          padding-left: 16px;
+          padding-right: 16px;
+        }
+      }
       .user-detail {
+        display: flex;
+        flex-direction: column;
         flex: 1;
         min-width: 0;
         overflow: auto;
@@ -549,6 +644,7 @@
         overflow-wrap: anywhere;
       }
       .detail-body {
+        flex: 1;
         padding: 28px;
       }
       .detail-body .card {
@@ -771,7 +867,7 @@
           display: none;
         }
         .detail-open .user-detail {
-          display: block;
+          display: flex;
           width: 100%;
         }
         .detail-head {
@@ -881,15 +977,34 @@
             <p class="lead" id="userMeta"></p>
             <div id="userActions" class="user-actions"></div>
           </div>
+          <nav class="detail-tabs" aria-label="User details">
+            <button data-user-tab="access" class="active" aria-pressed="true">
+              Access
+            </button>
+            <button data-user-tab="account" aria-pressed="false">
+              Account
+            </button>
+            <button data-user-tab="sessions" aria-pressed="false">
+              Sessions
+            </button>
+            <button data-user-tab="activity" aria-pressed="false">
+              Activity
+            </button>
+          </nav>
           <div class="detail-body">
-            <div class="card">
-              <h2>Section access</h2>
-              <div class="card-content" id="userAccess"></div>
-            </div>
-            <p class="muted">
-              Editors can create, edit, rename and delete content only in
-              assigned sections. Administrators can change all content.
-            </p>
+            <div id="userAccess" class="user-pane"></div>
+            <div id="userAccount" class="user-pane" hidden></div>
+            <div id="userSessions" class="user-pane" hidden></div>
+            <div id="userActivity" class="user-pane" hidden></div>
+          </div>
+          <div class="detail-footer" id="accessFooter">
+            <button class="primary" id="accessSave" disabled>
+              Save changes
+            </button>
+            <button id="accessDiscard" disabled>Discard</button>
+            <span class="muted" id="accessStatus" role="status"
+              >Changing access ends active sessions.</span
+            >
           </div>
         </div>
         <div id="listMsg" class="msg" role="status"></div>
@@ -986,23 +1101,6 @@
         <div class="dlg-f">
           <button type="button" id="addCancel">Cancel</button
           ><button type="submit" class="primary" id="addBtn">Add user</button>
-        </div>
-      </form>
-    </dialog>
-
-    <dialog id="secDlg" aria-labelledby="secTitle">
-      <form method="dialog" id="secForm">
-        <div class="dlg-h" id="secTitle">Sections</div>
-        <div class="dlg-b">
-          <p class="muted" id="secHint">Saving ends this user's sessions.</p>
-          <div class="secs" id="secBox"></div>
-          <div class="msg" id="secMsg" role="status"></div>
-        </div>
-        <div class="dlg-f">
-          <button type="button" id="secCancel">Cancel</button
-          ><button type="submit" class="primary" id="secSave">
-            Save sections
-          </button>
         </div>
       </form>
     </dialog>
@@ -1109,7 +1207,7 @@
         });
       });
       window.addEventListener("beforeunload", function (e) {
-        if (formDirty) {
+        if (formDirty || window.msUserDirty || window.msUserSaving) {
           e.preventDefault();
           e.returnValue = "";
         }
@@ -1129,13 +1227,15 @@
           .setAttribute("aria-expanded", "false");
       }
       window.addEventListener("hashchange", function () {
-        if (formDirty) {
+        if (formDirty || window.msUserDirty || window.msUserSaving) {
           var target = location.hash;
           history.replaceState(null, "", acceptedHash || "#/users");
+          if (window.msUserSaving) return;
           window.msAsk(
             "Discard the edits in this form and leave this area?",
             function () {
               formDirty = false;
+              if (window.msDiscardUser) window.msDiscardUser();
               document.querySelectorAll("dialog[open]").forEach(function (d) {
                 d.close();
               });
@@ -1153,7 +1253,38 @@
         var on = document.getElementById("adminNav").classList.toggle("open");
         this.setAttribute("aria-expanded", String(on));
       };
+      document
+        .querySelector('a.header-btn[href="/"]')
+        .addEventListener("click", function (e) {
+          if (window.msUserSaving) {
+            e.preventDefault();
+            return;
+          }
+          if (window.msUserDirty) {
+            e.preventDefault();
+            window.msAsk(
+              "Discard unsaved access changes and return to the editor?",
+              function () {
+                window.msDiscardUser();
+                location.href = "/";
+              },
+            );
+            document.getElementById("askGo").textContent = "Discard";
+          }
+        });
       document.getElementById("signOut").onclick = function () {
+        if (window.msUserSaving) return;
+        if (window.msUserDirty) {
+          window.msAsk(
+            "Discard unsaved access changes and sign out?",
+            function () {
+              window.msDiscardUser();
+              document.getElementById("signOut").click();
+            },
+          );
+          document.getElementById("askGo").textContent = "Discard";
+          return;
+        }
         fetch("/api/logout", {
           method: "POST",
           credentials: "same-origin",
@@ -1276,34 +1407,196 @@
           return td;
         }
 
-        var secUser = null,
-          rstUser = null;
-        function selectUser(u) {
+        var rstUser = null;
+        var activeTab = "access",
+          detailSeq = 0,
+          selectedUser = null,
+          accessSaving = false;
+        function dateText(value) {
+          return value ? new Date(value).toLocaleString() : "Never";
+        }
+        function setDirty() {
+          $("userAccess")
+            .querySelectorAll("input,button")
+            .forEach(function (c) {
+              c.disabled = accessSaving;
+            });
+          var next = picked($("userAccess")).sort().join("|");
+          window.msUserDirty =
+            !!selectedUser &&
+            next !== selectedUser.sections.slice().sort().join("|") &&
+            selectedUser.role === "editor";
+          $("accessSave").disabled = accessSaving || !window.msUserDirty;
+          $("accessDiscard").disabled = accessSaving || !window.msUserDirty;
+          if (!accessSaving)
+            $("accessStatus").textContent = window.msUserDirty
+              ? "Unsaved access changes. Saving ends active sessions."
+              : "Changing access ends active sessions.";
+        }
+        function renderAccess() {
+          var u = selectedUser,
+            box = $("userAccess");
+          box.textContent = "";
+          var card = el("div", { class: "card" });
+          card.appendChild(el("h2", { text: "Section access" }));
+          box.appendChild(card);
+          if (u.role === "admin") {
+            card.appendChild(
+              el("div", {
+                class: "card-content",
+                text: "Administrators can create, edit, rename and delete content in all sections.",
+              }),
+            );
+            return;
+          }
+          var tools = el("div", { class: "card-tools" });
+          [
+            ["Select all", true],
+            ["Select none", false],
+          ].forEach(function (pair) {
+            var b = el("button", { type: "button", text: pair[0] });
+            b.onclick = function () {
+              box
+                .querySelectorAll("input")
+                .forEach((c) => (c.checked = pair[1]));
+              box.querySelectorAll(".access-row").forEach(function (r) {
+                r.querySelector(".muted").textContent = pair[1]
+                  ? "Can create, edit, rename, delete"
+                  : "Hidden";
+              });
+              setDirty();
+            };
+            tools.appendChild(b);
+          });
+          card.appendChild(tools);
+          if (!sections.length)
+            card.appendChild(
+              el("p", {
+                class: "card-content muted",
+                text: "No section folders exist yet.",
+              }),
+            );
+          var names = Array.from(new Set(sections.concat(u.sections)));
+          names.forEach(function (sec) {
+            var row = el("div", { class: "access-row" }),
+              cb = el("input", { type: "checkbox", value: sec });
+            cb.checked = u.sections.includes(sec);
+            var help = el("span", {
+              class: "muted",
+              text: cb.checked ? "Can create, edit, rename, delete" : "Hidden",
+            });
+            cb.onchange = function () {
+              help.textContent = cb.checked
+                ? "Can create, edit, rename, delete"
+                : "Hidden";
+              setDirty();
+            };
+            row.appendChild(
+              el("label", {}, [
+                cb,
+                el("span", {
+                  text:
+                    sec + (sections.includes(sec) ? "" : " (folder not found)"),
+                }),
+              ]),
+            );
+            row.appendChild(help);
+            card.appendChild(row);
+          });
+        }
+        window.msDiscardUser = function () {
+          if (accessSaving) return;
+          if (selectedUser) {
+            renderAccess();
+            window.msUserDirty = false;
+            setDirty();
+          }
+        };
+        function switchTab(tab) {
+          activeTab = tab;
+          ["access", "account", "sessions", "activity"].forEach(function (t) {
+            $("user" + t[0].toUpperCase() + t.slice(1)).hidden = t !== tab;
+            document
+              .querySelector("[data-user-tab=" + t + "]")
+              .classList.toggle("active", t === tab);
+            document
+              .querySelector("[data-user-tab=" + t + "]")
+              .setAttribute("aria-pressed", String(t === tab));
+          });
+          $("accessFooter").hidden =
+            tab !== "access" || !selectedUser || selectedUser.role !== "editor";
+        }
+        document.querySelectorAll("[data-user-tab]").forEach(function (b) {
+          b.onclick = function () {
+            switchTab(b.dataset.userTab);
+          };
+        });
+        function info(card, label, value) {
+          card.appendChild(
+            el("div", { class: "info-row" }, [
+              el("span", { class: "muted", text: label }),
+              el("span", { text: value }),
+            ]),
+          );
+        }
+        function selectUser(u, force) {
+          if (accessSaving) return;
+          if (window.msUserDirty && !force && selectedName === u.name) return;
+          if (window.msUserDirty && !force && selectedName !== u.name) {
+            window.msAsk(
+              "Discard unsaved access changes and select " + u.name + "?",
+              function () {
+                window.msDiscardUser();
+                selectUser(u, true);
+              },
+            );
+            $("askGo").textContent = "Discard";
+            return;
+          }
           selectedName = u.name;
+          selectedUser = u;
+          window.msUserDirty = false;
           renderList();
           $("userTitle").textContent = u.name;
           $("userMeta").textContent =
             (u.role === "admin" ? "Administrator" : "Editor") +
-            (u.disabled ? " · Disabled" : "");
-          $("userAccess").textContent = "";
+            (u.disabled ? " · Disabled" : "") +
+            " · Last sign-in: " +
+            dateText(u.lastLoginAt);
           $("userActions").textContent = "";
-          summary(u).childNodes.forEach(function (n) {
-            $("userAccess").appendChild(n.cloneNode(true));
-          });
+          renderAccess();
+          setDirty();
+          var account = $("userAccount");
+          account.textContent = "";
+          var card = el("div", { class: "card" });
+          card.appendChild(el("h2", { text: "Account" }));
+          info(card, "Username", u.name);
+          info(card, "Role", u.role === "admin" ? "Administrator" : "Editor");
+          info(card, "Status", u.disabled ? "Disabled" : "Active");
+          info(card, "Created", dateText(u.createdAt));
+          info(card, "Last sign-in", dateText(u.lastLoginAt));
+          account.appendChild(card);
+          var actions = el("div", { class: "card-tools" });
+          account.appendChild(actions);
           function button(text, fn, disabled) {
             var b = el("button", { type: "button", text: text });
             b.disabled = !!disabled;
-            b.addEventListener("click", fn);
-            $("userActions").appendChild(b);
+            b.onclick = function () {
+              if (accessSaving) return;
+              if (window.msUserDirty) {
+                window.msAsk(
+                  "Discard unsaved access changes before this account action?",
+                  function () {
+                    window.msDiscardUser();
+                    fn();
+                  },
+                );
+                $("askGo").textContent = "Discard";
+              } else fn();
+            };
+            actions.appendChild(b);
           }
-          if (u.role === "editor") {
-            button("Edit sections", function () {
-              secUser = u;
-              $("secTitle").textContent = "Sections for " + u.name;
-              checks($("secBox"), u.sections);
-              msg("secMsg", "");
-              open($("secDlg"));
-            });
+          if (u.role === "editor")
             button("Reset password", function () {
               rstUser = u;
               $("rstText").textContent =
@@ -1315,34 +1608,161 @@
               $("rstCancel").textContent = "Cancel";
               open($("rstDlg"));
             });
-          }
           button(
-            u.disabled ? "Enable" : "Disable",
+            u.disabled ? "Enable account" : "Disable account",
             function () {
-              msg("listMsg", "Saving...", true);
-              api("POST", "/api/users/disable", {
-                name: u.name,
-                disabled: !u.disabled,
-              })
-                .then(function () {
-                  msg(
-                    "listMsg",
-                    u.disabled
-                      ? "User enabled."
-                      : "User disabled. Their sessions were ended.",
-                    true,
-                  );
-                  return load(true);
-                })
-                .catch(function (e) {
-                  msg("listMsg", e.message);
-                });
+              window.msAsk(
+                (u.disabled ? "Enable " : "Disable ") + u.name + "?",
+                function () {
+                  msg("listMsg", "Saving...", true);
+                  api("POST", "/api/users/disable", {
+                    name: u.name,
+                    disabled: !u.disabled,
+                  })
+                    .then(function () {
+                      msg(
+                        "listMsg",
+                        u.disabled
+                          ? "Account enabled."
+                          : "Account disabled. Sessions ended.",
+                        true,
+                      );
+                      return load(true);
+                    })
+                    .catch((e) => msg("listMsg", e.message));
+                },
+              );
             },
             me && me.name === u.name,
           );
+          $("userSessions").textContent = "Loading sessions...";
+          $("userActivity").textContent = "Loading activity...";
+          var seq = ++detailSeq;
+          api("GET", "/api/users/" + encodeURIComponent(u.name))
+            .then(function (d) {
+              if (seq !== detailSeq) return;
+              var sess = $("userSessions");
+              sess.textContent = "";
+              var card = el("div", { class: "card" });
+              card.appendChild(
+                el("h2", {
+                  text: "Active sessions (" + d.sessions.length + ")",
+                }),
+              );
+              sess.appendChild(card);
+              if (!d.sessions.length)
+                card.appendChild(
+                  el("p", {
+                    class: "card-content muted",
+                    text: "No active sessions.",
+                  }),
+                );
+              d.sessions.forEach(function (x) {
+                info(card, "Signed in", dateText(x.createdAt));
+                info(card, "Last active", dateText(x.lastActiveAt));
+              });
+              var tools = el("div", { class: "card-tools" }),
+                end = el("button", {
+                  type: "button",
+                  text: "Sign out everywhere",
+                });
+              tools.appendChild(end);
+              sess.appendChild(tools);
+              sess.appendChild(
+                el("p", {
+                  class: "muted",
+                  text: "Sessions are kept in memory and end when the editor server restarts. Refresh the user to see current activity.",
+                }),
+              );
+              end.onclick = function () {
+                if (accessSaving) return;
+                if (window.msUserDirty) {
+                  msg(
+                    "listMsg",
+                    "Save or discard access changes before ending sessions.",
+                  );
+                  return;
+                }
+                window.msAsk(
+                  "End every session for " +
+                    u.name +
+                    "?" +
+                    (me.name === u.name
+                      ? " This includes your current session."
+                      : ""),
+                  function () {
+                    msg("listMsg", "Ending sessions...", true);
+                    api("POST", "/api/users/sign-out", { name: u.name })
+                      .then(function (d) {
+                        if (d.signedOut) {
+                          location.href = "/login";
+                          return;
+                        }
+                        msg("listMsg", "Sessions ended.", true);
+                        selectUser(selectedUser, true);
+                      })
+                      .catch((e) => msg("listMsg", e.message));
+                  },
+                );
+              };
+              var activity = $("userActivity");
+              activity.textContent = "";
+              var ac = el("div", { class: "card" });
+              ac.appendChild(el("h2", { text: "Recent auth events" }));
+              activity.appendChild(ac);
+              if (!d.activity.length)
+                ac.appendChild(
+                  el("p", {
+                    class: "card-content muted",
+                    text: "No recent events for this user.",
+                  }),
+                );
+              d.activity.forEach(function (x) {
+                info(ac, x.event, dateText(x.at));
+              });
+              activity.appendChild(
+                el("p", {
+                  class: "muted",
+                  text: "Shows up to 50 recent events from this server process. Persistent activity history follows in the System phase.",
+                }),
+              );
+            })
+            .catch(function (e) {
+              if (seq === detailSeq) {
+                $("userSessions").textContent = e.message;
+                $("userActivity").textContent = e.message;
+              }
+            });
           $("userDetail").hidden = false;
           document.body.classList.add("detail-open");
+          switchTab(activeTab);
         }
+        $("accessDiscard").onclick = window.msDiscardUser;
+        $("accessSave").onclick = function () {
+          if (!selectedUser || accessSaving) return;
+          accessSaving = true;
+          window.msUserSaving = true;
+          setDirty();
+          $("accessStatus").textContent = "Saving...";
+          var name = selectedUser.name,
+            next = picked($("userAccess"));
+          api("POST", "/api/users/sections", { name: name, sections: next })
+            .then(function () {
+              selectedUser.sections = next;
+              window.msUserDirty = false;
+              accessSaving = false;
+              window.msUserSaving = false;
+              setDirty();
+              $("accessStatus").textContent = "Saved. Sessions ended.";
+              renderList();
+            })
+            .catch(function (e) {
+              accessSaving = false;
+              window.msUserSaving = false;
+              setDirty();
+              $("accessStatus").textContent = "Not saved: " + e.message;
+            });
+        };
         function renderList() {
           var rows = $("rows");
           rows.textContent = "";
@@ -1372,7 +1792,9 @@
                   text:
                     u.role === "admin"
                       ? "Administrator"
-                      : "Editor · " + u.sections.length + (u.sections.length === 1 ? " section" : " sections"),
+                      : "Editor · " +
+                        u.sections.length +
+                        (u.sections.length === 1 ? " section" : " sections"),
                 }),
               );
               if (u.disabled)
@@ -1410,6 +1832,18 @@
         }
         $("userSearch").addEventListener("input", renderList);
         $("listBack").addEventListener("click", function () {
+          if (window.msUserSaving) return;
+          if (window.msUserDirty) {
+            window.msAsk(
+              "Discard unsaved access changes and return to users?",
+              function () {
+                window.msDiscardUser();
+                document.body.classList.remove("detail-open");
+              },
+            );
+            $("askGo").textContent = "Discard";
+            return;
+          }
           document.body.classList.remove("detail-open");
         });
         function load(keepMsg) {
@@ -1424,36 +1858,13 @@
             });
         }
 
-        $("secCancel").addEventListener("click", function () {
-          close($("secDlg"));
-        });
-        $("secForm").addEventListener("submit", function (ev) {
-          ev.preventDefault();
-          var u = secUser;
-          if (!u) return;
-          api("POST", "/api/users/sections", {
-            name: u.name,
-            sections: picked($("secBox")),
-          })
-            .then(function () {
-              close($("secDlg"));
-              msg(
-                "listMsg",
-                "Sections saved for " + u.name + ". Their sessions were ended.",
-                true,
-              );
-              return load(true);
-            })
-            .catch(function (e) {
-              msg("secMsg", e.message);
-            });
-        });
-
         $("rstCancel").addEventListener("click", function () {
           close($("rstDlg"));
         });
         $("rstForm").addEventListener("submit", function (ev) {
           ev.preventDefault();
+          $("rstGo").disabled = true;
+          msg("rstMsg", "Resetting...", true);
           var u = rstUser;
           if (!u || $("rstGo").hidden) return;
           api("POST", "/api/users/reset-password", { name: u.name })
@@ -1466,11 +1877,13 @@
               m.className = "msg ok";
               m.textContent = "";
               m.appendChild(el("code", { text: d.temporaryPassword }));
+              $("rstGo").disabled = false;
               $("rstGo").hidden = true;
               $("rstCancel").textContent = "Done";
               return load(true);
             })
             .catch(function (e) {
+              $("rstGo").disabled = false;
               msg("rstMsg", e.message);
             });
         });
@@ -1481,6 +1894,18 @@
         }
         $("newRole").addEventListener("change", syncNew);
         $("addOpen").addEventListener("click", function () {
+          if (accessSaving) return;
+          if (window.msUserDirty) {
+            window.msAsk(
+              "Discard unsaved access changes before adding an account?",
+              function () {
+                window.msDiscardUser();
+                $("addOpen").click();
+              },
+            );
+            $("askGo").textContent = "Discard";
+            return;
+          }
           $("newName").value = "";
           $("newPass").value = "";
           $("newRole").value = "editor";
@@ -1819,4 +2244,4 @@
       __PUBLISH_CONTROLLER__;
     </script>
   </body>
-            </html>
+  </html>
