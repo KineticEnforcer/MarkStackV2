@@ -21,6 +21,7 @@ const fs = require('fs');
 const path = require('path');
 const matter = require('./lib/frontmatter');
 const linksStore = require('./lib/links-store');
+const siteSettings = require('./lib/site-settings');
 const hljs = require('highlight.js');
 
 // =============================================================================
@@ -39,6 +40,7 @@ if (fs.existsSync(siteConfigPath)) {
 }
 
 const SITE_ALLOWS_RAW_HTML = siteConfig.allowRawHtml === true;
+siteConfig = {...siteConfig,...siteSettings.effective(siteConfig,dataDirFromArgs())};
 
 // =============================================================================
 // Markdown Configuration
@@ -201,7 +203,7 @@ const CONFIG = {
   siteTitle: siteConfig.siteTitle || 'Knowledge Base',
   headerTitle: siteConfig.headerTitle || siteConfig.siteTitle || 'Knowledge Base',
   siteSubtitle: siteConfig.siteSubtitle || '',
-  siteUrl: siteConfig.siteUrl || '',  baseUrl: siteConfig.baseUrl || '',  defaultDescription: siteConfig.defaultDescription || 'Documentation and knowledge base',
+  siteUrl: siteConfig.siteUrl || '',  baseUrl: siteConfig.baseUrl || '',  defaultDescription: siteConfig.defaultDescription ?? 'Documentation and knowledge base',
   showHero: siteConfig.showHero !== false, // defaults to true
   copyrightText: siteConfig.copyrightText || ''
 };
@@ -801,17 +803,17 @@ function generatePage(processed) {
   const crumbs = isPage ? `<nav class="page-breadcrumb" aria-label="Breadcrumb">${renderBreadcrumbs(processed.breadcrumbs)}</nav>` : '';
 
   let html = template
-    .replace(/\{\{siteTitle\}\}/g, CONFIG.headerTitle)
-    .replace(/\{\{title\}\}/g, processed.title)
-    .replace(/\{\{description\}\}/g, processed.description)
-    .replace(/\{\{url\}\}/g, CONFIG.siteUrl + processed.urlPath)
-    .replace(/\{\{baseUrl\}\}/g, CONFIG.baseUrl)
+    .replace(/\{\{siteTitle\}\}/g, () => escapeText(CONFIG.headerTitle))
+    .replace(/\{\{title\}\}/g, () => escapeText(processed.title))
+    .replace(/\{\{description\}\}/g, () => escapeText(processed.description))
+    .replace(/\{\{url\}\}/g, () => escapeText(CONFIG.siteUrl + processed.urlPath))
+    .replace(/\{\{baseUrl\}\}/g, () => escapeText(CONFIG.baseUrl))
     .replace(/\{\{breadcrumbs\}\}/g, () => crumbs)
     .replace(/\{\{toc\}\}/g, () => toc)
     .replace(/\{\{prevNext\}\}/g, () => prevNext)
     .replace(/\{\{sidebar\}\}/g, renderSidebar(processed.sidebar))
     .replace(/\{\{pageClass\}\}/g, pageClass)
-    .replace(/\{\{copyrightText\}\}/g, CONFIG.copyrightText)
+    .replace(/\{\{copyrightText\}\}/g, () => escapeText(CONFIG.copyrightText))
     .replace(/\{\{headerLinks\}\}/g, () => HEADER_LINKS_HTML)
     .replace(/\{\{content\}\}/g, () => body);
   
@@ -923,10 +925,10 @@ function generateHomepage() {
   if (CONFIG.showHero && (CONFIG.siteTitle || CONFIG.siteSubtitle)) {
     content += '<div class="homepage-hero">';
     if (CONFIG.siteTitle) {
-      content += `<h1>${CONFIG.siteTitle}</h1>`;
+      content += `<h1>${escapeText(CONFIG.siteTitle)}</h1>`;
     }
     if (CONFIG.siteSubtitle) {
-      content += `<p>${CONFIG.siteSubtitle}</p>`;
+      content += `<p>${escapeText(CONFIG.siteSubtitle)}</p>`;
     }
     content += '</div>';
   }
@@ -1094,4 +1096,4 @@ if (process.argv.includes('--watch')) {
   });
 } else {
   build();
-}
+                }
