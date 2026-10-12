@@ -62,5 +62,5 @@ Raw HTML in Markdown is off. An administrator of the server can allow it with `a
 ## What is not covered
 
 - There is no two-factor sign-in.
-- There is no audit screen. Sign-ins, failures, user changes and publishes are written to the editor's log with the account name.
+- Admin includes Security, Activity log and Publish & history. Operational events persist in a bounded local `audit.jsonl` with rotated archives; it is not tamper-proof or page version history. Passwords, tokens, request bodies, client addresses and arbitrary build errors are not included. See [System Areas](/editing-and-admin/system-areas/).
 - There is no built-in HTTPS. Use a reverse proxy.

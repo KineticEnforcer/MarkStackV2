@@ -57,7 +57,7 @@ If a page has no `title`, MarkStack uses the file name with the dashes turned in
 
 ## The sidebar
 
-The sidebar lists sections and pages **alphabetically by title**, with folders first and then pages. There is no ordering field. To control the order, choose titles that sort the way you want, for example `Install`, `Configure`, `Run`.
+The sidebar lists folders first, then ordinary pages. Sections sort by integer `order` in their `_index.md` (default 0), then title. Ordinary pages sort alphabetically by title. Section `hidden: true` removes navigation only: output and search remain public. Manage these fields in Admin > Sections or edit the YAML.
 
 Section states are remembered in the reader's browser: which folders are open and where the list was scrolled. Folders on the way to the current page open themselves.
 
@@ -91,4 +91,5 @@ Section states are remembered in the reader's browser: which folders are open an
 | Nest sections | Put a folder with its own `_index.md` inside another |
 | Hide a draft | Start the file or folder name with a dot |
 | Change a page's URL | Change its `title` |
-| Reorder pages | Change titles so they sort the way you want |
+| Reorder sections | Set integer `order` in section `_index.md` |
+| Reorder ordinary pages | Change titles so they sort the way you want |

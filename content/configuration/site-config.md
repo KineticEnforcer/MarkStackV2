@@ -36,7 +36,7 @@ All settings are optional. A missing one falls back to the default below.
 
 `siteTitle` and `headerTitle` are separate on purpose. A hero can say "Acme Knowledge Base" while the header and browser tab keep a short "Acme Docs".
 
-Write plain text in `siteTitle` and `siteSubtitle`. They are put into the home page as they are, so do not use characters such as `<` and `&`.
+Write plain text in `siteTitle` and `siteSubtitle`. Site text is escaped in generated HTML; characters such as `<` and `&` remain text, not markup. Admin > General writes validated overrides to private `site-settings.json`; save, then publish. Raw HTML and baseUrl remain server-file settings.
 
 ## siteUrl
 

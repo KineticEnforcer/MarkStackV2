@@ -1,459 +1,634 @@
-<p align="center">
-  <img src="static/svg/logo.svg" alt="MarkStack Logo" width="80" height="80">
-</p>
+# MarkStack
 
-<h1 align="center">MarkStack</h1>
+**Markdown in. A searchable knowledge base out. Your files, your hosting, your workflow.**
 
-<p align="center">
-  <strong>A lightweight static site generator for markdown-based knowledge bases and documentation.</strong>
-</p>
+MarkStack turns folders of Markdown into a fast static documentation site. Write with your usual editor and Git, or use the included browser editor with live preview, section-based accounts, recoverable local drafts and a full Admin console. Readers get search, clear navigation and light or dark themes without a database or a running application server on the public host.
 
-<p align="center">
-  Transform your markdown files into a searchable, professional documentation website with minimal resource overhead.
-</p>
+## Privacy and security first
 
-<p align="center">
-  <a href="#features">Features</a> |
-  <a href="#why-markstack">Why MarkStack</a> |
-  <a href="#use-cases">Use Cases</a> |
-  <a href="#quick-start">Quick Start</a> |
-  <a href="#documentation">Documentation</a> |
-  <a href="#deployment">Deployment</a> |
-  <a href="#license">License</a>
-</p>
+**Editor sign-in protects editing, not reading.** Publishing makes content readable to anyone who can reach the static host. For a family handbook, internal procedures or customer notes, use your own private network or host-level authentication. Never publish passwords, recovery codes, private addresses or confidential records.
 
-<p align="center">
-  <img src="https://img.shields.io/badge/node-%3E%3D24.0.0-brightgreen?style=flat-square" alt="Node.js Version">
-  <img src="https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square" alt="License">
-</p>
+**"Hide from sidebar" is not privacy.** Hidden sections still build, remain reachable by URL and can appear in search. Dot-prefixed files/folders are excluded from the build, but source files and backups still need protection.
 
----
+**Keep runtime data private and backed up.** It holds password hashes, settings, links and activity history. Never upload it with `dist/`, commit it or serve the project root. Browser drafts stay on the device; avoid shared browsers for sensitive writing.
 
-## Design Philosophy
+**The default site is not fully offline or third-party-free.** Fonts and diagram scripts use Google Fonts and jsDelivr. External media and allowed HTML add their own risks. Self-host dependencies for a disconnected or stricter environment. Use HTTPS and a reverse proxy for a team editor; keep it off the public internet where possible.
 
-MarkStack is built on a simple premise: **Documentation should be accessible, robust, and permanent.** It is designed to serve all walks of life, from the student building a second brain, to the Dungeon Master organizing a campaign, to a team that wants its documentation reviewed like code.
+## At a glance
 
-**Built for the "Potato" & the Cloud**
-MarkStack is built to stay light. The build is a single Node.js process and the output is plain static files.
-* **For the Hobbyist:** Run it on a small VPS, an old laptop or a free static host. The public site needs no server-side code.
-* **For Teams:** The output is a folder of static files, so you can serve it from any web server or CDN you already run. High availability and scaling depend on that hosting, not on MarkStack. The visual editor is a single Node.js process and is not clustered.
+| Current project | Scope |
+| --- | --- |
+| **Node.js 24+** | Build and editor requirement |
+| **2 account roles** | Administrator and section-limited editor |
+| **9 Admin areas** | People, content, site and system management |
+| **4 publish stages** | Snapshot, build, verify, switch |
+| **39 Markdown docs** | Guides, references and section pages |
+| **8 documentation sections** | Plus home content |
+| **214 automated tests** | Verified baseline for this update |
+| **1920 × 1080 screenshots** | Real application, synthetic data |
+| **GPL-3.0** | See [LICENSE](LICENSE) |
 
-**Radical Simplicity: Vanilla by Design**
-Modern web development has become over-complicated. MarkStack rejects this. MarkStack is built with **Vanilla JavaScript** and a single file build process. There is no complex architecture to learn, no "magic" black-box frameworks, and no fragility.
-* **Hackable:** Because the code is simple and transparent, you can read it, understand it, and modify it to fit your exact needs.
-* **Future-Proof:** With no heavy dependencies, your documentation site won't break just because an npm package updated 5 years from now.
+Counts describe this revision, not capacity limits. Search-index counts include headings, not only pages.
 
-**Docs as Code: Review & History**
-Documentation goes stale when nobody owns it. MarkStack treats your docs *as code*, so they live in Git next to everything else.
-* **The Audit Trail:** Git records every change. If you protect your main branch and require pull request reviews, changes need approval before they reach it. MarkStack does not enforce this itself, your Git host does. History can be rewritten by anyone with enough rights, so it is a useful record, not a tamper-proof one.
-* **Accountability:** Commits show who changed a page and when. Pull requests show who approved it.
+![Reading site with synthetic documentation](static/images/readme/reader-light.png)
 
-**The "Headless" Brain: From D&D to Ph.D.**
-You don't need to be a systems engineer to have a powerful, globally accessible knowledge base. MarkStack turns GitHub (or any private Git repo) into your personal Content Management System.
-* **The Workflow:** Creating a study guide for a new subject? Managing lore for your D&D campaign? Just edit your files in the browser on GitHub (even on mobile!) and your site updates automatically if you setup the workflow, or if you have a site you use Cloudflare Pages or GitHub Pages with, it updated with each update to the repo!
-* **The Freedom:** You get the ease of a note-taking app with the power of a static site. Your data remains yours. It is private, portable, and secure, stored in simple Markdown files that you will always own.
+*Light-theme reader: navigation, breadcrumbs, metadata, highlighted code, alerts and table of contents. Screenshots use a synthetic "Field Guide" site, fictional accounts and example domains.*
 
-**OFF LINE MODE!**
-* **Take it with you:** You can just clone the repo, build your first few pages and copy it to a USB, take it with you and use any text editor on any computer to edit the .md files! I REALLY recommend Caddy, it has a portable version for every OS, be it MacOS or Linux or Windows so basically all you have to do is just copy the the executable / binary to the dist folder and run it after you ran the script to build your files.
-You can find it here: [Caddy Offical Repo](https://github.com/caddyserver/caddy/releases)
+## Contents
 
----
+- [What is included](#what-is-included)
+- [Quick start](#quick-start)
+- [How the pieces fit](#how-the-pieces-fit)
+- [Writing and organizing content](#writing-and-organizing-content)
+- [The reading site](#the-reading-site)
+- [The browser editor](#the-browser-editor)
+- [The Admin console](#the-admin-console)
+- [Save, publish and Git](#save-publish-and-git)
+- [Configuration](#configuration)
+- [Security model](#security-model)
+- [Hosting and deployment](#hosting-and-deployment)
+- [Backup, recovery and updates](#backup-recovery-and-updates)
+- [Complete project map](#complete-project-map)
+- [Commands, tests and contribution](#commands-tests-and-contribution)
+- [Troubleshooting and limits](#troubleshooting-and-limits)
+- [Documentation map](#documentation-map)
 
----
+## What is included
 
-## Why MarkStack
+Built for documentation, handbooks, runbooks and team knowledge bases. The reader is static; the optional writing tools are not.
 
-- **The folder tree is the site.** Put Markdown in folders and the sidebar, URLs, breadcrumbs, previous and next links and the "On this page" list are generated. There is no menu file to keep in sync.
-- **Search that needs no service.** Typo tolerant, supports `"exact phrases"`, and results open the page at the matching heading. It runs in the browser from one JSON file.
-- **An editor for people who do not use Git.** Live preview with the real site stylesheet, accounts for administrators and editors, editors limited to the sections you give them, and a Publish Changes button that builds beside the live site, checks the result, switches it in and keeps the previous version.
-- **Static output.** The result is plain HTML, CSS and JavaScript. Host it anywhere, with nothing running for your readers.
-- **Small enough to read.** One build script, one template, one stylesheet, a short dependency list. You can change what you do not like.
-- **Honest limits.** One template, alphabetical sidebar order, no plugins, no built-in translations and no comments. See the [FAQ](content/troubleshooting/faq.md).
+| Part | What it does |
+| --- | --- |
+| Generator | Reads Markdown, YAML metadata, assets and one HTML template; writes portable `dist/` |
+| Reader | Responsive navigation, heading search, themes, code copying and diagrams |
+| Editor | Markdown source, live preview, file operations, explicit saving and local draft recovery |
+| Admin | Accounts, sections, pages, branding, links, security state and persistent history |
+| Publisher | Builds beside the live folder, checks the result, switches output and keeps one backup |
+| Documentation | Setup, writing, configuration, architecture, hosting and troubleshooting |
 
-![The MarkStack editor with file tree, Markdown source and live preview](static/images/docs/editor-overview-light.png)
+No proprietary content format. Skip the editor, keep files in Git and build in CI, or run it privately for browser-based contributors. Neither path automatically commits or pushes content to Git.
 
----
+## Quick start
 
-## Use Cases
+### Build the reader
 
-MarkStack adapts to a wide range of documentation needs. The table below outlines common scenarios where teams and individuals have successfully deployed MarkStack-powered sites.
-
-| Use Case | Description | Example |
-|----------|-------------|---------|
-| **Product Documentation** | Public-facing documentation for software products, APIs, or services. Supports versioning through Git branches and provides professional presentation for end users. | SaaS product help center, open source project documentation |
-| **Internal Knowledge Base** | Centralized repository for company policies, procedures, and institutional knowledge. Searchable and accessible to all team members without external dependencies. | IT runbooks, HR policies, operational procedures |
-| **Developer Handbook** | Onboarding resource for new developers joining a team. Documents codebase architecture, development workflows, coding standards, and deployment processes. | Engineering team onboarding, contributor guidelines |
-| **API Reference** | Technical reference documentation with code examples, endpoint descriptions, and authentication guides. Syntax highlighting supports 190+ languages. | REST API documentation, SDK reference |
-| **Personal Knowledge Base** | Private or public collection of notes, tutorials, and reference material. Ideal for developers maintaining their own technical notes. | Learning notes, technology comparisons, how-to guides |
-| **Course Material** | Educational content with structured navigation, code examples, and progressive learning paths. Task lists enable progress tracking for students. | Programming tutorials, certification study guides |
-| **Project Wiki** | Lightweight alternative to traditional wiki software. Version-controlled through Git with full change history and collaborative editing through pull requests. | Team project documentation, research notes |
-
----
-
----
-
-## GitHub-Native Workflow
-
-MarkStack uses standard GitHub-flavored Markdown for all content. This design decision enables a streamlined documentation workflow that integrates directly with your existing development process.
-
-**How it works:**
-
-1. Documentation lives alongside your code in the same repository
-2. Edit any `.md` file directly in the GitHub web interface or your local editor
-3. Commit and push changes through your normal Git workflow
-4. Rebuild the site with a single command
-5. All changes are tracked in Git history with full attribution
-
-This approach eliminates the need for separate documentation platforms or content management systems. Your documentation benefits from the same review process, branching strategy, and collaboration tools you already use for code. Pull requests enable documentation reviews, and merge conflicts are resolved using familiar Git workflows.
+Install Node.js 24+ and npm:
 
 ```bash
-# Update documentation from the latest changes
-git pull origin main
-npm run build
-
-# Documentation is now current
-```
-
----
-
----
-
-## Features
-
-### Content Authoring
-
-- **Standard Markdown** with YAML frontmatter, compatible with GitHub rendering
-- **GitHub-style alerts** for NOTE, TIP, IMPORTANT, WARNING, and CAUTION callouts
-- **Task lists and footnotes** for checklists and references
-- **Syntax highlighting** for 190+ languages via highlight.js, with a language label and a Copy button on every code block
-- **Mermaid diagrams** for flowcharts, sequence diagrams and more (loaded from a CDN, see [Security](content/editing-and-admin/security.md))
-- **Titles decide URLs.** Rename a title and the address follows. Duplicate addresses fail the build and name both pages.
-
-### Visual Editor
-
-- File tree, Markdown source and live preview with scroll sync and a Hide button for the source pane. On phones: a dismissible file drawer, full-width Edit/Preview, touch-size Save/Publish controls and scrolling dialogs that fit the visible screen.
-- Mobile admin navigation, full-width list/detail screens and an account menu that fits at 320px. Responsive and focus checks supplement, but do not replace, real-device Safari/keyboard testing. See [mobile editor use](content/editing-and-admin/visual-editor.md#theme-and-small-screens).
-- New files and folders can be placed in any folder at any depth with the Location drop-down
-- Accounts with two roles. Editors only see and change the sections assigned to them
-- **Publish Changes** (administrators) rebuilds the whole site beside the live one, checks it, switches it in only if the build succeeded, and shows live progress and a copyable error report if it fails
-- Full-screen Admin console with left navigation, a searchable user list and a user detail pane
-- Header links managed by an administrator, with favicons fetched safely by the server
-
-### Reading Experience
-
-- Dark and light themes, remembered per browser, applied before the page paints
-- IBM Plex typography
-- Responsive layout for desktop, tablet and phone
-- Collapsible sidebar with a marker on the current page, breadcrumbs, reading time, an optional updated date, and previous and next links
-- "On this page" list for pages with two or more `##` headings
-
-### Search
-
-- Press `Ctrl+K` (or `Cmd+K`, or `/`) or click the search box. Results are grouped into Pages and Sections with the folder path shown. Arrow keys move, Enter opens, Esc closes.
-- Every typed word must match. Partial words match, small typos are tolerated for words of five or more letters, and quoted phrases must match exactly.
-- Pages and their `##` to `####` headings are indexed. Code blocks are not.
-
-### Output and Hosting
-
-- Static HTML output that needs no application server
-- Builds in well under a second for a few dozen pages
-- Works on any static host or web server. See the [Deployment Guide](content/build-deploy/deployment.md)
-
----
-
-## Quick Start
-
-```bash
-# Get the code from the address you received MarkStack from
-git clone <repository-url> markstack
-cd markstack
-
-# Install dependencies
+git clone https://github.com/KineticEnforcer/MarkStackV2.git
+cd MarkStackV2
 npm ci
-
-# Build the site
 npm run build
-
-# Preview locally
 npm run serve
 ```
 
-Open the address that `npm run serve` prints (usually http://localhost:3000). The first run asks to download the `serve` package.
+Open the address printed by `serve`. Its first run may ask to download `serve` through `npx`. Any static server can serve `dist/` instead.
 
-To write in the browser, create an administrator and start the editor:
+| Change | Where |
+| --- | --- |
+| Home content | `content/_index.md` |
+| Your pages | Markdown under `content/` |
+| Site identity | `siteconfig.json` |
+| Images | `static/images/` |
+| Logo | `static/svg/logo.svg` |
+| Layout | `templates/base.html` |
+
+Run `npm run watch` in one terminal and a static server in another for automatic rebuilds. Watch monitors content, assets and templates, not site configuration/runtime settings. It does not serve the site; refresh after a build.
+
+### Optional browser editor
 
 ```bash
 npm run editor:create-admin -- --user admin
 npm run editor
 ```
 
-Then open http://127.0.0.1:3001 and sign in. See [Set Up the Editor](content/getting-started/set-up-the-editor.md).
+The account command asks for a password at a hidden prompt. Open `http://127.0.0.1:3001` and sign in. The default listener is loopback only. Administrators create editors, assign sections and publish saved content.
 
----
+Do not put passwords in command arguments, screenshots or committed files. Use the [team server guide](content/build-deploy/team-server-setup.md) for HTTPS and a private data folder outside the checkout.
 
-## Documentation
-
-The documentation is a MarkStack site built from the `content/` folder of this repository.
-
-| Section | Description |
-|---------|-------------|
-| [Getting Started](content/getting-started/) | Requirements, installation, quick start, project structure, setting up the editor |
-| [Authoring Content](content/authoring/) | The content model, frontmatter, Markdown features, media and links, examples |
-| [Editing and Admin](content/editing-and-admin/) | The visual editor, users and roles, publishing, header links, security |
-| [Configuration](content/configuration/) | Site settings and homepage content |
-| [Customization](content/customization/) | Themes, styling, and the page template |
-| [Build and Deploy](content/build-deploy/) | Commands, deployment, running the editor as a service, automated builds |
-| [Architecture](content/architecture/) | Build pipeline, navigation and routing, search |
-| [Troubleshooting](content/troubleshooting/) | Common issues and frequently asked questions |
-
----
-
-## Project Structure
+## How the pieces fit
 
 ```text
-markstack/
-├── build.js              # The static site generator
-├── editor-server.js      # Editor server
-├── editor.html           # Editor page
-├── login.html            # Sign-in page
-├── admin-users.html      # User management page
-├── admin.html            # Full-screen administrator console
-├── admin-links.html      # Legacy header links source (route redirects to /admin)
-├── lib/                  # Accounts, sessions, section access, publishing, header links
-├── scripts/              # create-admin and reset-admin commands
-├── siteconfig.json       # Site settings
-├── content/              # Your Markdown
-│   ├── _index.md         # Home page content (optional)
-│   └── section/          # A section is a folder
-│       ├── _index.md     # The section's page and title
-│       └── article.md
-├── templates/
-│   └── base.html         # The page template
-├── static/               # Copied into the site as is
-│   ├── css/  js/  svg/  images/
-├── template/             # A small starter content folder to copy from
-├── test/                 # Automated tests
-└── dist/                 # Built site (git-ignored)
+content/ + static/ + templates/ + siteconfig.json
+                + private build settings/header links
+                               |
+                           build.js
+                               |
+                             dist/
+                               |
+                    static web host -> readers
+
+browser editor -> editor-server.js -> saved Markdown + private data
+administrator -> Publish Changes -> snapshot/build/verify/switch
 ```
 
----
+| Boundary | Meaning |
+| --- | --- |
+| Source/output | Edit source, not generated HTML |
+| Reader/editor | Public host needs no Node server; editor does |
+| Editor/Git | Saving writes files; versioning is separate |
+| Publish/hosting | Button updates local `dist/`; remote delivery is separate |
+| Accounts/privacy | Assignments restrict editing; host controls reader access |
 
-## Configuration
+## Writing and organizing content
 
-Edit `siteconfig.json`:
-
-```json
-{
-  "siteTitle": "Acme Knowledge Base",
-  "headerTitle": "Acme Docs",
-  "siteSubtitle": "Guides and reference for Acme products.",
-  "siteUrl": "https://docs.example.com",
-  "baseUrl": "",
-  "defaultDescription": "Documentation for Acme products",
-  "showHero": true
-}
+```text
+content/
+├── _index.md               Home body
+├── guides/
+│   ├── _index.md           Section page and metadata
+│   ├── quickstart.md       Normal page
+│   └── advanced/
+│       ├── _index.md       Nested section
+│       └── tuning.md
+└── .drafts/                Excluded from build
 ```
 
-| Property | Description |
-|----------|-------------|
-| `siteTitle` | The large heading in the home page hero |
-| `headerTitle` | The name beside the logo and at the end of every page title |
-| `siteSubtitle` | The line under the hero heading |
-| `siteUrl` | Public address of the site, used in link previews |
-| `baseUrl` | Path prefix for the template's links when the site is in a sub-folder, such as `/docs`. Leave empty for a root domain |
-| `defaultDescription` | Description for pages that have none |
-| `showHero` | Show or hide the home page hero |
-| `copyrightText` | Available as `{{copyrightText}}` in a custom template. The default template has no footer |
-| `allowRawHtml` | Optional. Set to `true` to render raw HTML in Markdown. Off by default, and only for sites where every author is trusted |
+| Rule | Result |
+| --- | --- |
+| `.md` file | A page |
+| `_index.md` | Home/section landing content |
+| Folder | Section; nesting supported |
+| Leading dot | File/folder excluded |
+| Page `title` | Public slug, not only display label |
+| Section `title` | URL segment and descendant URLs |
+| Duplicate URL | Build stops instead of overwriting |
 
-Links and images you write inside Markdown are not changed by `baseUrl`. Include the prefix yourself. More in [Site Config](content/configuration/site-config.md).
+Changing a title can break links. Renaming a file with a title usually keeps the URL; without a title it can change. Slugs use ASCII letters, digits, spaces and dashes. Check non-Latin/punctuation-heavy titles for empty or colliding slugs.
 
+Folders come first in navigation. Section `_index.md` integer `order` sorts lower first, then by title; normal pages sort by title. `hidden: true` removes a section from navigation, not output/search.
+
+### Frontmatter
+
+```markdown
+---
+title: "Setup: Linux"
+description: Install and verify the tools.
+updated: 2026-10-12
 ---
 
-## Writing Content
+# Setup: Linux
 
-```bash
-mkdir content/tutorials
-cat > content/tutorials/_index.md << 'EOF'
----
-title: Tutorials
-description: Step-by-step guides for common tasks.
----
-EOF
-
-cat > content/tutorials/first-steps.md << 'EOF'
----
-title: First Steps
-description: Your first tutorial.
-updated: 2026-03-05
----
-
-# First Steps
-
-> [!TIP]
-> Titles decide URLs. This page is served at `/tutorials/first-steps`.
-EOF
-
-npm run build
+Your page content.
 ```
 
-Only `title`, `description` and `updated` (or `date`) are read from the frontmatter. Quote a title that contains a colon and a space. See [Frontmatter](content/authoring/frontmatter.md) and [Markdown Features](content/authoring/markdown-features.md).
+| Field | Meaning |
+| --- | --- |
+| `title` | Label and slug; filename fallback |
+| `description` | Page metadata; site fallback |
+| `updated` | Displayed date; `date` fallback |
+| `order` | Section sidebar position, integer |
+| `hidden` | Section sidebar visibility, boolean |
 
----
+YAML only. Executable/other language markers are refused. Quote colons and special characters. Other metadata can remain, but there are no tag/author archives or draft-state fields.
 
-## Commands
+### Markdown and assets
 
-| Command | Description |
-|---------|-------------|
-| `npm run build` | Build the site into `dist/` |
-| `npm run watch` | Rebuild when files in `content/`, `static/` or `templates/` change |
-| `npm run serve` | Preview `dist/` locally |
-| `npm run clean` | Remove `dist/` |
-| `npm run editor` | Start the visual editor (sign-in required) |
-| `npm run editor:create-admin -- --user NAME` | Create an administrator (password at a hidden prompt) |
-| `npm run editor:reset-admin -- --user NAME` | Set a new password for an administrator |
-| `npm test` | Run the automated tests |
+| Feature | Behavior |
+| --- | --- |
+| Headings | Anchors and heading search |
+| Emphasis/lists | Standard Markdown and task lists |
+| Tables | Styled; copy control on reader |
+| Footnotes | Linked references |
+| Code fences | Syntax highlighting and copying |
+| Alerts | NOTE, TIP, IMPORTANT, WARNING, CAUTION |
+| Mermaid | Browser-rendered diagram fences |
+| Images/links | Standard Markdown, static assets |
+| Raw HTML | Off by default; trusted-author server option |
 
-```bash
-# Terminal 1: rebuild on change
-npm run watch
+Put `diagram.png` in `static/images/`, reference `/images/diagram.png`. Media only in `content/` is not copied. The editor is not an image-upload manager.
 
-# Terminal 2: serve the site
-npm run serve
-```
+Authored Markdown links/images are not rewritten for a `baseUrl` sub-path. Include the prefix yourself. Links are not all validated during build; click through after reorganizing. See [media and links](content/authoring/media-and-links.md).
 
-All options and environment variables are in the [Commands Reference](content/build-deploy/commands.md).
+## The reading site
 
----
+| Experience | Detail |
+| --- | --- |
+| Navigation | Nested sidebar, active page, remembered expansion/scroll |
+| Context | Breadcrumbs, updated date, reading time, previous/next |
+| On this page | Heading navigation where available |
+| Search | Client-side page/heading results, phrases, typo-tolerant ranking |
+| Search keys | Ctrl/Cmd+K or `/`; keyboard result navigation |
+| Themes | Light/dark toggle, browser-local preference |
+| Copying | Code and table controls |
+| Header links | Cached icons and More overflow menu |
+| Phones | Responsive sidebar/reading layout |
+| Metadata | Titles, descriptions, public URL metadata |
+| Missing pages | Generated `404.html`; host config required |
 
-## Deployment
+Search reads generated `search-index.json`, not a hosted service. Each page and H2-H4 heading can be a result linking to the heading. Code blocks/diagrams are excluded from indexed prose. Hidden navigation sections remain indexed. Index size and browser work grow with content; measure your large collection instead of assuming a capacity guarantee.
 
-The output of `npm run build` is the `dist/` folder, and it can be served by any web server or static host.
+<details>
+<summary>Dark theme and search screenshots</summary>
 
-| Where | Setup |
-|-------|-------|
-| Static hosting service that builds from Git | Build command `npm run build`, output folder `dist`, Node.js 24 or newer |
-| Direct upload | Upload the contents of `dist/` |
-| Your own server | Point nginx, Caddy or similar at `dist/` |
+![Dark reader](static/images/readme/reader-dark.png)
 
-See the [Deployment Guide](content/build-deploy/deployment.md), [Team Server Setup](content/build-deploy/team-server-setup.md) for running the editor on a server, and [Automated Builds](content/build-deploy/automated-builds.md).
+![Page and heading search](static/images/readme/search.png)
 
----
+</details>
 
-## Editor Security
+## The browser editor
 
-The editor requires sign-in and listens on `127.0.0.1` by default. Passwords are stored as salted scrypt hashes, sessions use HttpOnly, SameSite=Strict cookies and CSRF tokens, failed sign-ins are rate limited, and editors reach only their assigned sections. Run it behind HTTPS if you expose it. Two-factor sign-in is not included.
+![Markdown source and live preview](static/images/readme/editor.png)
 
-The full list of protections, the environment variables and what browsers load from third parties are in [Security](content/editing-and-admin/security.md).
+| Tool | Behavior |
+| --- | --- |
+| File tree | Allowed Markdown, remembered expansion |
+| Source/preview | Syntax-colored source, live rendering, synchronized scroll |
+| Save | Writes current file to server |
+| New file/folder | Guarded content creation |
+| Rename/delete | Explicit actions; no deletion undo |
+| Draft recovery | Browser-local, account/path-scoped, review before recovery |
+| Leaving dirty work | Save, keep draft or stay |
+| Account menu | Password actions; Admin for administrators |
+| Publish | Administrator-only, shared dialog |
+| Phone layout | Content drawer and Edit/Preview views |
 
----
+Drafts are not server backups or published pages. Storage can be blocked, full or cleared. Recovery warns if saved server text changed and does not itself save. Other tabs' drafts do not follow renamed paths. Recover/save wanted work before reorganizing.
 
-## Technology
+Preview uses the site's style and Markdown renderer, not the complete generated page with navigation/metadata. Check the reader too. This is not live collaboration, merge resolution, a review/approval workflow or a Git history viewer.
 
-| Component | Implementation |
-|-----------|----------------|
-| Markdown | [markdown-it](https://github.com/markdown-it/markdown-it) with anchor, footnote and task list plugins |
-| Frontmatter | [gray-matter](https://github.com/jonschlinkert/gray-matter) and [js-yaml](https://github.com/nodeca/js-yaml), YAML only |
-| Code highlighting | [highlight.js](https://highlightjs.org/) |
-| Diagrams | [Mermaid](https://mermaid.js.org/), loaded in the browser |
-| File watching | [chokidar](https://github.com/paulmillr/chokidar) for watch mode |
-| Front end | Vanilla JavaScript, no framework |
-| Typography | IBM Plex Sans and IBM Plex Mono |
+## The Admin console
 
----
+Open **account menu > Admin** as an administrator. Desktop uses navigation/list/detail panels; phones use menus and back-to-list navigation. Administrator-only APIs enforce the boundary independently of the UI.
 
-## Requirements
+| Area | What you manage |
+| --- | --- |
+| Users | Accounts, access, enabled state, passwords, sessions, activity |
+| Sections | Titles, folder names, position, visibility, editors, pages |
+| Pages | Catalog, source path, planned URL, create/rename/delete |
+| General | Titles, subtitle, description, site URL |
+| Appearance | Home hero; read-only raw-HTML state |
+| Header links | Address/title, order, visibility, icon refresh |
+| Security | Live policy/limiter summary and your password |
+| Publish & history | Current publisher and retained run summaries |
+| Activity log | Exact filters and cursor-based Load more |
 
-- Node.js 24 or newer
-- npm, which comes with Node.js
+### Users and roles
 
----
+| Role | Authority |
+| --- | --- |
+| Administrator | All content, top-level sections, accounts, settings, publish/history |
+| Editor | Assigned top-level sections and own password; no Admin/publish |
 
-## Tests and CI
+Accounts use lowercase names, not required email addresses. Account creation/reset can require a password change. Details separate Access, Account, Sessions and Activity. Disable blocks sign-in. Password/access changes and disable end affected sessions; administrators can end sessions explicitly. The last enabled administrator cannot be disabled.
 
-`npm test` runs the automated tests. GitHub Actions runs the tests, the build and `npm audit --audit-level=high` on Node.js 24 for pull requests and pushes to main that touch code, content, templates, static files, tests, package files or the workflow.
+![Fictional editor section access](static/images/readme/admin-users.png)
 
-## License
+### Sections and pages
 
-This project is licensed under the GPL-3.0 license. See [LICENSE](LICENSE) for the full license text.
+Sections show page/editor counts. Settings preserve the Markdown body and unrelated metadata where safe; stale saves refuse changed `_index.md` files. Title/folder changes warn about URLs and drafts. Folder renames update assignments and end affected sessions. Metadata save and rename are separate steps; partial success is reported. No whole-section delete action.
 
----
+Pages show saved title, source, planned URL, section and modification time. A planned URL is not proof it is live. Open in editor respects draft recovery. Create/rename/delete use the normal guarded APIs. Deletion has no console undo; keep backups.
 
-<p align="center">
-  <sub>Built for people who value simplicity and performance.</sub>
-</p>
+![Section settings](static/images/readme/admin-sections.png)
 
-### Administrator console
+### Site settings and header links
 
-**Only administrators can open `/admin`. Editors cannot use its routes or management APIs.** Open the editor account menu and choose **Admin**. Users and Header links share the same full-screen console; switching areas does not reload the page or reset the theme.
+Save explicitly, then publish. Leaving dirty settings asks before discarding. Stale revisions are refused rather than overwriting another administrator's save. Browser settings cannot enable raw HTML.
 
-| Area | What you can do |
-|---|---|
-| Users | Search accounts, add a user, set section access, inspect account details and last sign-in, reset an editor password, disable or enable an account, inspect sessions and recent events, sign out everywhere |
-| Sections | Edit section title, sidebar position/visibility, folder name and assigned editors; inspect its pages |
-| Pages | Search all Markdown pages, inspect paths/URLs/times, open in editor, create, rename or delete |
-| General | Site title, header title, subtitle, default description and site URL |
-| Appearance | Show home hero; read-only server raw-HTML state |
-| Header links | Add, edit, reorder, remove or hide a link; the server fetches its favicon |
-| Publish Changes | Build saved content with staged progress, keep the previous live site, and inspect failure details |
+Header links accept full HTTP/HTTPS addresses, order and visibility: **30 links**, **40-character titles**. Excess width goes into More. Server-side icon fetching checks public addresses, redirects, size and time, refuses SVG/private addresses and stores icons locally. Displaying a cached icon does not contact its destination; clicking the link does.
 
-Desktop uses navigation, list and detail columns for Users. On a small screen, **Menu** opens navigation and **Back to users** returns from a detail view to the list. Settings pages use the full remaining width. Old `/admin/users` and `/admin/links` bookmarks redirect to the matching console area.
+<details>
+<summary>General settings and page catalog</summary>
 
-User changes apply immediately. Header link changes reach the public docs only after **Publish Changes**. The shell uses the existing management APIs and data files; no new environment variables, ports or storage migration are required.
+![General settings](static/images/readme/admin-general.png)
 
+![Saved-page catalog](static/images/readme/admin-pages.png)
 
-### Unsaved editor drafts
-
-Before leaving the editor for Admin or another page, or signing out, unsaved Markdown offers **Stay here**, **Keep draft and leave**, or **Save and leave**. Save and leave waits for a confirmed save; an error keeps the editor open. Refreshing or closing the tab uses the browser's own unsaved-changes warning.
-
-Unsaved drafts are kept in this browser's local storage, separated by account name and file path. Returning to the editor reopens the last file only if the current account can still read it, then offers **Recover draft** or **Use server text**. Recovery never saves or publishes automatically. If the server file changed, the editor warns before recovery. Saving clears the local draft. Renaming an open file carries its unsaved draft to the new path; confirmed deletion clears the open file and its draft.
-
-Drafts are a convenience, not a backup. They stay on this device after sign-out and are not encrypted; avoid storing sensitive Markdown on a shared browser profile. Clearing browser data, private-browsing cleanup, or unavailable storage can remove them. If storage fails, **Keep draft and leave** is disabled: save before leaving instead. No server data format, environment variable or deployment change is needed.
-
-
-### User details
-
-| Tab | Controls and limits |
-|---|---|
-| Access | Per-section create/edit/rename/delete access or hidden. Select all/none, Save changes, Discard. Unsaved changes are guarded when leaving. Saving access ends the user's sessions. |
-| Account | Read-only username and role, creation and last sign-in times, enable/disable, editor password reset with a temporary password shown once. You cannot disable yourself or the last active administrator. |
-| Sessions | Current active session times and Sign out everywhere, which also raises the account's access version. Choosing your own account ends your current session too. |
-| Activity | Up to 50 recorded auth/management events for that user from persistent bounded history. No passwords, tokens, CSRF values or IP addresses are shown. |
-
-Last sign-in is recorded in the existing owner-only user file on a successful sign-in. Older accounts show **Never** until their next sign-in. A password check for changing a password does not update that time. Sessions stay in memory and reset when the server restarts; recorded activity is now persisted with bounded rotation in the System areas. Roles are read-only because the existing user store does not support changing roles.
-
-This phase adds no environment variables or ports. Access changes, account disabling, password resets and Sign out everywhere take effect immediately, without publishing. Browser drafts are not deleted by session revocation.
-
-
-### Sections and Pages
-
-**Only administrators can use these console areas and metadata APIs. Hiding a section is navigation-only, not access control.** Hidden sections still build and remain reachable by URL.
-
-Section settings live in the section's `_index.md` frontmatter (`title`, integer `order`, boolean `hidden`). Save keeps the Markdown body and unrelated metadata. A revision check refuses to overwrite a file changed since it was loaded. Complex YAML that cannot be preserved safely must be edited in the Markdown editor. Lower positions sort first; equal positions sort by title. Save, then Publish Changes to update the public site.
-
-Changing a section title can change public URLs. Renaming its folder updates assigned editors and ends their sessions. Folder rename and metadata save are separate steps; if rename fails after metadata saved, the console reports that partial result and keeps the rename available to retry. Browser-local drafts for other tabs keep their old paths, so recover and save them before renaming.
-
-The Editors tab changes assignments immediately with confirmation and ends that editor's sessions. Pages shows source path, planned public URL, section and modification time; Open in editor selects that file only if it is in the current account's authorized tree. New section creates a top-level folder and `_index.md`; New page asks for its section. Page rename/delete reuse the existing safe APIs. Delete cannot be undone in the console. Duplicate public URLs still stop the build rather than overwrite output. No new data file, dependency, environment variable or port is required.
-
-
-### Administrator site settings
-
-**General and Appearance are administrator-only. Raw HTML stays server-only and cannot be changed by these settings.** General edits the site title, header title, subtitle, default description and site URL. Appearance exposes the existing home-hero switch. No footer control is offered because the current template does not render one; no default-theme control is offered because no such build setting exists.
-
-Save writes an allowlisted override file, `site-settings.json`, in the existing data folder. The build overlays it on `siteconfig.json`; unknown/unsafe keys are ignored. Strings and URLs are validated, output is escaped, writes are atomic with mode 0640, and a revision check prevents stale settings saves. Invalid or damaged override files stop the build rather than enable unsafe options. The publisher snapshots this file and includes it in unpublished-change detection, so saves during a build remain unpublished for the next run. **Publish Changes** applies settings to the public site.
-
-These settings have Save/Discard and unsaved-change guards. A save error keeps the form values. No new dependency, port or environment variable is needed. Back up `site-settings.json` alongside users, links and content. Site URL may be blank; a value must be full HTTP/HTTPS without credentials, query or fragment.
+</details>
 
 ### System areas
 
-**Security, Activity log and Publish & history are administrator-only. History contains no passwords, tokens, CSRF values or client IP addresses. It is a local operational record, not tamper-proof evidence.**
+Security shows current policy, not controls for limits/unblocking. Password changes require the current password and confirmation, end other sessions and refresh this browser's session.
 
-| Area | What it shows or changes |
-|---|---|
-| Security | Current session idle/maximum limits, actual cookie mode, raw-HTML state, sign-in failure thresholds and blocked-group counts. Change your own password with the existing server validation; other sessions end. |
-| Activity log | Persistent auth and management events, with time, actor and target. Exact event/actor/target filters, newest-first pagination. |
-| Publish & history | Current publish state and saved-change indicator, completed/failed publish summaries, page counts and failed stage. Publish opens the shared staged-progress dialog. |
+Activity stores event/time/actor/target; failed sign-ins have no verified actor. Exact filters run server-side. User Activity shows the latest 50 retained target records. Publish history keeps result, actor, times, page counts and failed stage, not full logs/arbitrary errors.
 
-The history file is `audit.jsonl` in the existing data directory, mode 0600. It appends records and rotates at 1 MiB, retaining three archives (`audit.jsonl.1` through `.3`). Retention is size-based, not a fixed number of days. Publish history is a filtered view of the same bounded file. Back up the files with your runtime data. Earlier in-memory activity is not backfilled. Accounts/sessions/rate limits keep their existing behavior; session and rate-limit state still resets on restart, history does not.
+History survives restart. It is **local and bounded, not tamper-proof**, page version history or a multi-process audit service. `audit.jsonl` rotates at **1 MiB** with **3 archives**, about 4 MiB plus one record. Retention is size-based, not days. Crash can leave an unmatched start event; old events are not backfilled. A failed history write does not undo the action; Security shows a storage warning.
 
-History captures successful/failed/blocked sign-ins, sign-out, password changes, user creation/enable/disable/reset, section access/settings/rename, links/settings saves and publish start/completion/failure. Failed sign-ins have no verified actor. Completed publish summaries omit build logs and errors to avoid persisting private paths or secrets; the current publish dialog still has the detailed failure report. Unexpected termination may leave a start event without a completion event. A storage failure does not undo the underlying action; Security shows a history-storage warning and the server logs the failure. No new environment variable, dependency or port.
+<details>
+<summary>Security and activity log</summary>
+
+![Live security policy](static/images/readme/admin-security.png)
+
+![Synthetic operational activity](static/images/readme/admin-activity.png)
+
+</details>
+
+## Save, publish and Git
+
+| Action | Effect |
+| --- | --- |
+| Keep draft | Unsaved text in this browser |
+| Save | Markdown/settings on editor server |
+| Publish Changes | All saved content into local `dist/` |
+| Git commit/push | Separate source/versioning workflow |
+| Remote deployment | Separate upload/hosting pipeline |
+
+**Publish includes every saved page, including other editors' changes.** Unsaved tabs/drafts are excluded. The saved-change dot is a paths/sizes/modified-times fingerprint, not a cryptographic diff. A site never published through the editor shows the dot.
+
+| Stage | Action |
+| --- | --- |
+| Snapshot | Capture saved content, settings, links/icons |
+| Build | Generate in a temporary sibling folder |
+| Verify | Required output, valid search JSON, page completion |
+| Switch | Rename old output aside, new output into `dist/` |
+
+One publish at a time. Closing progress does not stop it. Five-minute build timeout. Errors before switching preserve live output and source. The dialog shows stage/log/redacted diagnostics; history retains summary only.
+
+`dist.previous` keeps **one** old build. Two renames are not a fully atomic swap: brief missing-folder interval or crash-between-renames needs recovery. This is not a zero-downtime guarantee.
+
+![Publish confirmation](static/images/readme/publish-confirm.png)
+
+<details>
+<summary>Completed local publish history</summary>
+
+![Successful synthetic publish in persistent history](static/images/readme/admin-publishes.png)
+
+</details>
+
+If the host serves this folder, readers see it. Remote hosts need your deployment pipeline. The button does not commit, push, upload to a CDN or invalidate remote caches.
+
+## Configuration
+
+### Site settings
+
+`siteconfig.json` is the base. Admin writes safe overrides to private `site-settings.json`.
+
+| Key | Purpose |
+| --- | --- |
+| `siteTitle` | Home hero heading |
+| `headerTitle` | Brand/title suffix; base fallback to site title |
+| `siteSubtitle` | Hero introduction |
+| `siteUrl` | Public metadata address |
+| `baseUrl` | Hosting sub-path; usually empty |
+| `defaultDescription` | Metadata fallback |
+| `showHero` | Home title/subtitle visibility |
+| `allowRawHtml` | Server-file choice, off by default |
+| `copyrightText` | Template value; current template has no footer |
+
+Admin cannot change baseUrl, raw HTML or arbitrary policy. Maximum lengths: site title 120, header title 80, subtitle/description 300, site URL 2000. URL is blank or HTTP/HTTPS without credentials/query/fragment. Invalid override JSON stops the build.
+
+There is no site-default theme control. Readers keep their browser preference. For design changes, edit CSS, fonts, logo or the single template.
+
+### Environment
+
+| Variable | Default / purpose |
+| --- | --- |
+| `MARKSTACK_EDITOR_HOST` | `127.0.0.1` |
+| `MARKSTACK_EDITOR_PORT` | `3001` |
+| `MARKSTACK_EDITOR_ALLOWED_HOSTS` | Extra accepted Host values |
+| `MARKSTACK_EDITOR_MAX_BODY` | 2097152 bytes (2 MiB) |
+| `MARKSTACK_USERS_FILE` | `.markstack/users.json` |
+| `MARKSTACK_SESSION_IDLE_MINUTES` | 480 (8 hours) |
+| `MARKSTACK_SESSION_MAX_MINUTES` | 10080 (7 days) |
+| `MARKSTACK_EDITOR_COOKIE_SECURE` | Set `1` for HTTPS |
+| `MARKSTACK_TRUSTED_PROXIES` | Proxy IPs or `loopback`; none default |
+| `MARKSTACK_DATA_DIR` | Build-time data folder |
+
+Build data precedence: `--data`, `MARKSTACK_DATA_DIR`, parent of `MARKSTACK_USERS_FILE`, project `.markstack/`. Editor data sits beside its users file. Point manual builds at the same intended data folder.
+
+## Security model
+
+| Protection | Detail |
+| --- | --- |
+| Passwords | Salted scrypt; 12-256 characters; common weak values refused |
+| Sessions | Random token, server stores hash; memory-only |
+| Cookies | HttpOnly/SameSite=Strict; HTTPS adds Secure/`__Host-` |
+| Writes | CSRF token and Origin/Host checks |
+| Access | Server-enforced sections and administrator boundaries |
+| Files | Path containment, symlink-aware guards, Markdown-only |
+| Requests | Body limits, validated inputs |
+| Headers | CSP, frame denial, nosniff, no-referrer on editor |
+| Frontmatter | YAML only, no executable variants |
+| Raw HTML | Off unless server configuration enables it |
+
+Sign-in failures: **5** per account/address, **30** per address, **20** per account across addresses, each over 15 minutes with a 15-minute pause. Previously successful addresses remain exempt from the account-wide pause. Counters reset on restart. Only trusted proxies may set client-address forwarding; wrong setup can group everyone behind a proxy.
+
+Sessions end on timeout, account changes or restart. No built-in TLS, MFA, SSO or reader login. Secure the host, backups, DNS, dependencies and reverse proxy yourself.
+
+| Browser dependency | Default |
+| --- | --- |
+| Editor highlighting/diagrams | Pinned jsDelivr scripts with integrity hashes |
+| Reader/editor fonts | Google Fonts |
+| Reader diagrams | Mermaid 11 from jsDelivr, not hash-pinned |
+
+Blocked dependencies mean fallback fonts/diagram source. Vendor assets and adjust references for reliable offline operation. Static output does not prevent authored tracking media or host access logging.
+
+## Hosting and deployment
+
+```bash
+npm ci
+npm run build
+# Deliver the CONTENTS of dist/ to the static host.
+```
+
+| Host style | Requirement |
+| --- | --- |
+| nginx/Caddy/Apache | Document root `dist/`; missing-page handling |
+| Static platform | Node 24, `npm ci && npm run build`, output `dist` |
+| Storage/CDN | Upload generated files, clean URLs and 404 handling |
+| Sub-path | baseUrl plus corrected authored links/images |
+| Private reader | Host/network authentication |
+
+The build is independent of the editor. Verify clean URLs, assets, 404 behavior, metadata and caching. Repository CI checks quality; it is not a deployment workflow.
+
+For a team editor, separate code/output/private data:
+
+```text
+/srv/knowledge-base/
+├── app/
+│   ├── content/
+│   ├── dist/             Public document root
+│   └── dist.previous/
+└── data/                 Private accounts/settings/links/audit
+```
+
+Use a dedicated low-privilege service user, loopback listener, HTTPS proxy, allowed hosts, secure cookies and trusted proxies. It needs write access to content/data and the parent of dist for publishing. Never expose the source root.
+
+[Team setup](content/build-deploy/team-server-setup.md) covers systemd/nginx; [deployment](content/build-deploy/deployment.md) covers static hosting. Examples are placeholders, not your production configuration.
+
+## Backup, recovery and updates
+
+| Back up | Why |
+| --- | --- |
+| `content/` | Source pages; editor saves do not commit |
+| Private data | Accounts, links/icons, settings, activity |
+| `siteconfig.json` | Base configuration |
+| Modified assets/templates | Branding/layout |
+| Service/proxy config | Restore a secure running service |
+
+Dist is reproducible; dist.previous is one-build fallback; local drafts are not backups. Restore accounts/data with restrictive permissions and test access before reopening.
+
+Rollback: confirm a valid dist.previous, no running publish and the correct served folder. Move current dist aside to an unused name, then move dist.previous to dist. This restores output only, not content/settings. Reconcile source before publishing again.
+
+Updates: back up, check local changes before pulling, install locked dependencies, test/build/audit, restart for server-code changes (signs everyone out), publish/deploy new output. Do not blindly reset a working content checkout. No automatic updater/Git conflict resolver.
+
+## Complete project map
+
+### Root and generated folders
+
+| Path | Job |
+| --- | --- |
+| `content/` | Markdown documentation/source |
+| `static/` | Assets copied unchanged |
+| `templates/` | HTML page template |
+| `template/` | Starter content to copy; not live template |
+| `lib/` | Build/server helpers |
+| `scripts/` | Account bootstrap/recovery |
+| `test/` | Node tests |
+| `.github/workflows/ci.yml` | Test/build/audit CI |
+| `build.js` | Generator/watch |
+| `editor-server.js` | Authenticated editor/admin server |
+| `editor.html` | Markdown editor |
+| `admin.html` | Unified Admin UI |
+| `login.html` | Sign-in/required password change |
+| `admin-users.html`, `admin-links.html` | Legacy UI files; server serves unified Admin |
+| `siteconfig.json` | Base site options |
+| `package.json`, `package-lock.json` | Scripts/dependencies/locked installs |
+| `README.md`, `LICENSE` | Guide/license |
+| `.gitignore` | Local/generated/private exclusions |
+| `dist/` | Generated reader; never hand-edit |
+| `dist.previous/` | One previous publish |
+| `dist.publish-*`, `dist.old-*` | Temporary publisher folders |
+| `node_modules/` | Installed libraries |
+| `.markstack/` | Default private runtime folder |
+
+### Assets and client code
+
+| Path | Responsibility |
+| --- | --- |
+| `static/css/main.css` | Reader layout/themes |
+| `static/css/hljs-theme.css` | Highlight colors |
+| `static/js/app.js` | Reader navigation/search/theme/copy/diagrams |
+| `static/js/search-core.js` | Search matching/ranking |
+| `static/js/content-controller.js` | Admin sections/pages |
+| `static/js/site-controller.js` | Admin general/appearance |
+| `static/js/system-controller.js` | Admin system areas |
+| `static/js/publish-controller.js` | Shared publish dialog |
+| `static/svg/logo.svg` | Header logo |
+| `static/images/` | Images/icons/screenshots |
+| `templates/base.html` | Single reader template |
+
+### Helpers in lib/
+
+| Module | Responsibility |
+| --- | --- |
+| `frontmatter.js` | YAML-only parsing |
+| `content-catalog.js` | Sections/pages and metadata |
+| `section-access.js` | Permissions/path guards |
+| `passwords.js` | Policy/hashing/verification |
+| `user-store.js` | Locked atomic account storage |
+| `sessions.js` | Memory sessions/invalidation |
+| `rate-limit.js` | Sign-in throttling |
+| `cli-prompt.js` | CLI password input |
+| `links-store.js` | Link validation/storage |
+| `favicon.js` | Restricted icon fetches |
+| `site-settings.js` | Overrides/revision-safe saving |
+| `audit-store.js` | Bounded operational history |
+| `publish.js` | Staged publisher |
+
+### Private runtime files
+
+| File | Treatment |
+| --- | --- |
+| `users.json` | Accounts/hashes; owner-only |
+| `users.json.lock` | Account write lock |
+| `publish-state.json` | Last editor-publish fingerprint/time |
+| `links.json` | Header destinations/icon references |
+| `favicons/` | Cached icons copied to output |
+| `site-settings.json` | Branding overrides, mode 0640 |
+| `audit.jsonl`, `.1`-`.3` | Operational log/archives, mode 0600 |
+
+Commit code/source/assets/templates, not runtime data, installed libraries, output or secrets. External runtime paths need their own ignore/access/backup policy.
+
+## Commands, tests and contribution
+
+| Command | Result |
+| --- | --- |
+| `npm ci` | Install lockfile exactly |
+| `npm run build` | Rebuild dist |
+| `npm run watch` | Watch content/assets/templates |
+| `npm run serve` | Local `npx serve dist` |
+| `npm run clean` | Delete dist |
+| `npm run editor` | Start editor |
+| `npm run editor:create-admin -- --user NAME` | Create admin, hidden prompt |
+| `npm run editor:reset-admin -- --user NAME` | Reset admin password |
+| `npm test` | Node test suite |
+| `npm audit --audit-level=high` | Dependency advisories |
+
+```bash
+npm run build -- --content ./docs --out ./public --data ./private-data
+```
+
+Options change Markdown input, output and settings/link data. **Build clears its output folder.** Never point `--out` at source or data you need.
+
+CI uses Node 24, npm ci, tests/build/audit for configured paths. README-only changes do not trigger it unless watched paths also change. Audit is point-in-time, not a permanent security guarantee.
+
+Before a focused PR: reproduce locally, use synthetic fixtures, check desktop/phone for UI changes, run tests/build/audit, check links and documentation. Never include private accounts/drafts in patches.
+
+### Runtime libraries
+
+The source package is version **1.1.4**. Locked dependencies support these jobs:
+
+| Library | Job |
+| --- | --- |
+| `markdown-it` | Markdown renderer |
+| `markdown-it-anchor` | Heading anchors |
+| `markdown-it-footnote` | Footnotes |
+| `markdown-it-task-lists` | Task lists |
+| `highlight.js` | Code highlighting |
+| `gray-matter`, `js-yaml` | Frontmatter/YAML |
+| `chokidar` | File watching |
+
+Node's built-in modules handle the editor's HTTP server, filesystem, password crypto and process management. Mermaid/font browser requests are separate from npm dependencies. Use the lockfile rather than choosing new versions casually; `package.json` includes a js-yaml override.
+
+## Troubleshooting and limits
+
+| Symptom | Check |
+| --- | --- |
+| YAML error | Quote special characters; YAML only |
+| Duplicate URL | Conflicting title/section slugs |
+| Saved but not live | Publish, then remote deploy if needed |
+| Missing image | static location and public/sub-path URL |
+| Section missing | Dot prefix, hidden flag, changed title |
+| Access denied | Assignment, enabled account, refreshed session |
+| Everyone signed out | Restart/account/session changes |
+| Host/Origin refusal | Proxy/allowed-host configuration |
+| Publish write error | Parent-of-dist/data permissions |
+| Stale save | Preserve edits, reload, reapply |
+| History warning | Permissions/space; action may already be done |
+| Diagram source visible | Script availability/syntax/CSP |
+| Large search count | Pages plus heading entries |
+
+| Not built in | Alternative |
+| --- | --- |
+| Reader private sections | Host access control |
+| MFA/SSO/TLS | Secure access layer/HTTPS proxy |
+| Revision history/undo | Git/backups |
+| Live collaboration/merges | Review workflow |
+| Remote CDN publish | Deployment pipeline |
+| Tags/blog feeds/translations | Custom work/another tool |
+| Plugins/multiple page layouts | Edit generator/template |
+| Image upload/comments/dynamic app | External tools/custom development |
+| Guaranteed offline mode | Self-host dependencies |
+| Unlimited audit retention | External backups/logging |
+
+## Documentation map
+
+**39 Markdown files in 8 sections plus home content.** Build them to read through MarkStack, or open the source guides below.
+
+| Section | Guides |
+| --- | --- |
+| Getting started | [Installation](content/getting-started/installation.md), [quickstart](content/getting-started/quickstart.md), [structure](content/getting-started/project-structure.md), [editor setup](content/getting-started/set-up-the-editor.md) |
+| Authoring | [Model](content/authoring/content-model.md), [frontmatter](content/authoring/frontmatter.md), [Markdown](content/authoring/markdown-features.md), [media](content/authoring/media-and-links.md), [examples](content/authoring/examples.md) |
+| Editing/Admin | [Editor](content/editing-and-admin/visual-editor.md), [users](content/editing-and-admin/users-and-roles.md), [sections/pages](content/editing-and-admin/sections-and-pages.md), [settings](content/editing-and-admin/site-settings.md), [links](content/editing-and-admin/header-links.md), [publish](content/editing-and-admin/publishing.md), [security](content/editing-and-admin/security.md), [system](content/editing-and-admin/system.md) |
+| Configuration | [Site](content/configuration/site-config.md), [home](content/configuration/homepage-content.md) |
+| Build/deploy | [Commands](content/build-deploy/commands.md), [hosting](content/build-deploy/deployment.md), [CI](content/build-deploy/automated-builds.md), [team server](content/build-deploy/team-server-setup.md) |
+| Customization | [Styling](content/customization/themes-and-styling.md), [templates](content/customization/templates.md) |
+| Architecture | [Pipeline](content/architecture/build-pipeline.md), [navigation](content/architecture/navigation-and-routing.md), [search](content/architecture/search-and-indexing.md) |
+| Troubleshooting | [Issues](content/troubleshooting/common-issues.md), [FAQ](content/troubleshooting/faq.md) |
+
+## License and author
+
+Public identity: **KineticEnforcer**. Licensed under [GPL-3.0](LICENSE); read the terms before redistribution/modification. No commercial hosting service is required.

@@ -20,15 +20,16 @@ my-docs/
 ├── editor-server.js     The visual editor server (optional)
 ├── editor.html          The editor page
 ├── login.html           Editor sign-in page
-├── admin-users.html     Editor user management page
-├── admin-links.html     Editor header links page
+├── admin.html           Unified Admin console
+├── admin-users.html     Legacy UI source (server uses unified Admin)
+├── admin-links.html     Legacy UI source (server uses unified Admin)
 ├── lib/                 Code used by the editor and the build
 ├── scripts/             Command line tools for editor administrators
 ├── test/                Automated tests
 ├── package.json         Scripts and dependencies
 ├── dist/                The built site (generated, never edit)
 ├── node_modules/        Installed libraries (generated)
-└── .markstack/          Editor accounts and header links (generated, private)
+└── .markstack/          Accounts, links, settings and activity (private)
 ```
 
 ## Folders you work in
@@ -83,7 +84,7 @@ A separate folder with an example section (`category-name/`) you can copy into `
 | `siteconfig.json` | Site title, subtitle, public address, base path and options. See [Site Configuration](/configuration/site-config). |
 | `build.js` | The generator. One file that reads `content/`, applies the template and writes `dist/`. |
 | `package.json` | The npm scripts (`build`, `watch`, `serve`, `editor` and more) and the dependency list. |
-| `editor-server.js`, `editor.html`, `login.html`, `admin-users.html`, `admin-links.html` | The visual editor, covered in [Editing and Admin](/editing-and-admin/). You can ignore them if you only use files. |
+| `editor-server.js`, `editor.html`, `login.html`, `admin.html` (plus legacy admin UI files) | The visual editor, covered in [Editing and Admin](/editing-and-admin/). You can ignore them if you only use files. |
 | `lib/` | Code for sign-in, sessions, passwords, section access, publishing, header links and front matter parsing. |
 | `scripts/` | `create-admin.js` and `reset-admin.js`, run through npm scripts. |
 | `test/` | The automated tests. `npm test` runs them. |
@@ -94,7 +95,7 @@ A separate folder with an example section (`category-name/`) you can copy into `
 | --- | --- | --- |
 | `dist/` | The finished site. Deleted and rebuilt on every build. | Never |
 | `node_modules/` | Libraries installed by `npm install`. | Never |
-| `.markstack/` | Editor user accounts (`users.json`) and header links with their icons. Private, owner-only, and excluded from Git. | Only through the editor and its scripts |
+| `.markstack/` | Editor accounts (`users.json`), links/icons, `site-settings.json` and bounded `audit.jsonl` history. Private and excluded from Git. The data folder can also live outside the checkout. | Only through the editor and its scripts |
 
 > [!WARNING]
 > `.markstack/` holds password hashes. Do not commit it, share it or copy it to a public place. It is already listed in `.gitignore`.
