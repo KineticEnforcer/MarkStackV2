@@ -449,3 +449,13 @@ test('site settings are administrator-only, CSRF protected and ignore unsafe key
  assert.equal((await request('POST','/api/site-settings',{...a,body:{revision:save.json.revision,settings:{siteUrl:'javascript:alert(1)'}}})).status,400);
  CONFIG.dataDir=undefined;
 });
+test('system overview and persisted activity/history are admin-only without secret keys',async()=>{
+ const a=await login('ada',ADMIN_PW),e=await login('detail-reader','detail reader password');
+ for(const url of ['/api/security','/api/activity','/api/publish/history']){assert.equal((await request('GET',url)).status,401);assert.equal((await request('GET',url,e)).status,403);assert.equal((await request('GET',url,a)).status,200);}
+ const policy=(await request('GET','/api/security',a)).json;assert.equal(policy.sessionIdleMinutes,CONFIG.sessionIdleMinutes);assert.equal(policy.rateLimits.accountAddress.maxFailures,editor.AUTH.byAccount.maxFailures);assert.ok(!JSON.stringify(policy).includes('127.0.0.1'));assert.ok(!JSON.stringify(policy).includes('acct:'));
+ const activity=(await request('GET','/api/activity?target=ada&limit=2',a)).json;assert.equal(activity.records.length,2);assert.ok(activity.hasMore);assert.ok(activity.records.every(r=>r.target==='ada'));const next=(await request('GET','/api/activity?target=ada&limit=2&before='+activity.nextBefore,a)).json;assert.ok(!next.records.some(r=>activity.records.some(x=>x.id===r.id)));assert.ok(!JSON.stringify(activity).includes(ADMIN_PW));
+ const store=new (require('../lib/audit-store').AuditStore)(path.dirname(CONFIG.usersFile));assert.ok(store.read({event:'login',actor:'ada'}).records.length>0);
+});
+test('an audit-storage error is visible without undoing login and clears after recovery',async()=>{
+ CONFIG.dataDir=path.join(tmp,'unwritable-audit');fs.writeFileSync(CONFIG.dataDir,'not a folder');try{const a=await login('ada',ADMIN_PW);const d=await request('GET','/api/security',a);assert.match(d.json.auditError,/History could not/);fs.unlinkSync(CONFIG.dataDir);await login('ada',ADMIN_PW);assert.equal((await request('GET','/api/security',a)).json.auditError,null);}finally{CONFIG.dataDir=undefined;}
+});
