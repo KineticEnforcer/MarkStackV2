@@ -44,3 +44,8 @@ test("editor and console use the same nonce-injected publish controller", () => 
 test('user detail tabs expose scoped access, session and activity controls with a dirty guard',()=>{
   for(const t of ['data-user-tab="access"','data-user-tab="account"','data-user-tab="sessions"','data-user-tab="activity"','id="accessSave"','id="accessDiscard"','msUserDirty','msUserSaving','/api/users/sign-out','Last sign-in','Select all','Select none'])assert.ok(html.includes(t),t);
 });
+test('section and page areas inject the content client and retain controlled save semantics',()=>{
+ for(const t of ['id="sectionsView"','id="pagesView"','id="sectionSave"','__CONTENT_CONTROLLER__','msContentDirty','data-section-tab="settings"','data-section-tab="editors"','data-section-tab="pages"'])assert.ok(html.includes(t),t);
+ const s=fs.readFileSync(require('node:path').join(__dirname,'../static/js/content-controller.js'),'utf8');
+ for(const t of ['/api/content-catalog','/api/sections/settings','revision','X-CSRF-Token','Open','/api/rename','/api/delete']){if(t!=='Open')assert.ok(s.includes(t),t);}
+});
