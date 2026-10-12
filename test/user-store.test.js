@@ -105,3 +105,19 @@ test('password, section and disabled changes raise authVersion', async () => {
     assert.ok(v0 < v1 && v1 < v2 && v2 < v3);
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
+
+test('successful sign-in time is persisted without changing access version; revocation bumps version', async () => {
+  const { dir, file, store } = tmpStore();
+  try {
+    await store.create({ name: 'qa-temp', role: 'editor', password: 'a long editor password' });
+    assert.equal(store.get('qa-temp').lastLoginAt, null);
+    store.recordLogin('qa-temp', 0);
+    const again = new UserStore(file, { hashOpts: fast });
+    assert.ok(Date.parse(again.get('qa-temp').lastLoginAt));
+    assert.equal(again.get('qa-temp').authVersion, 0);
+    again.revokeSessions('qa-temp');
+    assert.equal(store.get('qa-temp').authVersion, 1);
+    assert.throws(() => store.recordLogin('qa-temp', 0), /changed during sign-in/);
+    assert.equal(fs.statSync(file).mode & 0o777, 0o600);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
