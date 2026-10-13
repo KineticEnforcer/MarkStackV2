@@ -157,7 +157,8 @@ The page title also becomes its web address, so renaming a title can break links
 | Search | Page and heading results, runs in the browser |
 | Themes | Light and dark, remembered per browser |
 | Code and tables | Syntax highlighting, copy buttons |
-| Diagrams | Mermaid diagrams in the browser |
+| Diagrams | Mermaid diagrams in the browser, centered in the article column |
+| Layout | Text, code, tables and screenshots share the full article column width |
 | Phones | Responsive layout |
 
 <details>

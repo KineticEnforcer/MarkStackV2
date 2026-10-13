@@ -1003,6 +1003,9 @@ body.sidebar-collapsed .sidebar-collapse-toggle .collapse-icon {
    Images
    ============================================ */
 .article img {
+  display: block;
+  width: 100%;
+  height: auto;
   border-radius: var(--border-radius);
   border: 1px solid var(--color-border);
 }
@@ -1427,7 +1430,7 @@ html.mobile-menu-open .mobile-overlay {
 /* Homepage: the site title is an ordinary page header, no banner */
 .homepage-hero { text-align: left; padding: 0 0 var(--space-md); margin-bottom: var(--space-lg); border-bottom: 1px solid var(--color-border); }
 .homepage-hero h1 { font-size: var(--font-size-3xl); line-height: 1.2; margin-bottom: var(--space-xs); }
-.homepage-hero p { font-size: var(--font-size-base); max-width: var(--measure); margin: 0; }
+.homepage-hero p { font-size: var(--font-size-base); max-width: none; margin: 0; }
 .error-page { padding: var(--space-xl) 0; }
 .error-page h1 { font-size: 3rem; }
 
@@ -1448,8 +1451,10 @@ html.mobile-menu-open .mobile-overlay {
 .article h2 { font-size: var(--font-size-2xl); border-bottom: 0; padding-bottom: 0; margin-top: var(--space-xl); }
 .article h3 { font-size: var(--font-size-lg); }
 
-/* Paragraphs keep a readable measure; blocks use the whole article column */
-.article p, .article ul, .article ol { max-width: var(--measure); }
+/* Reading text is 17px; navigation and editor controls keep their sizes */
+.article, .homepage-hero p { font-size: 1.0625rem; }
+/* Text, code, tables and images all use the whole article column */
+.article p, .article ul, .article ol { max-width: none; }
 .article pre, .article table, .article blockquote, .article .code-block-wrapper, .article .prev-next { max-width: none; }
 .article table { display: table; width: 100%; border: 1px solid var(--color-border); }
 .article th { background-color: var(--color-bg-secondary); }
@@ -1649,3 +1654,8 @@ body.sidebar-collapsed .sidebar-collapse-toggle {
 
 /* Very long words (no spaces) in headings wrap instead of widening the page or the rail */
 .article h1, .article h2, .article h3, .article h4, .article h5, .article h6, .toc-item a { overflow-wrap: anywhere; }
+
+
+/* Mermaid diagrams are centered and never overflow the column */
+.article pre.mermaid { display: flex; justify-content: center; background: transparent; border: 0; padding: var(--space-md) 0; }
+.article pre.mermaid svg { max-width: 100%; height: auto; }
